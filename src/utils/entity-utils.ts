@@ -11,6 +11,7 @@ export type EntityQueryMeta = {
   only?: string[];
   page?: number;
   perPage?: number;
+  sortBy?: string[];
   hasMeta: boolean;
 };
 export type EntityQuery = {
@@ -26,6 +27,56 @@ export const isTypePathCorrect = (envEntities: string[], xpath: string) => {
 
 export const getOnlyArrayFromQuery = (only: string[] | undefined) => {
   return Array.isArray(only) ? only.join(",") : only;
+};
+
+export const getAggregateQuery = ({
+  xpath,
+  modelFilters,
+  metaFilters,
+}: {
+  xpath: string;
+  modelFilters: Record<string, unknown>;
+  metaFilters?: EntityQueryMeta;
+}) => {
+  const [appName, envName] = R.take(2, xpath.split("/"));
+  const xpathEntitySegments = getXpathSegments(xpath) as string[];
+  const parentId =
+    xpathEntitySegments.length > 1 ? R.nth(-2, xpathEntitySegments) : null;
+  const ancestors = xpathEntitySegments.filter((_, i) => i % 2 === 1);
+  const entityTypes = xpathEntitySegments.filter((_, i) => i % 2 === 0);
+  const pagiQuery = getPaginationDbQuery({
+    page: metaFilters?.page,
+    perPage: metaFilters?.perPage,
+  });
+  const sortQuery = getSortDbQuery(metaFilters?.sortBy);
+  const stage2 = [sortQuery, ...pagiQuery].filter(R.pipe(R.isEmpty, R.not));
+  return [
+    {
+      $match: {
+        ancestors: parentId === null ? [] : ancestors,
+        type: {
+          $regex: new RegExp(
+            `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`
+          ),
+        },
+        ...modelFilters,
+      },
+    },
+    {
+      $facet: {
+        stage1: [{ $group: { _id: 0, count: { $sum: 1 } } }],
+        stage2,
+      },
+    },
+    { $unwind: "$stage1" },
+    {
+      $project: {
+        _id: 0,
+        totalCount: "$stage1.count",
+        entities: "$stage2",
+      },
+    },
+  ];
 };
 
 export const getPaginationDbQuery = ({
@@ -47,54 +98,6 @@ export const getPaginationDbQuery = ({
   return [{ $skip: paginationOffset }, { $limit: paginationLimit }];
 };
 
-export const getAggregateQuery = ({
-  xpath,
-  modelFilters,
-  metaFilters,
-}: {
-  xpath: string;
-  modelFilters: Record<string, unknown>;
-  metaFilters?: EntityQueryMeta;
-}) => {
-  const [appName, envName] = R.take(2, xpath.split("/"));
-  const xpathEntitySegments = getXpathSegments(xpath) as string[];
-  const parentId =
-    xpathEntitySegments.length > 1 ? R.nth(-2, xpathEntitySegments) : null;
-  const ancestors = xpathEntitySegments.filter((_, i) => i % 2 === 1);
-  const entityTypes = xpathEntitySegments.filter((_, i) => i % 2 === 0);
-  const pagiProps = getPaginationDbQuery({
-    page: metaFilters?.page,
-    perPage: metaFilters?.perPage,
-  });
-  return [
-    {
-      $match: {
-        ancestors: parentId === null ? [] : ancestors,
-        type: {
-          $regex: new RegExp(
-            `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`
-          ),
-        },
-        ...modelFilters,
-      },
-    },
-    {
-      $facet: {
-        stage1: [{ $group: { _id: 0, count: { $sum: 1 } } }],
-        stage2: [{ $sort: { "model.foo": 1 } }, ...pagiProps],
-      },
-    },
-    { $unwind: "$stage1" },
-    {
-      $project: {
-        _id: 0,
-        totalCount: "$stage1.count",
-        entities: "$stage2",
-      },
-    },
-  ];
-};
-
 export const entityMetaResponse = ({
   hasMeta,
   xpath,
@@ -113,21 +116,31 @@ export const entityMetaResponse = ({
     : undefined;
 };
 
-export const propFiltersToModelFilters = (
-  propFilters: Record<string, unknown>
-) => {
+export const toModelFilters = (filters: Record<string, unknown>) => {
   // {
   //   "foo": "bar" -> "model.foo": "bar"
   //   "baz": "bux" -> "model.baz": "bux"
   // }
-  const propFiltersKeys = R.keys(propFilters);
-  const modelFilters = propFiltersKeys
+  const filtersKeys = R.keys(filters);
+  const modelFilters = filtersKeys
     .map((k: string) => {
-      return { [`model.${k}`]: propFilters[k] };
+      return { [`model.${k}`]: filters[k] };
     })
     .reduce((acc, cur) => {
       acc[R.keys(cur)[0]] = R.values(cur)[0];
       return acc;
     }, {});
   return modelFilters;
+};
+
+const getSortDbQuery = (sortQuery: string[] | undefined) => {
+  const initObj: Record<string, unknown> = {};
+  if (!sortQuery) {
+    return initObj;
+  }
+  const sort = sortQuery.reduce((acc, cur) => {
+    acc[`model.${cur}`] = 1;
+    return acc;
+  }, initObj);
+  return { $sort: sort };
 };
