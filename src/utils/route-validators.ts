@@ -34,7 +34,7 @@ export const entityQueryValidator = () =>
     if (!parsed.success) {
       return c.text("Invalid query", 400);
     }
-    const entityQuery = {
+    const entityQuery: EntityQuery = {
       meta: {
         only: parsed.data.__only,
         page: parsed.data.__page,
@@ -42,7 +42,7 @@ export const entityQueryValidator = () =>
         sortBy: parsed.data.__sort_by,
         hasMeta: !parsed.data.__no_meta,
       },
-    } as EntityQuery;
+    };
     const result = { ...entityQuery, props: { ...objProps } };
     return result;
   });

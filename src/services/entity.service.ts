@@ -9,7 +9,7 @@ import {
   getAggregateQuery,
   getXpathSegments,
   isTypePathCorrect,
-  propFiltersToModelFilters,
+  toModelFilters,
   type EntityQueryMeta,
 } from "../utils/entity-utils";
 import { ServiceError } from "../utils/service-errors";
@@ -24,7 +24,7 @@ export const getEntities = async ({
   propFilters: Record<string, unknown>;
   metaFilters: EntityQueryMeta;
 }) => {
-  const modelFilters = propFiltersToModelFilters(propFilters);
+  const modelFilters = toModelFilters(propFilters);
   const aggregateQuery = getAggregateQuery({
     modelFilters,
     metaFilters,

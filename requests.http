@@ -1,7 +1,7 @@
-@bearer=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Impha2ljbWVpc3RlckBnbWFpbC5jb20iLCJwcmltYXJ5Ijp0cnVlLCJ2ZXJpZmllZCI6dHJ1ZSwidmlzaWJpbGl0eSI6InB1YmxpYyJ9.ZWvdQWJ2c3guHzdws5FQ21hdfKsRsXnrAvrnoVRtog8
-@url=http://localhost:3000
-@app=parliamentary-magenta-warbler
-@env=dev
+@bearer=
+@url=
+@app=
+@env=
 
 ### Get all apps
 {{url}}/apps/all
@@ -77,22 +77,12 @@ Authorization: {{bearer}}
   &numbr=5
 Authorization: {{bearer}}
 
+### Get entities __sort_by
+{{url}}/apps/{{app}}/{{env}}/my-objects
+  ?__sort_by=prop1,prop2
+Authorization: {{bearer}}
+
 ### Get entities __only
 {{url}}/apps/{{app}}/{{env}}/my-objects
-  ?__only=foo,numbr
+  ?__only=prop1,prop2
 Authorization: {{bearer}}
-
-### Get entities __no_meta
-{{url}}/apps/{{app}}/{{env}}/my-objects
-  ?foo=bar
-
-Authorization: {{bearer}}
-
-
-###
-
-
-POST {{url}}/apps/{{app}}/{{env}}/vectorsearch
-Authorization: {{bearer}}
-
-{ "query": "What is the rent in ... street?" }
