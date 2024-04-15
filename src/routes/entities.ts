@@ -13,7 +13,7 @@ import {
 } from "../utils/entity-utils";
 import { asyncTryJson } from "../utils/route-utils";
 import { entityQueryValidator } from "../utils/route-validators";
-import { ServiceError } from "../utils/service-errors";
+import { RoutingError, ServiceError } from "../utils/service-errors";
 
 const app = new Hono();
 
@@ -62,16 +62,29 @@ app.post("/*", async (c) => {
     });
   }
   try {
+    const pathRest = R.replace(
+      `/apps/${appName}/${envName}/${entityName}`,
+      "",
+      c.req.path
+    );
+    const pathRestSegments = R.split("/", pathRest).filter(
+      (p) => !R.isEmpty(p)
+    );
+    const isSubentityPath = pathRestSegments.length % 2 === 0;
+    if (!isSubentityPath) {
+      throw new RoutingError(httpError.ENTITY_PATH_CREATION);
+    }
     const ids = await createOrOverwriteEntities({
       appName,
       envName,
       entityName,
+      restSegments: pathRestSegments,
       bodyEntities: body,
     });
     return c.json({ ids });
   } catch (e) {
     console.log(e);
-    if (e instanceof ServiceError) {
+    if (e instanceof ServiceError || e instanceof RoutingError) {
       throw new HTTPException(400, {
         message: e.explicitMessage,
       });

@@ -57,14 +57,20 @@ Authorization: {{bearer}}
 
 { "envName": "dev", "description": "This is development environment for my app" }
 
-### Create subentity
+### Create entity
 POST {{url}}/apps/{{app}}/{{env}}/my-objects
 Authorization: {{bearer}}
 
-[{ "foo": "bux", "numbr": 73 }]
+[{ "foo": "bar", "numbr": 101 }]
+
+### Create subentity
+POST {{url}}/apps/{{app}}/{{env}}/my-objects/:id/my-subentity
+Authorization: {{bearer}}
+
+[{ "foo": "bar", "numbr": 101 }]
 
 ### Get single entity
-{{url}}/apps/{{app}}/{{env}}/my-objects/k3i3d13y
+{{url}}/apps/{{app}}/{{env}}/my-objects/:id
 Authorization: {{bearer}}
 
 ### Get entities

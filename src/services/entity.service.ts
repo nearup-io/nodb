@@ -42,14 +42,18 @@ export const createOrOverwriteEntities = async ({
   appName,
   envName,
   entityName,
+  restSegments,
   bodyEntities,
 }: {
   appName: string;
   envName: string;
   entityName: string;
+  restSegments: string[];
   bodyEntities: Omit<IEntity, "id">[];
 }) => {
-  const xpath = `${appName}/${envName}/${entityName}`;
+  const xpath = R.isEmpty(restSegments)
+    ? `${appName}/${envName}/${entityName}`
+    : `${appName}/${envName}/${entityName}/${restSegments.join("/")}`;
   const environment = (await findEnvironment({
     appName,
     envName,
@@ -67,7 +71,7 @@ export const createOrOverwriteEntities = async ({
       id: parentIdFromXpath,
     });
     if (!entityChecker) {
-      throw new ServiceError(httpError.ENV_DOESNT_EXISTS);
+      throw new ServiceError(httpError.PARENT_DOESNT_EXISTS);
     }
     const isPathOk = environment.entities
       ? isTypePathCorrect(environment.entities, xpathEntitySegments.join("/"))
