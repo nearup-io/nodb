@@ -1,4 +1,4 @@
-import mongoose, { Mongoose } from "mongoose";
+import mongoose, { type Mongoose } from "mongoose";
 
 const mongodbUrl = Bun.env.MONGODB_URL;
 if (!mongodbUrl) {
@@ -7,19 +7,44 @@ if (!mongodbUrl) {
 }
 
 declare global {
-  var mongoconnect: Mongoose | null;
+  var dbconn: Mongoose | null;
 }
 
-globalThis.mongoconnect ??= null;
-const mongoconnect = async () => {
-  console.log("Closing Mongoose...");
-  await mongoose.connection.close();
-  console.log("Connecting to Mongoose...");
-  await mongoose.connect(mongodbUrl, {
-    maxPoolSize: 2,
-    autoIndex: false,
-  });
-  console.info("Connected to Mongoose");
+const mongoconnect: () => Promise<void> = async () => {
+  const { MAX_POOL_SIZE } = Bun.env;
+  try {
+    console.log("Connecting to database...");
+    if (globalThis.dbconn) {
+      // close on "hot reload": bun --hot, or bun --watch
+      await mongoose.connection.close();
+    }
+    globalThis.dbconn = await mongoose.connect(mongodbUrl, {
+      maxPoolSize: MAX_POOL_SIZE ? parseInt(MAX_POOL_SIZE, 10) : 2,
+      autoIndex: false,
+    });
+    console.log("Connected!");
+    if (globalThis.dbconn) {
+      console.log(
+        `Number of connections: ${globalThis.dbconn.connections.length}`
+      );
+    }
+  } catch (e) {
+    console.log(e);
+    await Bun.sleep(3000);
+    return await mongoconnect();
+  }
 };
+
+process.on("SIGINT", async () => {
+  if (globalThis.dbconn) {
+    try {
+      await mongoose.connection.close();
+      console.log("Database connection closed.");
+    } catch (e) {
+      console.error("Failed closing connection.", e);
+    }
+  }
+  process.exit(0);
+});
 
 export default mongoconnect;
