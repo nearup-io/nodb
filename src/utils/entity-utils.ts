@@ -7,11 +7,14 @@ export type EntityReqParams = {
   envName: string;
   entityName: string;
 };
+
+export type Order = "desc" | "asc";
+export type SortBy = { name: string; order: Order };
 export type EntityQueryMeta = {
   only?: string[];
   page?: number;
   perPage?: number;
-  sortBy?: string[];
+  sortBy: SortBy[];
   hasMeta: boolean;
 };
 export type EntityQuery = {
@@ -56,7 +59,7 @@ export const getAggregateQuery = ({
         ancestors: parentId === null ? [] : ancestors,
         type: {
           $regex: new RegExp(
-            `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`
+            `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`,
           ),
         },
         ...modelFilters,
@@ -133,14 +136,22 @@ export const toModelFilters = (filters: Record<string, unknown>) => {
   return modelFilters;
 };
 
-const getSortDbQuery = (sortQuery: string[] | undefined) => {
-  const initObj: Record<string, unknown> = {};
-  if (!sortQuery) {
+const getSortDbQuery = (
+  sortBy: SortBy[] | undefined,
+): {} | { $sort: Record<string, 1 | -1> } => {
+  const initObj: Record<string, 1 | -1> = {};
+
+  if (!sortBy || R.isEmpty(sortBy)) {
     return initObj;
   }
-  const sort = sortQuery.reduce((acc, cur) => {
-    acc[`model.${cur}`] = 1;
+
+  const sort = sortBy.reduce((acc, cur) => {
+    if (!acc[`model.${cur.name}`]) {
+      acc[`model.${cur.name}`] = cur.order === "asc" ? 1 : -1;
+    }
+
     return acc;
   }, initObj);
+
   return { $sort: sort };
 };
