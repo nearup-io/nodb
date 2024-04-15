@@ -80,6 +80,7 @@ Authorization: {{bearer}}
 ### Get entities __sort_by
 {{url}}/apps/{{app}}/{{env}}/my-objects
   ?__sort_by=prop1,prop2
+  &__sort_by_desc=prop3,prop4
 Authorization: {{bearer}}
 
 ### Get entities __only
