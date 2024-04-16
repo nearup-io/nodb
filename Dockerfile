@@ -1,11 +1,11 @@
-FROM oven/bun:1
+FROM oven/bun:latest
 
-WORKDIR /src
-COPY package.json bun.lockb /src/
+WORKDIR /usr/src/app
+
+COPY package*.json bun.lockb ./
 RUN bun install --frozen-lockfile
+COPY . .
 
-COPY . /src
+ENV NODE_ENV production
 
-USER bun
-EXPOSE 3000/tcp
-ENTRYPOINT [ "bun", "run", "app.ts" ]
+CMD ["bun", "run", "app.ts"]
