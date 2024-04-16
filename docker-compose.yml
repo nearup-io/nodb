@@ -1,0 +1,32 @@
+version: '3.9'
+services:
+  nodb-app:
+    build: .
+    image: nodb-app
+    ports:
+      - 3000:3000
+    depends_on:
+      - mongodb
+    volumes:
+      - .:/src
+    networks:
+      - nodb-network
+
+  mongodb:
+    image: mongo
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 12345
+    volumes:
+      - nodb:/data/db
+    networks:
+      - nodb-network
+
+volumes:
+  nodb:
+
+networks:
+  nodb-network:
+    driver: bridge
