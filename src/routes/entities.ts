@@ -1,5 +1,6 @@
-import { Hono } from "hono";
+import { Hono, type Env } from "hono";
 import { HTTPException } from "hono/http-exception";
+import type { BlankSchema } from "hono/types";
 import * as R from "ramda";
 import type { IEntity } from "../models/entity.model";
 import {
@@ -7,18 +8,15 @@ import {
   getEntities,
 } from "../services/entity.service";
 import { httpError } from "../utils/const";
-import {
-  entityMetaResponse,
-  type EntityReqParams,
-} from "../utils/entity-utils";
+import { entityMetaResponse } from "../utils/entity-utils";
 import { asyncTryJson } from "../utils/route-utils";
 import { entityQueryValidator } from "../utils/route-validators";
 import { ServiceError } from "../utils/service-errors";
 
-const app = new Hono();
+const app = new Hono<Env, BlankSchema, "/:appName/:envName/:entityName">();
 
 app.get("/*", entityQueryValidator(), async (c) => {
-  const { appName, envName, entityName } = c.req.param() as EntityReqParams;
+  const { appName, envName, entityName } = c.req.param();
   const q = c.req.valid("query");
   const xpath = `${appName}/${envName}/${entityName}`;
   const xpathSegments = c.req.path.split("/").filter((x) => x);

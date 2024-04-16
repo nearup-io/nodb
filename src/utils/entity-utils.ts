@@ -1,13 +1,10 @@
 import * as R from "ramda";
+import Entity from "../models/entity.model";
+import { httpError } from "./const";
+import { ServiceError } from "./service-errors";
 
 export const dropAppnameEnvname = R.drop(2);
 export const getXpathSegments = R.pipe(R.split("/"), dropAppnameEnvname);
-export type EntityReqParams = {
-  appName: string;
-  envName: string;
-  entityName: string;
-};
-
 export type Order = "desc" | "asc";
 export type SortBy = { name: string; order: Order };
 export type EntityQueryMeta = {
@@ -154,4 +151,13 @@ const getSortDbQuery = (
   }, initObj);
 
   return { $sort: sort };
+};
+
+export const throwIfNoParent = async (parentId: string) => {
+  const parent = await Entity.findOne({
+    id: parentId,
+  });
+  if (!parent) {
+    throw new ServiceError(httpError.ENTITY_NO_PARENT);
+  }
 };
