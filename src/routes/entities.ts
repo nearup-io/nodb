@@ -53,6 +53,7 @@ app.post("/*", async (c) => {
     envName: string;
     entityName: string;
   };
+  // TODO: validate
   const body = (await asyncTryJson(c.req.json())) as Omit<IEntity, "id">[];
   if (!Array.isArray(body)) {
     throw new HTTPException(400, {

@@ -1,13 +1,18 @@
 import { HTTPException } from "hono/http-exception";
 import { ObjectId } from "mongodb";
+import mongoose from "mongoose";
 import * as R from "ramda";
-import ApplicationModel from "../models/application.model";
+import ApplicationModel, {
+  type Application,
+} from "../models/application.model";
+import EntityModel from "../models/entity.model";
 import EnvironmentModel, {
   type Environment,
 } from "../models/environment.model";
 import User from "../models/user.model";
 import generateToken from "../utils/backend-token";
-import { Permissions } from "../utils/const";
+import { Permissions, httpError } from "../utils/const";
+import { ServiceError } from "../utils/service-errors";
 
 export const getApplication = async ({
   appName,
@@ -69,27 +74,29 @@ export const getApplication = async ({
 };
 
 const getEnvironmentsByAppName = async (appName: string) => {
-  const applicationEnvironments = (await ApplicationModel.aggregate([
-    { $match: { name: appName } },
-    {
-      $lookup: {
-        from: "environments",
-        localField: "environments",
-        foreignField: "_id",
-        as: "environments",
+  const applicationEnvironments = await ApplicationModel.aggregate<Environment>(
+    [
+      { $match: { name: appName } },
+      {
+        $lookup: {
+          from: "environments",
+          localField: "environments",
+          foreignField: "_id",
+          as: "environments",
+        },
       },
-    },
-    { $unwind: "$environments" },
-    {
-      $project: {
-        name: "$environments.name",
-        tokens: "$environments.tokens",
-        entities: "$environments.entities",
-        description: "$environments.description",
-        _id: "$environments._id",
+      { $unwind: "$environments" },
+      {
+        $project: {
+          name: "$environments.name",
+          tokens: "$environments.tokens",
+          entities: "$environments.entities",
+          description: "$environments.description",
+          _id: "$environments._id",
+        },
       },
-    },
-  ])) as Environment[];
+    ]
+  );
   return applicationEnvironments;
 };
 
@@ -213,32 +220,6 @@ export const updateApplication = async (props: {
       { email: props.userEmail, applications: props.oldAppName },
       { $set: { "applications.$": props.newAppName } }
     );
-    // await Entity.updateMany({ type: { $regex: `${oldAppName}/` } }, [
-    //   {
-    //     $set: {
-    //       type: {
-    //         $replaceOne: {
-    //           input: "$type",
-    //           find: `${oldAppName}/`,
-    //           replacement: `${newAppName}/`,
-    //         },
-    //       },
-    //     },
-    //   },
-    // ]);
-    // await Configs.updateMany({ xid: { $regex: `${oldAppName}/` } }, [
-    //   {
-    //     $set: {
-    //       xid: {
-    //         $replaceOne: {
-    //           input: "$xid",
-    //           find: `${oldAppName}/`,
-    //           replacement: `${newAppName}/`,
-    //         },
-    //       },
-    //     },
-    //   },
-    // ]);
   }
   return doc;
 };
@@ -251,17 +232,39 @@ export const deleteApplication = async ({
   userEmail: string;
 }) => {
   const envs = await getEnvironmentsByAppName(appName);
-  const app = await ApplicationModel.findOneAndDelete({ name: appName });
-  await EnvironmentModel.deleteMany({
-    _id: { $in: envs.map((e: Environment) => e._id) },
-  });
-  await User.findOneAndUpdate(
-    { email: userEmail },
-    {
-      $pull: { applications: appName },
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const app = await ApplicationModel.findOneAndDelete<Application>(
+      { name: appName },
+      { session }
+    );
+    if (app && app._id) {
+      await EnvironmentModel.deleteMany(
+        {
+          _id: { $in: envs.map((e) => e._id) },
+        },
+        { session }
+      );
+      await User.findOneAndUpdate(
+        { email: userEmail },
+        {
+          $pull: { applications: appName },
+        },
+        { session }
+      );
+      await EntityModel.deleteMany(
+        { type: { $regex: `^${appName}/` } },
+        { session }
+      );
+      await session.commitTransaction();
     }
-  );
-  // await Entity.deleteMany({ type: { $regex: `^${appName}/` } });
-  // await Configs.deleteMany({ xid: { $regex: `^${appName}/` } });
-  return { app };
+    return app;
+  } catch (e) {
+    console.error("Error deleting application", e);
+    await session.abortTransaction();
+    throw new ServiceError(httpError.APP_CANT_DELETE);
+  } finally {
+    await session.endSession();
+  }
 };

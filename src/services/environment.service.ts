@@ -1,5 +1,7 @@
+import mongoose from "mongoose";
 import * as R from "ramda";
 import ApplicationModel from "../models/application.model";
+import EntityModel from "../models/entity.model";
 import EnvironmentModel, {
   type Environment,
 } from "../models/environment.model";
@@ -107,21 +109,37 @@ export const deleteEnvironment = async ({
   appName: string;
   envName: string;
 }) => {
-  const environment = (await findEnvironment({
+  const environment = await findEnvironment({
     appName,
     envName,
-  })) as Environment;
+  });
   if (!environment.name) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  await EnvironmentModel.findByIdAndDelete(environment._id);
-  await ApplicationModel.findOneAndUpdate(
-    { name: appName },
-    {
-      $pull: { environments: environment._id },
-    }
-  );
-  return environment;
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    await EntityModel.deleteMany(
+      { type: { $regex: `${appName}/${envName}/` } },
+      { session }
+    );
+    await EnvironmentModel.findByIdAndDelete(environment._id, { session });
+    await ApplicationModel.findOneAndUpdate(
+      { name: appName },
+      {
+        $pull: { environments: environment._id },
+      },
+      { session }
+    );
+    await session.commitTransaction()
+    return environment;
+  } catch (e) {
+    console.error("Error deleting environment", e);
+    await session.abortTransaction();
+    throw new ServiceError(httpError.ENV_CANT_DELETE);
+  } finally {
+    await session.endSession();
+  }
 };
 
 export const updateEnvironment = async ({
