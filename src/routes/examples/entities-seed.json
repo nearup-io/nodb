@@ -1,0 +1,7 @@
+[
+  { "foo": "bar", "numbr": 100 },
+  { "foo": "bar", "numbr": 90 },
+  { "foo": "baz", "numbr": 80 },
+  { "foo": "baz", "numbr": 70 },
+  { "foo": "baz", "numbr": 60 }
+]
