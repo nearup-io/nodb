@@ -1,14 +1,13 @@
 import * as R from "ramda";
 import EntityModel, { type IEntity } from "../models/entity.model";
-import EnvironmentModel, {
-  type Environment,
-} from "../models/environment.model";
+import EnvironmentModel from "../models/environment.model";
 import generateToken from "../utils/backend-token";
 import { httpError } from "../utils/const";
 import {
   getAggregateQuery,
   getXpathSegments,
   isTypePathCorrect,
+  throwIfNoParent,
   toModelFilters,
   type EntityQueryMeta,
 } from "../utils/entity-utils";
@@ -54,25 +53,23 @@ export const createOrOverwriteEntities = async ({
   const xpath = R.isEmpty(restSegments)
     ? `${appName}/${envName}/${entityName}`
     : `${appName}/${envName}/${entityName}/${restSegments.join("/")}`;
-  const environment = (await findEnvironment({
+  const environment = await findEnvironment({
     appName,
     envName,
-  })) as Environment;
+  });
+  if (!environment) {
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
+  }
   const xpathEntitySegments = getXpathSegments(xpath) as string[];
   const parentIdFromXpath = R.nth(-2, xpathEntitySegments);
   const entityTypes = xpathEntitySegments.filter(
     (_: any, i: number) => i % 2 === 0
   );
   const ancestors = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 1
+    (_: any, i: number) => i % 2 !== 0
   );
-  if (xpathEntitySegments.length > 1) {
-    const entityChecker = await EntityModel.findOne({
-      id: parentIdFromXpath,
-    });
-    if (!entityChecker) {
-      throw new ServiceError(httpError.PARENT_DOESNT_EXISTS);
-    }
+  if (xpathEntitySegments.length > 1 && parentIdFromXpath) {
+    throwIfNoParent(parentIdFromXpath)
     const isPathOk = environment.entities
       ? isTypePathCorrect(environment.entities, xpathEntitySegments.join("/"))
       : true;
@@ -82,9 +79,8 @@ export const createOrOverwriteEntities = async ({
   }
   const entitiesToBeInserted = bodyEntities.map((entity) => {
     const id = generateToken(8);
-    const modelAttrs = { ...entity };
     return {
-      model: modelAttrs,
+      model: { ...entity },
       id,
       type: `${appName}/${envName}/${entityTypes.join("/")}`,
       ancestors,

@@ -1,12 +1,10 @@
 import * as R from "ramda";
+import Entity from "../models/entity.model";
+import { httpError } from "./const";
+import { ServiceError } from "./service-errors";
 
 export const dropAppnameEnvname = R.drop(2);
 export const getXpathSegments = R.pipe(R.split("/"), dropAppnameEnvname);
-export type EntityReqParams = {
-  appName: string;
-  envName: string;
-  entityName: string;
-};
 export type EntityQueryMeta = {
   only?: string[];
   page?: number;
@@ -143,4 +141,13 @@ const getSortDbQuery = (sortQuery: string[] | undefined) => {
     return acc;
   }, initObj);
   return { $sort: sort };
+};
+
+export const throwIfNoParent = async (parentId: string) => {
+  const parent = await Entity.findOne({
+    id: parentId,
+  });
+  if (!parent) {
+    throw new ServiceError(httpError.ENTITY_NO_PARENT);
+  }
 };
