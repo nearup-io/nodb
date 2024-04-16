@@ -5,11 +5,6 @@ import { ServiceError } from "./service-errors";
 
 export const dropAppnameEnvname = R.drop(2);
 export const getXpathSegments = R.pipe(R.split("/"), dropAppnameEnvname);
-export type EntityReqParams = {
-  appName: string;
-  envName: string;
-  entityName: string;
-};
 export type EntityQueryMeta = {
   only?: string[];
   page?: number;
