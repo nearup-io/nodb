@@ -50,7 +50,7 @@ export const entityQueryValidator = () => {
         sortBy: R.keys(value)
           .filter((key) => key.startsWith("__sort_by"))
           .flatMap((key) => {
-            if (key.includes("_desc")) {
+            if (key === "__sort_by_desc") {
               return (
                 parsed.data.__sort_by_desc?.map((data) => ({
                   name: data,
