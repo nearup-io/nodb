@@ -41,14 +41,18 @@ export const createOrOverwriteEntities = async ({
   appName,
   envName,
   entityName,
+  restSegments,
   bodyEntities,
 }: {
   appName: string;
   envName: string;
   entityName: string;
+  restSegments: string[];
   bodyEntities: Omit<IEntity, "id">[];
 }) => {
-  const xpath = `${appName}/${envName}/${entityName}`;
+  const xpath = R.isEmpty(restSegments)
+    ? `${appName}/${envName}/${entityName}`
+    : `${appName}/${envName}/${entityName}/${restSegments.join("/")}`;
   const environment = await findEnvironment({
     appName,
     envName,
