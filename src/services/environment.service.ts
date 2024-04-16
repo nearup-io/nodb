@@ -39,33 +39,34 @@ export const findEnvironment = async ({
   envName: string;
   appName: string;
 }) => {
-  const applicationEnvironments = await ApplicationModel.aggregate([
-    {
-      $match: { name: appName },
-    },
-    {
-      $lookup: {
-        from: "environments",
-        localField: "environments",
-        foreignField: "_id",
-        as: "environments",
+  const applicationEnvironments = await ApplicationModel.aggregate<Environment>(
+    [
+      {
+        $match: { name: appName },
       },
-    },
-    { $unwind: "$environments" },
-    {
-      $match: { "environments.name": envName },
-    },
-    {
-      $project: {
-        name: "$environments.name",
-        tokens: "$environments.tokens",
-        entities: "$environments.entities",
-        description: "$environments.description",
-        _id: "$environments._id",
+      {
+        $lookup: {
+          from: "environments",
+          localField: "environments",
+          foreignField: "_id",
+          as: "environments",
+        },
       },
-    },
-  ]);
-  return { ...R.omit(["entities"], applicationEnvironments[0]) };
+      { $unwind: "$environments" },
+      {
+        $match: { "environments.name": envName },
+      },
+      {
+        $project: {
+          name: "$environments.name",
+          tokens: "$environments.tokens",
+          description: "$environments.description",
+          _id: "$environments._id",
+        },
+      },
+    ]
+  );
+  return applicationEnvironments[0];
 };
 
 export const createEnvironment = async ({
@@ -111,7 +112,7 @@ export const deleteEnvironment = async ({
     envName,
   })) as Environment;
   if (!environment.name) {
-    throw new ServiceError(httpError.ENV_DOESNT_EXISTS);
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
   await EnvironmentModel.findByIdAndDelete(environment._id);
   await ApplicationModel.findOneAndUpdate(
@@ -139,7 +140,7 @@ export const updateEnvironment = async ({
     envName: oldEnvName,
   })) as Environment;
   if (!environment.name) {
-    throw new ServiceError(httpError.ENV_DOESNT_EXISTS);
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
   const newEnvironment = (await findEnvironment({
     appName,

@@ -105,7 +105,7 @@ app.delete("/", async (c) => {
     return c.json({ found: true });
   } catch (e) {
     if (e instanceof ServiceError) {
-      if (e.explicitMessage === httpError.ENV_DOESNT_EXISTS)
+      if (e.explicitMessage === httpError.ENV_DOESNT_EXIST)
         return c.json({ found: false });
       else
         throw new HTTPException(400, {
