@@ -25,7 +25,7 @@ const mongoconnect: () => Promise<void> = async () => {
     console.log("Connected!");
     if (globalThis.dbconn) {
       console.log(
-        `Number of connections: ${globalThis.dbconn.connections.length}`
+        `Number of connections: ${globalThis.dbconn.connections.length}`,
       );
     }
   } catch (e) {

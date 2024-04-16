@@ -1,0 +1,50 @@
+{
+  "todo_lists": [
+    {
+      "name": "Personal Tasks",
+      "tasks": [
+        {
+          "task": "Call mom",
+          "priority": "Low",
+          "completion_date": "2024-04-17",
+          "completed": false
+        },
+        {
+          "task": "Go for a run",
+          "priority": "Low",
+          "completion_date": "2024-04-15",
+          "completed": true
+        }
+      ]
+    },
+    {
+      "name": "Work Tasks",
+      "tasks": [
+        {
+          "task": "Finish report",
+          "priority": "Medium",
+          "completion_date": "2024-04-25",
+          "completed": false
+        },
+        {
+          "task": "Pay bills",
+          "priority": "High",
+          "completion_date": "2024-04-18",
+          "completed": false
+        },
+        {
+          "task": "Buy groceries",
+          "priority": "High",
+          "completion_date": "2024-04-20",
+          "completed": false
+        },
+        {
+          "task": "Read book",
+          "priority": "Medium",
+          "completion_date": "2024-04-25",
+          "completed": false
+        }
+      ]
+    }
+  ]
+}
