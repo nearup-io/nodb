@@ -47,7 +47,6 @@ app.get("/*", entityQueryValidator(), async (c) => {
   } else {
     const entity = await getSingleEntity({
       xPath: c.req.param(),
-      propFilters: q.props,
       metaFilters: q.meta,
       entityId: R.last(xpathSegments)!,
     });
@@ -71,10 +70,10 @@ app.post("/*", async (c) => {
     const pathRest = R.replace(
       `/apps/${appName}/${envName}/${entityName}`,
       "",
-      c.req.path
+      c.req.path,
     );
     const pathRestSegments = R.split("/", pathRest).filter(
-      (p) => !R.isEmpty(p)
+      (p) => !R.isEmpty(p),
     );
     const isSubentityPath = pathRestSegments.length % 2 === 0;
     if (!isSubentityPath) {

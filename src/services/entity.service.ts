@@ -96,20 +96,13 @@ export const createOrOverwriteEntities = async ({
 
 export const getSingleEntity = async ({
   xPath: { appName, envName, entityName },
-  propFilters,
   metaFilters,
   entityId,
 }: {
   xPath: { appName: string; envName: string; entityName: string };
-  propFilters: Record<string, unknown>;
   metaFilters: EntityQueryMeta;
   entityId: string;
 }) => {
-  const modelFilters = toModelFilters(propFilters);
-  console.log(entityId);
-  console.log(propFilters);
-  console.log(metaFilters);
-
   const entity = await EntityModel.findOne({
     id: entityId,
     type: {
@@ -125,21 +118,31 @@ export const getSingleEntity = async ({
     appName,
     envName,
   });
+
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
 
-  console.log(environment);
+  const objProps =
+    metaFilters.only && Array.isArray(metaFilters.only)
+      ? R.pick(metaFilters.only, entity.model)
+      : entity.model;
+  const xPath = `/${appName}/${envName}/${entityName}/${entityId}`;
 
   return {
     id: entity.id,
-    // TODO  modelFilters
-    // ...R.pick(modelFilters, entity),
+    ...objProps,
     __meta: !metaFilters.hasMeta
       ? undefined
       : {
-          self: `/${appName}/${envName}/${entityName}`,
-          subtypes: environment.entities!.filter((x) => x !== entityName),
+          self: xPath,
+          subtypes: environment.entities
+            ?.filter((x) => x !== entityName && x.includes(`${entityName}/`))
+            .reduce<Record<string, string>>((acc, curr) => {
+              const subEntityName = R.replace(`${entityName}/`, "", curr);
+              acc[subEntityName] = `${xPath}/${subEntityName}`;
+              return acc;
+            }, {}),
         },
   };
 };
