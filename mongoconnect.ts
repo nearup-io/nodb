@@ -16,7 +16,7 @@ const mongoconnect: () => Promise<void> = async () => {
     console.log("Connecting to database...");
     if (globalThis.dbconn) {
       // close on "hot reload": bun --hot, or bun --watch
-      await mongoose.connection.close();
+      await globalThis.dbconn.connection.close();
     }
     globalThis.dbconn = await mongoose.connect(mongodbUrl, {
       maxPoolSize: MAX_POOL_SIZE ? parseInt(MAX_POOL_SIZE, 10) : 2,
@@ -38,7 +38,7 @@ const mongoconnect: () => Promise<void> = async () => {
 process.on("SIGINT", async () => {
   if (globalThis.dbconn) {
     try {
-      await mongoose.connection.close();
+      await globalThis.dbconn.connection.close();
       console.log("Database connection closed.");
     } catch (e) {
       console.error("Failed closing connection.", e);
