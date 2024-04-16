@@ -38,7 +38,7 @@ export const findEnvironment = async ({
 }: {
   envName: string;
   appName: string;
-}) => {
+}): Promise<Environment | undefined> => {
   const applicationEnvironments = await ApplicationModel.aggregate<Environment>(
     [
       {
@@ -80,7 +80,7 @@ export const createEnvironment = async ({
   description: string;
 }) => {
   const existingEnvironment = await findEnvironment({ appName, envName });
-  if (existingEnvironment.name) {
+  if (existingEnvironment?.name) {
     throw new ServiceError(httpError.ENV_EXISTS);
   }
   const environment = await EnvironmentModel.create({
