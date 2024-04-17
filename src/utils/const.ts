@@ -18,6 +18,7 @@ export const httpError = {
   ENV_NOTFOUND: "Environment not found",
   APP_CANT_DELETE: "Application could't be deleted",
   ENV_CANT_DELETE: "Environment could't be deleted",
+  ENTITIES_CANT_DELETE: "Could't delete entities",
   ENV_EXISTS: "Environment already exists",
   NEW_ENV_EXISTS: "Name for new environment already exists",
   APP_DOESNT_EXIST: "Application doesn't exist",

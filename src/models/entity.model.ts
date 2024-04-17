@@ -1,13 +1,5 @@
 import mongoose, { Schema } from "mongoose";
 
-export interface IEntity {
-  id: string;
-  type: string;
-  model: Record<string, unknown>;
-  extras?: Record<string, unknown>;
-  ancestors?: string[];
-}
-
 const EntitySchema = new Schema(
   {
     id: {
@@ -37,6 +29,14 @@ const EntitySchema = new Schema(
   },
   { _id: false }
 );
+
+export type Entity = {
+  id: string;
+  type: string;
+  model: Record<string, unknown>;
+  extras?: Record<string, unknown>;
+  ancestors?: string[];
+}
 
 const Entity = mongoose.model("Entity", EntitySchema);
 export default Entity;
