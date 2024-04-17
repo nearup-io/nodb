@@ -13,7 +13,11 @@ import {
 } from "../services/entity.service";
 import { httpError } from "../utils/const";
 import { entityMetaResponse } from "../utils/entity-utils";
-import { asyncTryJson, getCommonEntityRouteProps } from "../utils/route-utils";
+import {
+  asyncTryJson,
+  getCommonEntityRouteProps,
+  isEntitiesList,
+} from "../utils/route-utils";
 import { entityQueryValidator } from "../utils/route-validators";
 import { RoutingError, ServiceError } from "../utils/service-errors";
 
@@ -32,9 +36,8 @@ app.get("/*", entityQueryValidator(), async (c) => {
     c.req.path,
     c.req.param(),
   );
-  const isEntitiesList = pathRestSegments.length % 2 == 0;
 
-  if (isEntitiesList) {
+  if (isEntitiesList(pathRestSegments)) {
     const entitiesFromDb = await getEntities({
       xpath,
       propFilters: q.props,
@@ -83,8 +86,7 @@ app.post("/*", async (c) => {
       c.req.param(),
     );
 
-    const isSubEntityPath = pathRestSegments.length % 2 === 0;
-    if (!isSubEntityPath) {
+    if (!isEntitiesList(pathRestSegments)) {
       throw new RoutingError(httpError.ENTITY_PATH_CREATION);
     }
     const ids = await createOrOverwriteEntities({

@@ -39,3 +39,6 @@ export const getCommonEntityRouteProps = (
     xpath,
   };
 };
+
+export const isEntitiesList = (pathSegments: string[]) =>
+  pathSegments.length % 2 == 0;
