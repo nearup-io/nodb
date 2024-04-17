@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: bun
+    env: docker
+    repo: https://github.com/nearup-io/nodb
+    plan: starter
+    autoDeploy: false
