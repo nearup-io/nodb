@@ -40,8 +40,8 @@ app.get("/*", entityQueryValidator(), async (c) => {
       propFilters: q.props,
       metaFilters: q.meta,
     });
-    console.log(entitiesFromDb);
-    const { entities } = entitiesFromDb[0];
+
+    const { entities } = entitiesFromDb[0] ?? {};
     if (!entities || R.isEmpty(entities)) {
       return c.json({ [entityName]: [] });
     }
