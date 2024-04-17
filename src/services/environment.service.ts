@@ -40,7 +40,7 @@ export const findEnvironment = async ({
 }: {
   envName: string;
   appName: string;
-}) => {
+}): Promise<Environment | undefined> => {
   const applicationEnvironments = await ApplicationModel.aggregate<Environment>(
     [
       {
@@ -64,6 +64,7 @@ export const findEnvironment = async ({
           tokens: "$environments.tokens",
           description: "$environments.description",
           _id: "$environments._id",
+          entities: "$environments.entities",
         },
       },
     ]
@@ -81,7 +82,7 @@ export const createEnvironment = async ({
   description: string;
 }) => {
   const existingEnvironment = await findEnvironment({ appName, envName });
-  if (existingEnvironment.name) {
+  if (existingEnvironment?.name) {
     throw new ServiceError(httpError.ENV_EXISTS);
   }
   const environment = await EnvironmentModel.create({
@@ -113,7 +114,7 @@ export const deleteEnvironment = async ({
     appName,
     envName,
   });
-  if (!environment.name) {
+  if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
   const session = await mongoose.startSession();
@@ -131,7 +132,7 @@ export const deleteEnvironment = async ({
       },
       { session }
     );
-    await session.commitTransaction()
+    await session.commitTransaction();
     return environment;
   } catch (e) {
     console.error("Error deleting environment", e);
