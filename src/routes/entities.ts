@@ -22,16 +22,16 @@ const app = new Hono<Env, BlankSchema, "/:appName/:envName/:entityName">();
 app.get("/*", entityQueryValidator(), async (c) => {
   const { entityName } = c.req.param();
   const q = c.req.valid("query");
-  const pathRest = getPathRest(c.req.path, c.req.param());
-  const pathRestSegments = getPathRestSegments(pathRest);
-  const xPath = getXPath(pathRestSegments, c.req.param());
-
+  const { pathRest, pathRestSegments, xpath } = getCommonRouteProps(
+    c.req.path,
+    c.req.param(),
+  );
   const xpathSegments = c.req.path.split("/").filter((x) => x);
   const isEntitiesList = xpathSegments.length % 2 == 0;
 
   if (isEntitiesList) {
     const entitiesFromDb = await getEntities({
-      xPath: xPath,
+      xpath,
       propFilters: q.props,
       metaFilters: q.meta,
     });
@@ -45,7 +45,7 @@ app.get("/*", entityQueryValidator(), async (c) => {
       ...R.pick(q.meta?.only || R.keys(entity.model), entity.model),
       __meta: entityMetaResponse({
         hasMeta: q.meta?.hasMeta,
-        xpath: xPath,
+        xpath: xpath,
         id: entity.id,
       }),
     }));
@@ -54,7 +54,7 @@ app.get("/*", entityQueryValidator(), async (c) => {
     });
   } else {
     const entity = await getSingleEntity({
-      xPath: c.req.param(),
+      xpath: c.req.param(),
       metaFilters: q.meta,
       entityId: R.last(xpathSegments)!,
     });
@@ -72,8 +72,8 @@ app.post("/*", async (c) => {
     });
   }
   try {
-    const pathRest = getPathRest(c.req.path, c.req.param());
-    const pathRestSegments = getPathRestSegments(pathRest);
+    const { pathRestSegments } = getCommonRouteProps(c.req.path, c.req.param());
+
     const isSubEntityPath = pathRestSegments.length % 2 === 0;
     if (!isSubEntityPath) {
       throw new RoutingError(httpError.ENTITY_PATH_CREATION);
@@ -102,10 +102,10 @@ app.post("/*", async (c) => {
 
 app.delete("/*", async (c) => {
   const { appName, envName, entityName } = c.req.param();
-  const pathRest = getPathRest(c.req.path, c.req.param());
-  const pathRestSegments = getPathRestSegments(pathRest);
-  const xPath = getXPath(pathRestSegments, c.req.param());
-
+  const { pathRest, pathRestSegments, xpath } = getCommonRouteProps(
+    c.req.path,
+    c.req.param(),
+  );
   if (R.isEmpty(pathRestSegments)) {
     const res = await deleteRootAndUpdateEnv({ appName, envName, entityName });
     return c.json({ deleted: res.done });
@@ -115,7 +115,7 @@ app.delete("/*", async (c) => {
       const res = await deleteSubEntitiesAndUpdateEnv({
         appName,
         envName,
-        xPath,
+        xpath: xpath,
       });
       return c.json({ deleted: res.done });
     } else if (pathRestSegments.length % 2 !== 0) {
@@ -123,7 +123,7 @@ app.delete("/*", async (c) => {
       const res = await deleteSingleEntityAndUpdateEnv({
         appName,
         envName,
-        xPath,
+        xpath,
       });
 
       return c.json({ deleted: !!res });
@@ -136,7 +136,7 @@ export default app;
 
 const getPathRest = (
   path: string,
-  { appName, envName, entityName }: App,
+  { appName, envName, entityName }: EntityRouteParams,
 ): string => R.replace(`/apps/${appName}/${envName}/${entityName}`, "", path);
 
 const getPathRestSegments = (path: string): string[] =>
@@ -144,15 +144,29 @@ const getPathRestSegments = (path: string): string[] =>
 
 const getXPath = (
   pathRestSegments: string[],
-  { appName, envName, entityName }: App,
+  { appName, envName, entityName }: EntityRouteParams,
 ): string =>
   R.isEmpty(pathRestSegments)
     ? `${appName}/${envName}/${entityName}`
     : `${appName}/${envName}/${entityName}/${pathRestSegments.join("/")}`;
 
-// TODO rename
-export type App = {
+export type EntityRouteParams = {
   appName: string;
   envName: string;
   entityName: string;
+};
+
+const getCommonRouteProps = (
+  requestPath: string,
+  entityRouteParams: EntityRouteParams,
+): { pathRest: string; pathRestSegments: string[]; xpath: string } => {
+  const pathRest = getPathRest(requestPath, entityRouteParams);
+  const pathRestSegments = getPathRestSegments(pathRest);
+  const xpath = getXPath(pathRestSegments, entityRouteParams);
+
+  return {
+    pathRest,
+    pathRestSegments,
+    xpath,
+  };
 };

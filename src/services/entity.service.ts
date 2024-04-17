@@ -14,6 +14,7 @@ import {
 } from "../utils/entity-utils";
 import { ServiceError } from "../utils/service-errors";
 import { findEnvironment } from "./environment.service";
+import type { EntityRouteParams } from "../routes/entities.ts";
 
 type EntityAggregateResult = {
   totalCount: number;
@@ -21,11 +22,11 @@ type EntityAggregateResult = {
 };
 
 export const getEntities = async ({
-  xPath,
+  xpath,
   propFilters,
   metaFilters,
 }: {
-  xPath: string;
+  xpath: string;
   propFilters: Record<string, unknown>;
   metaFilters: EntityQueryMeta;
 }): Promise<EntityAggregateResult[]> => {
@@ -33,7 +34,7 @@ export const getEntities = async ({
   const aggregateQuery = getAggregateQuery({
     modelFilters,
     metaFilters,
-    xPath,
+    xpath,
   });
   const fromDb = await EntityModel.aggregate<EntityAggregateResult>(
     // @ts-ignore TODO: using $sort raises "No overload matches this call"
@@ -43,11 +44,11 @@ export const getEntities = async ({
 };
 
 export const getSingleEntity = async ({
-  xPath: { appName, envName, entityName },
+  xpath: { appName, envName, entityName },
   metaFilters,
   entityId,
 }: {
-  xPath: { appName: string; envName: string; entityName: string };
+  xpath: EntityRouteParams;
   metaFilters: EntityQueryMeta;
   entityId: string;
 }) => {
@@ -71,19 +72,19 @@ export const getSingleEntity = async ({
     metaFilters.only && Array.isArray(metaFilters.only)
       ? R.pick(metaFilters.only, entity.model)
       : entity.model;
-  const xPath = `/${appName}/${envName}/${entityName}/${entityId}`;
+  const xpath = `/${appName}/${envName}/${entityName}/${entityId}`;
   return {
     id: entity.id,
     ...objProps,
     __meta: !metaFilters.hasMeta
       ? undefined
       : {
-          self: xPath,
+          self: xpath,
           subtypes: environment.entities
             ?.filter((x) => x !== entityName && x.includes(`${entityName}/`))
             .reduce<Record<string, string>>((acc, curr) => {
               const subEntityName = R.replace(`${entityName}/`, "", curr);
-              acc[subEntityName] = `${xPath}/${subEntityName}`;
+              acc[subEntityName] = `${xpath}/${subEntityName}`;
               return acc;
             }, {}),
         },
@@ -122,7 +123,7 @@ export const createOrOverwriteEntities = async ({
     (_: any, i: number) => i % 2 !== 0,
   );
   if (xpathEntitySegments.length > 1 && parentIdFromXpath) {
-    throwIfNoParent(parentIdFromXpath);
+    await throwIfNoParent(parentIdFromXpath);
     const isPathOk = environment.entities
       ? isTypePathCorrect(environment.entities, xpathEntitySegments.join("/"))
       : true;
@@ -195,11 +196,11 @@ export const deleteRootAndUpdateEnv = async ({
 export const deleteSubEntitiesAndUpdateEnv = async ({
   appName,
   envName,
-  xPath,
+  xpath,
 }: {
   appName: string;
   envName: string;
-  xPath: string;
+  xpath: string;
 }) => {
   const environment = await findEnvironment({
     appName,
@@ -208,7 +209,7 @@ export const deleteSubEntitiesAndUpdateEnv = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const xpathEntitySegments = getXpathSegments(xPath) as string[];
+  const xpathEntitySegments = getXpathSegments(xpath) as string[];
   const entityTypes = xpathEntitySegments.filter(
     (_: any, i: number) => i % 2 === 0,
   );
@@ -248,11 +249,11 @@ export const deleteSubEntitiesAndUpdateEnv = async ({
 export const deleteSingleEntityAndUpdateEnv = async ({
   appName,
   envName,
-  xPath,
+  xpath,
 }: {
   appName: string;
   envName: string;
-  xPath: string;
+  xpath: string;
 }) => {
   const environment = await findEnvironment({
     appName,
@@ -261,7 +262,7 @@ export const deleteSingleEntityAndUpdateEnv = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const xpathEntitySegments = getXpathSegments(xPath) as string[];
+  const xpathEntitySegments = getXpathSegments(xpath) as string[];
   const entityTypes = xpathEntitySegments.filter(
     (_: any, i: number) => i % 2 === 0,
   );
