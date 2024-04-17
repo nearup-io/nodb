@@ -13,21 +13,26 @@ import {
 } from "../services/entity.service";
 import { httpError } from "../utils/const";
 import { entityMetaResponse } from "../utils/entity-utils";
-import { asyncTryJson } from "../utils/route-utils";
+import { asyncTryJson, getCommonEntityRouteProps } from "../utils/route-utils";
 import { entityQueryValidator } from "../utils/route-validators";
 import { RoutingError, ServiceError } from "../utils/service-errors";
+
+export type EntityRouteParams = {
+  appName: string;
+  envName: string;
+  entityName: string;
+};
 
 const app = new Hono<Env, BlankSchema, "/:appName/:envName/:entityName">();
 
 app.get("/*", entityQueryValidator(), async (c) => {
   const { entityName } = c.req.param();
   const q = c.req.valid("query");
-  const { pathRest, pathRestSegments, xpath } = getCommonRouteProps(
+  const { xpath, pathRestSegments } = getCommonEntityRouteProps(
     c.req.path,
     c.req.param(),
   );
-  const xpathSegments = c.req.path.split("/").filter((x) => x);
-  const isEntitiesList = xpathSegments.length % 2 == 0;
+  const isEntitiesList = pathRestSegments.length % 2 == 0;
 
   if (isEntitiesList) {
     const entitiesFromDb = await getEntities({
@@ -35,6 +40,7 @@ app.get("/*", entityQueryValidator(), async (c) => {
       propFilters: q.props,
       metaFilters: q.meta,
     });
+    console.log(entitiesFromDb);
     const { entities } = entitiesFromDb[0];
     if (!entities || R.isEmpty(entities)) {
       return c.json({ [entityName]: [] });
@@ -56,7 +62,7 @@ app.get("/*", entityQueryValidator(), async (c) => {
     const entity = await getSingleEntity({
       xpath: c.req.param(),
       metaFilters: q.meta,
-      entityId: R.last(xpathSegments)!,
+      entityId: R.last(pathRestSegments)!,
     });
     return c.json(entity);
   }
@@ -72,7 +78,10 @@ app.post("/*", async (c) => {
     });
   }
   try {
-    const { pathRestSegments } = getCommonRouteProps(c.req.path, c.req.param());
+    const { pathRestSegments } = getCommonEntityRouteProps(
+      c.req.path,
+      c.req.param(),
+    );
 
     const isSubEntityPath = pathRestSegments.length % 2 === 0;
     if (!isSubEntityPath) {
@@ -102,7 +111,7 @@ app.post("/*", async (c) => {
 
 app.delete("/*", async (c) => {
   const { appName, envName, entityName } = c.req.param();
-  const { pathRest, pathRestSegments, xpath } = getCommonRouteProps(
+  const { pathRest, pathRestSegments, xpath } = getCommonEntityRouteProps(
     c.req.path,
     c.req.param(),
   );
@@ -133,40 +142,3 @@ app.delete("/*", async (c) => {
 });
 
 export default app;
-
-const getPathRest = (
-  path: string,
-  { appName, envName, entityName }: EntityRouteParams,
-): string => R.replace(`/apps/${appName}/${envName}/${entityName}`, "", path);
-
-const getPathRestSegments = (path: string): string[] =>
-  R.split("/", path).filter((p) => !R.isEmpty(p));
-
-const getXPath = (
-  pathRestSegments: string[],
-  { appName, envName, entityName }: EntityRouteParams,
-): string =>
-  R.isEmpty(pathRestSegments)
-    ? `${appName}/${envName}/${entityName}`
-    : `${appName}/${envName}/${entityName}/${pathRestSegments.join("/")}`;
-
-export type EntityRouteParams = {
-  appName: string;
-  envName: string;
-  entityName: string;
-};
-
-const getCommonRouteProps = (
-  requestPath: string,
-  entityRouteParams: EntityRouteParams,
-): { pathRest: string; pathRestSegments: string[]; xpath: string } => {
-  const pathRest = getPathRest(requestPath, entityRouteParams);
-  const pathRestSegments = getPathRestSegments(pathRest);
-  const xpath = getXPath(pathRestSegments, entityRouteParams);
-
-  return {
-    pathRest,
-    pathRestSegments,
-    xpath,
-  };
-};
