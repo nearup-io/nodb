@@ -6,6 +6,7 @@ import type { IEntity } from "../models/entity.model";
 import {
   createOrOverwriteEntities,
   getEntities,
+  getSingleEntity,
 } from "../services/entity.service";
 import { httpError } from "../utils/const";
 import { entityMetaResponse } from "../utils/entity-utils";
@@ -21,6 +22,7 @@ app.get("/*", entityQueryValidator(), async (c) => {
   const xpath = `${appName}/${envName}/${entityName}`;
   const xpathSegments = c.req.path.split("/").filter((x) => x);
   const isEntitiesList = xpathSegments.length % 2 == 0;
+
   if (isEntitiesList) {
     const entities = await getEntities({
       xpath,
@@ -43,7 +45,12 @@ app.get("/*", entityQueryValidator(), async (c) => {
       [entityName]: result,
     });
   } else {
-    return c.json({});
+    const entity = await getSingleEntity({
+      xPath: c.req.param(),
+      metaFilters: q.meta,
+      entityId: R.last(xpathSegments)!,
+    });
+    return c.json(entity);
   }
 });
 
@@ -63,10 +70,10 @@ app.post("/*", async (c) => {
     const pathRest = R.replace(
       `/apps/${appName}/${envName}/${entityName}`,
       "",
-      c.req.path
+      c.req.path,
     );
     const pathRestSegments = R.split("/", pathRest).filter(
-      (p) => !R.isEmpty(p)
+      (p) => !R.isEmpty(p),
     );
     const isSubentityPath = pathRestSegments.length % 2 === 0;
     if (!isSubentityPath) {

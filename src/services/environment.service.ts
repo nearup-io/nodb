@@ -38,7 +38,7 @@ export const findEnvironment = async ({
 }: {
   envName: string;
   appName: string;
-}) => {
+}): Promise<Environment | undefined> => {
   const applicationEnvironments = await ApplicationModel.aggregate<Environment>(
     [
       {
@@ -62,9 +62,10 @@ export const findEnvironment = async ({
           tokens: "$environments.tokens",
           description: "$environments.description",
           _id: "$environments._id",
+          entities: "$environments.entities",
         },
       },
-    ]
+    ],
   );
   return applicationEnvironments[0];
 };
@@ -79,7 +80,7 @@ export const createEnvironment = async ({
   description: string;
 }) => {
   const existingEnvironment = await findEnvironment({ appName, envName });
-  if (existingEnvironment.name) {
+  if (existingEnvironment?.name) {
     throw new ServiceError(httpError.ENV_EXISTS);
   }
   const environment = await EnvironmentModel.create({
@@ -95,7 +96,7 @@ export const createEnvironment = async ({
   });
   await ApplicationModel.findOneAndUpdate(
     { name: appName },
-    { $addToSet: { environments: environment._id } }
+    { $addToSet: { environments: environment._id } },
   );
   return environment;
 };
@@ -119,7 +120,7 @@ export const deleteEnvironment = async ({
     { name: appName },
     {
       $pull: { environments: environment._id },
-    }
+    },
   );
   return environment;
 };
@@ -159,7 +160,7 @@ export const updateEnvironment = async ({
   const doc: Environment | null = await EnvironmentModel.findByIdAndUpdate(
     environment._id,
     { ...updateProps },
-    { returnDocument: "after", new: true }
+    { returnDocument: "after", new: true },
   );
   return doc;
 };
