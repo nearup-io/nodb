@@ -18,3 +18,12 @@ To run:
 ```bash
 bun run app.ts
 ```
+
+## Deploy
+
+### Render
+
+For quick deploy you can use Render:
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
