@@ -84,10 +84,10 @@ app.post("/*", async (c) => {
     const pathRest = R.replace(
       `/apps/${appName}/${envName}/${entityName}`,
       "",
-      c.req.path,
+      c.req.path
     );
     const pathRestSegments = R.split("/", pathRest).filter(
-      (p) => !R.isEmpty(p),
+      (p) => !R.isEmpty(p)
     );
     const isSubentityPath = pathRestSegments.length % 2 === 0;
     if (!isSubentityPath) {
@@ -131,14 +131,6 @@ app.delete("/*", async (c) => {
     const res = await deleteRootAndUpdateEnv({ appName, envName, entityName });
     return c.json({ deleted: res.done });
   } else {
-    const pathRest = R.replace(
-      `/apps/${appName}/${envName}/${entityName}`,
-      "",
-      c.req.path
-    );
-    const pathRestSegments = R.split("/", pathRest).filter(
-      (p) => !R.isEmpty(p)
-    );
     if (pathRestSegments.length % 2 === 0) {
       // delete sub entities
       const res = await deleteSubEntitiesAndUpdateEnv({
