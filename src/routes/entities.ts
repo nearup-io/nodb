@@ -51,7 +51,7 @@ app.get("/*", entityQueryValidator(), async (c) => {
       ...R.pick(q.meta?.only || R.keys(entity.model), entity.model),
       __meta: entityMetaResponse({
         hasMeta: q.meta?.hasMeta,
-        xpath: xpath,
+        xpath,
         id: entity.id,
       }),
     }));
@@ -124,7 +124,7 @@ app.delete("/*", async (c) => {
       const res = await deleteSubEntitiesAndUpdateEnv({
         appName,
         envName,
-        xpath: xpath,
+        xpath,
       });
       return c.json({ deleted: res.done });
     } else if (pathRestSegments.length % 2 !== 0) {
