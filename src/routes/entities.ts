@@ -2,9 +2,12 @@ import { Hono, type Env } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { BlankSchema } from "hono/types";
 import * as R from "ramda";
-import type { IEntity } from "../models/entity.model";
+import type { Entity } from "../models/entity.model";
 import {
   createOrOverwriteEntities,
+  deleteRootAndUpdateEnv,
+  deleteSingleEntityAndUpdateEnv,
+  deleteSubEntitiesAndUpdateEnv,
   getEntities,
   getSingleEntity,
 } from "../services/entity.service";
@@ -19,20 +22,30 @@ const app = new Hono<Env, BlankSchema, "/:appName/:envName/:entityName">();
 app.get("/*", entityQueryValidator(), async (c) => {
   const { appName, envName, entityName } = c.req.param();
   const q = c.req.valid("query");
-  const xpath = `${appName}/${envName}/${entityName}`;
+  const pathRest = R.replace(
+    `/apps/${appName}/${envName}/${entityName}`,
+    "",
+    c.req.path
+  );
+  const restSegments = R.split("/", pathRest).filter((p) => !R.isEmpty(p));
+  const xpath = R.isEmpty(restSegments)
+    ? `${appName}/${envName}/${entityName}`
+    : `${appName}/${envName}/${entityName}/${restSegments.join("/")}`;
   const xpathSegments = c.req.path.split("/").filter((x) => x);
   const isEntitiesList = xpathSegments.length % 2 == 0;
 
   if (isEntitiesList) {
-    const entities = await getEntities({
+    const entitiesFromDb = await getEntities({
       xpath,
       propFilters: q.props,
       metaFilters: q.meta,
     });
+    const { entities, totalCount } = entitiesFromDb[0];
     if (!entities || R.isEmpty(entities)) {
       return c.json({ [entityName]: [] });
     }
-    const result = R.map((entity: IEntity) => ({
+    // TODO: add pagination based on `totalCount`
+    const result = entities.map((entity) => ({
       id: entity.id,
       ...R.pick(q.meta?.only || R.keys(entity.model), entity.model),
       __meta: entityMetaResponse({
@@ -40,7 +53,7 @@ app.get("/*", entityQueryValidator(), async (c) => {
         xpath,
         id: entity.id,
       }),
-    }))(entities);
+    }));
     return c.json({
       [entityName]: result,
     });
@@ -60,7 +73,8 @@ app.post("/*", async (c) => {
     envName: string;
     entityName: string;
   };
-  const body = (await asyncTryJson(c.req.json())) as Omit<IEntity, "id">[];
+  // TODO: validate
+  const body = (await asyncTryJson(c.req.json())) as Omit<Entity, "id">[];
   if (!Array.isArray(body)) {
     throw new HTTPException(400, {
       message: httpError.BODY_IS_NOT_ARRAY,
@@ -70,10 +84,10 @@ app.post("/*", async (c) => {
     const pathRest = R.replace(
       `/apps/${appName}/${envName}/${entityName}`,
       "",
-      c.req.path,
+      c.req.path
     );
     const pathRestSegments = R.split("/", pathRest).filter(
-      (p) => !R.isEmpty(p),
+      (p) => !R.isEmpty(p)
     );
     const isSubentityPath = pathRestSegments.length % 2 === 0;
     if (!isSubentityPath) {
@@ -99,6 +113,44 @@ app.post("/*", async (c) => {
       });
     }
   }
+});
+
+app.delete("/*", async (c) => {
+  const { appName, envName, entityName } = c.req.param();
+  const pathRest = R.replace(
+    `/apps/${appName}/${envName}/${entityName}`,
+    "",
+    c.req.path
+  );
+  const restSegments = R.split("/", pathRest).filter((p) => !R.isEmpty(p));
+  const xpath = R.isEmpty(restSegments)
+    ? `${appName}/${envName}/${entityName}`
+    : `${appName}/${envName}/${entityName}/${restSegments.join("/")}`;
+  const pathRestSegments = R.split("/", pathRest).filter((p) => !R.isEmpty(p));
+  if (R.isEmpty(pathRestSegments)) {
+    const res = await deleteRootAndUpdateEnv({ appName, envName, entityName });
+    return c.json({ deleted: res.done });
+  } else {
+    if (pathRestSegments.length % 2 === 0) {
+      // delete sub entities
+      const res = await deleteSubEntitiesAndUpdateEnv({
+        appName,
+        envName,
+        xpath,
+      });
+      return c.json({ deleted: res.done });
+    } else if (pathRestSegments.length % 2 !== 0) {
+      // delete single entity
+      const res = await deleteSingleEntityAndUpdateEnv({
+        appName,
+        envName,
+        xpath,
+      });
+      if (!res) return c.json({ found: false });
+      return c.json({ found: true });
+    }
+  }
+  return c.json({ pathRest, pathRestSegments });
 });
 
 export default app;

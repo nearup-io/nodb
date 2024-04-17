@@ -1,4 +1,6 @@
+import type { ObjectId } from "mongodb";
 import mongoose, { Schema } from "mongoose";
+import type { Environment } from "./environment.model";
 
 const ApplicationSchema = new Schema({
   name: {
@@ -18,6 +20,15 @@ const ApplicationSchema = new Schema({
     type: Object,
   },
 });
+
+export type Application = {
+  _id: ObjectId;
+  name: string;
+  environments: Environment[];
+  image?: string;
+  description?: string;
+  extras?: Record<string, unknown>;
+};
 
 const Application = mongoose.model("Application", ApplicationSchema);
 export default Application;

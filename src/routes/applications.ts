@@ -10,6 +10,7 @@ import {
 } from "../services/application.service";
 import type { USER_TYPE } from "../utils/auth-utils";
 import { APPNAME_LENGTH, APPNAME_REGEX, httpError } from "../utils/const";
+import { ServiceError } from "../utils/service-errors";
 import envsRoute from "./environments";
 
 const app = new Hono<{ Variables: { user: USER_TYPE } }>();
@@ -115,16 +116,25 @@ app.delete("/:appName", auth, async (c) => {
   const user = c.get("user");
   const appName = c.req.param("appName");
   try {
-    const doc = await deleteApplication({
+    const app = await deleteApplication({
       appName,
       userEmail: user.email,
     });
-    if (!doc.app) return c.json({ found: false });
+    if (!app) return c.json({ found: false });
     return c.json({ found: true });
-  } catch (err) {
-    throw new HTTPException(500, {
-      message: httpError.UNKNOWN,
-    });
+  } catch (e) {
+    if (e instanceof ServiceError) {
+      if (e.explicitMessage === httpError.APP_DOESNT_EXIST)
+        return c.json({ found: false });
+      else
+        throw new HTTPException(400, {
+          message: e.explicitMessage,
+        });
+    } else {
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
+      });
+    }
   }
 });
 
