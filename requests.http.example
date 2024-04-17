@@ -1,0 +1,84 @@
+@bearer=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Impha2ljbWVpc3RlckBnbWFpbC5jb20iLCJwcmltYXJ5Ijp0cnVlLCJ2ZXJpZmllZCI6dHJ1ZSwidmlzaWJpbGl0eSI6InB1YmxpYyJ9.ZWvdQWJ2c3guHzdws5FQ21hdfKsRsXnrAvrnoVRtog8
+@url=http://localhost:3000
+@app=memes-app
+@env=dev
+
+### Get all apps
+{{url}}/apps/all
+Authorization: {{bearer}}
+
+### Get single app
+{{url}}/apps/{{app}}
+Authorization: {{bearer}}
+
+### Create an app
+POST {{url}}/apps/{{app}}
+Authorization: {{bearer}}
+
+{
+  "image": "path/to/image.jpg",
+  "description": "Memes app"
+}
+
+### Delete an app
+DELETE {{url}}/apps/{{app}}
+Authorization: {{bearer}}
+
+### Update an app
+PATCH {{url}}/apps/better-memes
+Authorization: {{bearer}}
+
+# { "appName": "better-memes", "description": "Way too good" }
+{ "description": "Way too good", "image": "path/nopath.jpg" }
+
+### Get single environment
+{{url}}/apps/{{app}}/{{env}}
+Authorization: {{bearer}}
+
+### Create env (already exists error)
+POST {{url}}/apps/{{app}}/dev
+Authorization: {{bearer}}
+
+{ "description": "This is a staging envronment"}
+
+### Create staging env
+POST {{url}}/apps/{{app}}/staging
+Authorization: {{bearer}}
+
+{ "description": "This is a staging envronment"}
+
+### Delete env
+DELETE {{url}}/apps/{{app}}/dev
+Authorization: {{bearer}}
+
+### Update env
+PATCH {{url}}/apps/{{app}}/prod
+Authorization: {{bearer}}
+
+{ "envName": "dev", "description": "This is development environment for my app" }
+
+### Create entity
+POST {{url}}/apps/{{app}}/{{env}}/tasks
+Authorization: {{bearer}}
+Content-Type: application/json
+
+[{ "title": "Work on Project X", "completed": false, "priority": "high", "dueDate": "2024-04-20" }, { "title": "Grocery Shopping", "completed": false, "priority": "medium" }]
+
+### Create subentity
+POST {{url}}/apps/{{app}}/{{env}}/tasks/lwcdqp56/subtasks
+Authorization: {{bearer}}
+
+[{"description": "Gather all research materials (estimated time: 30 minutes)", "completed": false }, { "description": "Write a detailed outline of the project (estimated time: 1 hour)", "completed": true }, { "description": "Schedule a meeting with team members to discuss (estimated time: 15 minutes)", "completed": false, "note": "Waiting for confirmation from team leads." }]
+
+### Create subentity
+POST {{url}}/apps/{{app}}/{{env}}/tasks/rfl5n4v8/subtasks
+Authorization: {{bearer}}
+
+[{"description": "Buy milk, eggs, and bread", "completed": false }, { "description": "Pick up fruits and vegetables (seasonal preferred)", "completed": false }, { "description": "Check for any coupons or discounts (optional)", "completed": true }]
+
+### Vector search
+POST {{url}}/search
+Authorization: {{bearer}}
+
+# { "query": "Which project i need to work on?" }
+# { "query": "What do i need to pick up?" }

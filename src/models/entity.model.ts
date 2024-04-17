@@ -23,9 +23,12 @@ const EntitySchema = new Schema(
     },
     model: {
       type: Object,
-      // type: Model<unknown>,
       required: false,
     },
+    embedding: {
+      type: Array<number>,
+      required: false,
+    }
   },
   { _id: false }
 );

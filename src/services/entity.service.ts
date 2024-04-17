@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import OpenAI from "openai";
 import * as R from "ramda";
 import EntityModel, { type Entity } from "../models/entity.model";
 import EnvironmentModel from "../models/environment.model";
@@ -15,9 +16,47 @@ import {
 import { ServiceError } from "../utils/service-errors";
 import { findEnvironment } from "./environment.service";
 
+const openai = new OpenAI({
+  apiKey: Bun.env.OPENAI_KEY,
+});
+
 type EntityAggregateResult = {
   totalCount: number;
   entities: Entity[];
+};
+
+const {
+  NODB_VECTOR_INDEX: vectorIndex = "nodb_vector_index",
+  NODB_VECTOR_PATH: vectorPath = "embedding",
+} = Bun.env;
+
+export const searchEntities = async (query: string) => {
+  const embedding = await openai.embeddings.create({
+    model: Bun.env.ENTITY_MODEL || "text-embedding-ada-002",
+    input: query,
+    encoding_format: "float",
+  });
+  const res = await EntityModel.aggregate([
+    {
+      $vectorSearch: {
+        index: vectorIndex,
+        path: vectorPath,
+        queryVector: embedding.data[0].embedding,
+        numCandidates: 150,
+        limit: 10,
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        model: 1,
+        score: {
+          $meta: "vectorSearchScore",
+        },
+      },
+    },
+  ]);
+  return res;
 };
 
 export const getEntities = async ({
@@ -130,21 +169,28 @@ export const createOrOverwriteEntities = async ({
       throw new ServiceError(httpError.ENTITY_PATH);
     }
   }
-  const entitiesToBeInserted = bodyEntities.map((entity) => {
+  const insertEntities = [];
+  for (let bodyEntity of bodyEntities) {
+    const embedding = await openai.embeddings.create({
+      model: Bun.env.ENTITY_MODEL || "text-embedding-ada-002",
+      input: JSON.stringify(bodyEntity),
+      encoding_format: "float",
+    });
     const id = generateToken(8);
-    return {
-      model: { ...entity },
+    insertEntities.push({
+      model: { ...bodyEntity },
       id,
       type: `${appName}/${envName}/${entityTypes.join("/")}`,
       ancestors,
-    };
-  });
+      embedding: embedding.data[0].embedding,
+    });
+  }
   await EnvironmentModel.findOneAndUpdate(
     { _id: environment._id },
     { $addToSet: { entities: entityTypes.join("/") } }
   );
-  await EntityModel.insertMany(entitiesToBeInserted);
-  return entitiesToBeInserted.map((e) => e.id);
+  await EntityModel.insertMany(insertEntities);
+  return insertEntities.map((e) => e.id);
 };
 
 export const deleteRootAndUpdateEnv = async ({
