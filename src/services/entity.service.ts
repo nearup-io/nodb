@@ -14,6 +14,7 @@ import {
 } from "../utils/entity-utils";
 import { ServiceError } from "../utils/service-errors";
 import { findEnvironment } from "./environment.service";
+import type { EntityRouteParams } from "../routes/entities.ts";
 
 type EntityAggregateResult = {
   totalCount: number;
@@ -37,17 +38,17 @@ export const getEntities = async ({
   });
   const fromDb = await EntityModel.aggregate<EntityAggregateResult>(
     // @ts-ignore TODO: using $sort raises "No overload matches this call"
-    aggregateQuery
+    aggregateQuery,
   );
   return fromDb;
 };
 
 export const getSingleEntity = async ({
-  xPath: { appName, envName, entityName },
+  xpath: { appName, envName, entityName },
   metaFilters,
   entityId,
 }: {
-  xPath: { appName: string; envName: string; entityName: string };
+  xpath: EntityRouteParams;
   metaFilters: EntityQueryMeta;
   entityId: string;
 }) => {
@@ -71,19 +72,19 @@ export const getSingleEntity = async ({
     metaFilters.only && Array.isArray(metaFilters.only)
       ? R.pick(metaFilters.only, entity.model)
       : entity.model;
-  const xPath = `/${appName}/${envName}/${entityName}/${entityId}`;
+  const xpath = `/${appName}/${envName}/${entityName}/${entityId}`;
   return {
     id: entity.id,
     ...objProps,
     __meta: !metaFilters.hasMeta
       ? undefined
       : {
-          self: xPath,
+          self: xpath,
           subtypes: environment.entities
             ?.filter((x) => x !== entityName && x.includes(`${entityName}/`))
             .reduce<Record<string, string>>((acc, curr) => {
               const subEntityName = R.replace(`${entityName}/`, "", curr);
-              acc[subEntityName] = `${xPath}/${subEntityName}`;
+              acc[subEntityName] = `${xpath}/${subEntityName}`;
               return acc;
             }, {}),
         },
@@ -116,13 +117,13 @@ export const createOrOverwriteEntities = async ({
   const xpathEntitySegments = getXpathSegments(xpath) as string[];
   const parentIdFromXpath = R.nth(-2, xpathEntitySegments);
   const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0
+    (_: any, i: number) => i % 2 === 0,
   );
   const ancestors = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 !== 0
+    (_: any, i: number) => i % 2 !== 0,
   );
   if (xpathEntitySegments.length > 1 && parentIdFromXpath) {
-    throwIfNoParent(parentIdFromXpath);
+    await throwIfNoParent(parentIdFromXpath);
     const isPathOk = environment.entities
       ? isTypePathCorrect(environment.entities, xpathEntitySegments.join("/"))
       : true;
@@ -141,7 +142,7 @@ export const createOrOverwriteEntities = async ({
   });
   await EnvironmentModel.findOneAndUpdate(
     { _id: environment._id },
-    { $addToSet: { entities: entityTypes.join("/") } }
+    { $addToSet: { entities: entityTypes.join("/") } },
   );
   await EntityModel.insertMany(entitiesToBeInserted);
   return entitiesToBeInserted.map((e) => e.id);
@@ -170,16 +171,16 @@ export const deleteRootAndUpdateEnv = async ({
       {
         type: {
           $regex: new RegExp(
-            `\\b(${`${appName}/${envName}/${entityName}`})\\b`
+            `\\b(${`${appName}/${envName}/${entityName}`})\\b`,
           ),
         },
       },
-      { session }
+      { session },
     );
     await EnvironmentModel.findOneAndUpdate(
       { _id: environment._id },
       { $pull: { entities: { $regex: new RegExp(`\\b(${entityName})\\b`) } } },
-      { session }
+      { session },
     );
     await session.commitTransaction();
     return { done: entities.deletedCount };
@@ -210,10 +211,10 @@ export const deleteSubEntitiesAndUpdateEnv = async ({
   }
   const xpathEntitySegments = getXpathSegments(xpath) as string[];
   const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0
+    (_: any, i: number) => i % 2 === 0,
   );
   const ancestors = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 !== 0
+    (_: any, i: number) => i % 2 !== 0,
   );
   const entityTypeRegex = `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`;
   const envEntityTypeRegex = `\\b(${entityTypes.join("/")})\\b`;
@@ -227,12 +228,12 @@ export const deleteSubEntitiesAndUpdateEnv = async ({
           $regex: new RegExp(entityTypeRegex),
         },
       },
-      { session }
+      { session },
     );
     await EnvironmentModel.findOneAndUpdate(
       { _id: environment._id },
       { $pull: { entities: { $regex: envEntityTypeRegex } } },
-      { session }
+      { session },
     );
     await session.commitTransaction();
     return { done: entities.deletedCount };
@@ -263,7 +264,7 @@ export const deleteSingleEntityAndUpdateEnv = async ({
   }
   const xpathEntitySegments = getXpathSegments(xpath) as string[];
   const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0
+    (_: any, i: number) => i % 2 === 0,
   );
   const entityId = R.last(xpathEntitySegments);
   const entity = await EntityModel.findOne({ id: entityId });
@@ -285,7 +286,7 @@ export const deleteSingleEntityAndUpdateEnv = async ({
               $regex: new RegExp(`\\b(${entityTypes.join("/")})\\b`),
             },
           },
-        }
+        },
       );
     }
   }
