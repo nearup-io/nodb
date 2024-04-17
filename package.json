@@ -23,6 +23,7 @@
     "zod": "^3.22.4"
   },
   "scripts": {
-    "dev": "bun --hot run app.ts"
+    "dev": "bun --hot run app.ts",
+    "start": "bun run app.ts"
   }
 }
