@@ -20,27 +20,22 @@ import { RoutingError, ServiceError } from "../utils/service-errors";
 const app = new Hono<Env, BlankSchema, "/:appName/:envName/:entityName">();
 
 app.get("/*", entityQueryValidator(), async (c) => {
-  const { appName, envName, entityName } = c.req.param();
+  const { entityName } = c.req.param();
   const q = c.req.valid("query");
-  const pathRest = R.replace(
-    `/apps/${appName}/${envName}/${entityName}`,
-    "",
-    c.req.path
-  );
-  const restSegments = R.split("/", pathRest).filter((p) => !R.isEmpty(p));
-  const xpath = R.isEmpty(restSegments)
-    ? `${appName}/${envName}/${entityName}`
-    : `${appName}/${envName}/${entityName}/${restSegments.join("/")}`;
+  const pathRest = getPathRest(c.req.path, c.req.param());
+  const pathRestSegments = getPathRestSegments(pathRest);
+  const xPath = getXPath(pathRestSegments, c.req.param());
+
   const xpathSegments = c.req.path.split("/").filter((x) => x);
   const isEntitiesList = xpathSegments.length % 2 == 0;
 
   if (isEntitiesList) {
     const entitiesFromDb = await getEntities({
-      xpath,
+      xPath: xPath,
       propFilters: q.props,
       metaFilters: q.meta,
     });
-    const { entities, totalCount } = entitiesFromDb[0];
+    const { entities } = entitiesFromDb[0];
     if (!entities || R.isEmpty(entities)) {
       return c.json({ [entityName]: [] });
     }
@@ -50,7 +45,7 @@ app.get("/*", entityQueryValidator(), async (c) => {
       ...R.pick(q.meta?.only || R.keys(entity.model), entity.model),
       __meta: entityMetaResponse({
         hasMeta: q.meta?.hasMeta,
-        xpath,
+        xpath: xPath,
         id: entity.id,
       }),
     }));
@@ -68,11 +63,7 @@ app.get("/*", entityQueryValidator(), async (c) => {
 });
 
 app.post("/*", async (c) => {
-  const { appName, envName, entityName } = c.req.param() as {
-    appName: string;
-    envName: string;
-    entityName: string;
-  };
+  const { appName, envName, entityName } = c.req.param();
   // TODO: validate
   const body = (await asyncTryJson(c.req.json())) as Omit<Entity, "id">[];
   if (!Array.isArray(body)) {
@@ -81,16 +72,10 @@ app.post("/*", async (c) => {
     });
   }
   try {
-    const pathRest = R.replace(
-      `/apps/${appName}/${envName}/${entityName}`,
-      "",
-      c.req.path
-    );
-    const pathRestSegments = R.split("/", pathRest).filter(
-      (p) => !R.isEmpty(p)
-    );
-    const isSubentityPath = pathRestSegments.length % 2 === 0;
-    if (!isSubentityPath) {
+    const pathRest = getPathRest(c.req.path, c.req.param());
+    const pathRestSegments = getPathRestSegments(pathRest);
+    const isSubEntityPath = pathRestSegments.length % 2 === 0;
+    if (!isSubEntityPath) {
       throw new RoutingError(httpError.ENTITY_PATH_CREATION);
     }
     const ids = await createOrOverwriteEntities({
@@ -117,16 +102,10 @@ app.post("/*", async (c) => {
 
 app.delete("/*", async (c) => {
   const { appName, envName, entityName } = c.req.param();
-  const pathRest = R.replace(
-    `/apps/${appName}/${envName}/${entityName}`,
-    "",
-    c.req.path
-  );
-  const restSegments = R.split("/", pathRest).filter((p) => !R.isEmpty(p));
-  const xpath = R.isEmpty(restSegments)
-    ? `${appName}/${envName}/${entityName}`
-    : `${appName}/${envName}/${entityName}/${restSegments.join("/")}`;
-  const pathRestSegments = R.split("/", pathRest).filter((p) => !R.isEmpty(p));
+  const pathRest = getPathRest(c.req.path, c.req.param());
+  const pathRestSegments = getPathRestSegments(pathRest);
+  const xPath = getXPath(pathRestSegments, c.req.param());
+
   if (R.isEmpty(pathRestSegments)) {
     const res = await deleteRootAndUpdateEnv({ appName, envName, entityName });
     return c.json({ deleted: res.done });
@@ -136,7 +115,7 @@ app.delete("/*", async (c) => {
       const res = await deleteSubEntitiesAndUpdateEnv({
         appName,
         envName,
-        xpath,
+        xPath,
       });
       return c.json({ deleted: res.done });
     } else if (pathRestSegments.length % 2 !== 0) {
@@ -144,13 +123,36 @@ app.delete("/*", async (c) => {
       const res = await deleteSingleEntityAndUpdateEnv({
         appName,
         envName,
-        xpath,
+        xPath,
       });
-      if (!res) return c.json({ found: false });
-      return c.json({ found: true });
+
+      return c.json({ deleted: !!res });
     }
   }
   return c.json({ pathRest, pathRestSegments });
 });
 
 export default app;
+
+const getPathRest = (
+  path: string,
+  { appName, envName, entityName }: App,
+): string => R.replace(`/apps/${appName}/${envName}/${entityName}`, "", path);
+
+const getPathRestSegments = (path: string): string[] =>
+  R.split("/", path).filter((p) => !R.isEmpty(p));
+
+const getXPath = (
+  pathRestSegments: string[],
+  { appName, envName, entityName }: App,
+): string =>
+  R.isEmpty(pathRestSegments)
+    ? `${appName}/${envName}/${entityName}`
+    : `${appName}/${envName}/${entityName}/${pathRestSegments.join("/")}`;
+
+// TODO rename
+export type App = {
+  appName: string;
+  envName: string;
+  entityName: string;
+};

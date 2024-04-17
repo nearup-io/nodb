@@ -21,11 +21,11 @@ type EntityAggregateResult = {
 };
 
 export const getEntities = async ({
-  xpath,
+  xPath,
   propFilters,
   metaFilters,
 }: {
-  xpath: string;
+  xPath: string;
   propFilters: Record<string, unknown>;
   metaFilters: EntityQueryMeta;
 }): Promise<EntityAggregateResult[]> => {
@@ -33,11 +33,11 @@ export const getEntities = async ({
   const aggregateQuery = getAggregateQuery({
     modelFilters,
     metaFilters,
-    xpath,
+    xPath,
   });
   const fromDb = await EntityModel.aggregate<EntityAggregateResult>(
     // @ts-ignore TODO: using $sort raises "No overload matches this call"
-    aggregateQuery
+    aggregateQuery,
   );
   return fromDb;
 };
@@ -116,10 +116,10 @@ export const createOrOverwriteEntities = async ({
   const xpathEntitySegments = getXpathSegments(xpath) as string[];
   const parentIdFromXpath = R.nth(-2, xpathEntitySegments);
   const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0
+    (_: any, i: number) => i % 2 === 0,
   );
   const ancestors = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 !== 0
+    (_: any, i: number) => i % 2 !== 0,
   );
   if (xpathEntitySegments.length > 1 && parentIdFromXpath) {
     throwIfNoParent(parentIdFromXpath);
@@ -141,7 +141,7 @@ export const createOrOverwriteEntities = async ({
   });
   await EnvironmentModel.findOneAndUpdate(
     { _id: environment._id },
-    { $addToSet: { entities: entityTypes.join("/") } }
+    { $addToSet: { entities: entityTypes.join("/") } },
   );
   await EntityModel.insertMany(entitiesToBeInserted);
   return entitiesToBeInserted.map((e) => e.id);
@@ -170,16 +170,16 @@ export const deleteRootAndUpdateEnv = async ({
       {
         type: {
           $regex: new RegExp(
-            `\\b(${`${appName}/${envName}/${entityName}`})\\b`
+            `\\b(${`${appName}/${envName}/${entityName}`})\\b`,
           ),
         },
       },
-      { session }
+      { session },
     );
     await EnvironmentModel.findOneAndUpdate(
       { _id: environment._id },
       { $pull: { entities: { $regex: new RegExp(`\\b(${entityName})\\b`) } } },
-      { session }
+      { session },
     );
     await session.commitTransaction();
     return { done: entities.deletedCount };
@@ -195,11 +195,11 @@ export const deleteRootAndUpdateEnv = async ({
 export const deleteSubEntitiesAndUpdateEnv = async ({
   appName,
   envName,
-  xpath,
+  xPath,
 }: {
   appName: string;
   envName: string;
-  xpath: string;
+  xPath: string;
 }) => {
   const environment = await findEnvironment({
     appName,
@@ -208,12 +208,12 @@ export const deleteSubEntitiesAndUpdateEnv = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const xpathEntitySegments = getXpathSegments(xpath) as string[];
+  const xpathEntitySegments = getXpathSegments(xPath) as string[];
   const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0
+    (_: any, i: number) => i % 2 === 0,
   );
   const ancestors = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 !== 0
+    (_: any, i: number) => i % 2 !== 0,
   );
   const entityTypeRegex = `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`;
   const envEntityTypeRegex = `\\b(${entityTypes.join("/")})\\b`;
@@ -227,12 +227,12 @@ export const deleteSubEntitiesAndUpdateEnv = async ({
           $regex: new RegExp(entityTypeRegex),
         },
       },
-      { session }
+      { session },
     );
     await EnvironmentModel.findOneAndUpdate(
       { _id: environment._id },
       { $pull: { entities: { $regex: envEntityTypeRegex } } },
-      { session }
+      { session },
     );
     await session.commitTransaction();
     return { done: entities.deletedCount };
@@ -248,11 +248,11 @@ export const deleteSubEntitiesAndUpdateEnv = async ({
 export const deleteSingleEntityAndUpdateEnv = async ({
   appName,
   envName,
-  xpath,
+  xPath,
 }: {
   appName: string;
   envName: string;
-  xpath: string;
+  xPath: string;
 }) => {
   const environment = await findEnvironment({
     appName,
@@ -261,9 +261,9 @@ export const deleteSingleEntityAndUpdateEnv = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const xpathEntitySegments = getXpathSegments(xpath) as string[];
+  const xpathEntitySegments = getXpathSegments(xPath) as string[];
   const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0
+    (_: any, i: number) => i % 2 === 0,
   );
   const entityId = R.last(xpathEntitySegments);
   const entity = await EntityModel.findOne({ id: entityId });
@@ -285,7 +285,7 @@ export const deleteSingleEntityAndUpdateEnv = async ({
               $regex: new RegExp(`\\b(${entityTypes.join("/")})\\b`),
             },
           },
-        }
+        },
       );
     }
   }

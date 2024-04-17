@@ -30,16 +30,16 @@ export const getOnlyArrayFromQuery = (only: string[] | undefined) => {
 };
 
 export const getAggregateQuery = ({
-  xpath,
+  xPath,
   modelFilters,
   metaFilters,
 }: {
-  xpath: string;
+  xPath: string;
   modelFilters: Record<string, unknown>;
   metaFilters?: EntityQueryMeta;
 }) => {
-  const [appName, envName] = R.take(2, xpath.split("/"));
-  const xpathEntitySegments = getXpathSegments(xpath) as string[];
+  const [appName, envName] = R.take(2, xPath.split("/"));
+  const xpathEntitySegments = getXpathSegments(xPath) as string[];
   const parentId =
     xpathEntitySegments.length > 1 ? R.nth(-2, xpathEntitySegments) : null;
   const ancestors = xpathEntitySegments.filter((_, i) => i % 2 === 1);
