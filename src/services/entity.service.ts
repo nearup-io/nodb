@@ -103,7 +103,7 @@ export const createOrOverwriteEntities = async ({
   appName: string;
   envName: string;
   xpath: string;
-  bodyEntities: Omit<Entity, "id"> & { id?: string }[]; // TODO I think this type is off here. Entity is not what's arriving to our API
+  bodyEntities: Omit<EntityRequestDto, "id"> & { id?: string }[];
 }) => {
   const environment = await findEnvironment({
     appName,

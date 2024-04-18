@@ -81,7 +81,10 @@ app.get("/*", entityQueryValidator(), async (c) => {
 app.post("/*", async (c) => {
   const { appName, envName, entityName } = c.req.param();
 
-  const body = (await asyncTryJson(c.req.json())) as Omit<Entity, "id"> &
+  const body = (await asyncTryJson(c.req.json())) as Omit<
+    EntityRequestDto,
+    "id"
+  > &
     { id?: string }[];
   if (!Array.isArray(body)) {
     throw new HTTPException(400, {
