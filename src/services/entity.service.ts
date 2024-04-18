@@ -17,6 +17,7 @@ import { findEnvironment } from "./environment.service";
 import type {
   EntityRouteParams,
   EntityRequestDto,
+  PostEntityRequestDto,
 } from "../routes/entities.ts";
 
 type EntityAggregateResult = {
@@ -97,15 +98,13 @@ export const getSingleEntity = async ({
 export const createOrOverwriteEntities = async ({
   appName,
   envName,
-  entityName,
-  restSegments,
+  xpath,
   bodyEntities,
 }: {
   appName: string;
   envName: string;
-  entityName: string;
-  restSegments: string[];
-  bodyEntities: Omit<Entity, "id">[];
+  xpath: string;
+  bodyEntities: PostEntityRequestDto[];
 }) => {
   const environment = await findEnvironment({
     appName,
@@ -114,9 +113,6 @@ export const createOrOverwriteEntities = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const xpath = R.isEmpty(restSegments)
-    ? `${appName}/${envName}/${entityName}`
-    : `${appName}/${envName}/${entityName}/${restSegments.join("/")}`;
   const xpathEntitySegments = getXpathSegments(xpath) as string[];
   const parentIdFromXpath = R.nth(-2, xpathEntitySegments);
   const entityTypes = xpathEntitySegments.filter(
@@ -134,8 +130,13 @@ export const createOrOverwriteEntities = async ({
       throw new ServiceError(httpError.ENTITY_PATH);
     }
   }
-  const entitiesToBeInserted = bodyEntities.map((entity) => {
-    const id = generateToken(8);
+
+  const entitiesIdsToBeReplaced: string[] = bodyEntities
+    .filter((entity) => !!entity.id)
+    .map((entity) => entity.id!);
+
+  const entitiesToBeInserted: Entity[] = bodyEntities.map((entity) => {
+    const id = entity.id ?? generateToken(8);
     return {
       model: { ...entity },
       id,
@@ -143,12 +144,29 @@ export const createOrOverwriteEntities = async ({
       ancestors,
     };
   });
-  await EnvironmentModel.findOneAndUpdate(
-    { _id: environment._id },
-    { $addToSet: { entities: entityTypes.join("/") } },
-  );
-  await EntityModel.insertMany(entitiesToBeInserted);
-  return entitiesToBeInserted.map((e) => e.id);
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    await EntityModel.deleteMany(
+      { id: { $in: entitiesIdsToBeReplaced } },
+      { session },
+    );
+    await EnvironmentModel.findOneAndUpdate(
+      { _id: environment._id },
+      { $addToSet: { entities: entityTypes.join("/") } },
+      { session },
+    );
+    await EntityModel.insertMany(entitiesToBeInserted, { session });
+    await session.commitTransaction();
+    return entitiesToBeInserted.map((e) => e.id);
+  } catch (e) {
+    console.error("Error adding entities", e);
+    await session.abortTransaction();
+    throw new ServiceError(httpError.ENTITIES_CANT_ADD);
+  } finally {
+    await session.endSession();
+  }
 };
 
 export const deleteRootAndUpdateEnv = async ({
