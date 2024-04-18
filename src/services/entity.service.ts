@@ -14,7 +14,10 @@ import {
 } from "../utils/entity-utils";
 import { ServiceError } from "../utils/service-errors";
 import { findEnvironment } from "./environment.service";
-import type { EntityRouteParams } from "../routes/entities.ts";
+import type {
+  EntityRouteParams,
+  PutRequestEntityDto,
+} from "../routes/entities.ts";
 
 type EntityAggregateResult = {
   totalCount: number;
@@ -292,3 +295,92 @@ export const deleteSingleEntityAndUpdateEnv = async ({
   }
   return entity;
 };
+
+export const replaceEntities = async ({
+  appName,
+  envName,
+  xpath,
+  bodyEntities,
+}: {
+  appName: string;
+  envName: string;
+  xpath: string;
+  bodyEntities: PutRequestEntityDto[];
+}) => {
+  const xpathEntitySegments = getXpathSegments(xpath) as string[];
+  // const parentIdFromXpath = R.nth(-2, xpathEntitySegments);
+  const entityTypes = xpathEntitySegments.filter(
+    (_: any, i: number) => i % 2 === 0,
+  );
+  const ancestors = xpathEntitySegments.filter(
+    (_: any, i: number) => i % 2 !== 0,
+  );
+  const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
+  const dbExistingDocuments = await EntityModel.find({
+    id: { $in: documentIds },
+    type: `${appName}/${envName}/${entityTypes.join("/")}`,
+    ancestors,
+  });
+  if (R.isEmpty(dbExistingDocuments)) {
+    throw new ServiceError(httpError.ENTITY_NOT_FOUND);
+  }
+  const documentsToBeUpdated: Entity[] = dbExistingDocuments.map((entity) => {
+    const { id, ...propsToBeReplaced } = bodyEntities.find(
+      (x) => x.id === entity.id,
+    )!;
+    return {
+      id: entity.id,
+      model: { ...propsToBeReplaced },
+      type: entity.type,
+      ancestors: entity.ancestors,
+    };
+  });
+  await EntityModel.deleteMany({ id: { $in: documentIds } });
+  await EntityModel.insertMany(documentsToBeUpdated);
+  return documentsToBeUpdated.map((e) => e.id);
+};
+
+// const updateEntities = async ({ xid, body }) => {
+//   const xidSpl = xid.split("/");
+//   const xidSegs = R.drop(2, xidSpl);
+//   const entityTypes = xidSegs.filter((_, i) => i % 2 === 0);
+//   const ancestors = xidSegs.filter((_, i) => i % 2 === 1);
+//   const entityIds = body.filter(({ id }) => id).map(({ id }) => id);
+//   const entitiesFromDb = await Entity.find({
+//     id: { $in: entityIds },
+//     type: `${xidSpl[0]}/${xidSpl[1]}/${entityTypes.join("/")}`,
+//     ancestors,
+//   });
+//   if (R.isEmpty(entitiesFromDb)) {
+//     throw httpError404({ message: "Entities not found" });
+//   }
+//   const existingEntities = entitiesFromDb.map((entity) => ({
+//     id: entity.id,
+//     params: entity.params,
+//     ancestors: entity.ancestors,
+//     type: entity.type,
+//   }));
+//   const existingEntitiesIds = existingEntities.map((entity) => entity.id);
+//   const entitiesToBeUpdated = body.filter(
+//     (entity) =>
+//       typeof entity === "object" &&
+//       entity !== null &&
+//       entity &&
+//       entity.id &&
+//       existingEntitiesIds.includes(entity.id),
+//   );
+//   const updatedEntities = existingEntities.map((entity) => {
+//     const entityToBeUpdated = entitiesToBeUpdated.find(
+//       ({ id }) => id === entity.id,
+//     );
+//     delete entityToBeUpdated.id;
+//     return {
+//       ...entity,
+//       params: {
+//         ...entityToBeUpdated,
+//       },
+//     };
+//   });
+//   await Entity.deleteMany({ id: { $in: existingEntitiesIds } });
+//   await Entity.insertMany(updatedEntities);
+// };
