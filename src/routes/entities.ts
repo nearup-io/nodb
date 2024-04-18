@@ -29,7 +29,7 @@ export type EntityRouteParams = {
   entityName: string;
 };
 
-export type EntitiyRequestDto = {
+export type EntityRequestDto = {
   id: string;
   [key: string]: any;
 };
@@ -153,7 +153,7 @@ app.delete("/*", async (c) => {
 app.put("/*", async (c) => {
   const { appName, envName } = c.req.param();
   const { xpath } = getCommonEntityRouteProps(c.req.path, c.req.param());
-  const bodyEntities = await asyncTryJson<EntitiyRequestDto[]>(c.req.json());
+  const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
   if (!Array.isArray(bodyEntities)) {
     throw new HTTPException(400, {
       message: httpError.BODY_IS_NOT_ARRAY,
@@ -184,7 +184,7 @@ app.put("/*", async (c) => {
 app.patch("/*", async (c) => {
   const { appName, envName } = c.req.param();
   const { xpath } = getCommonEntityRouteProps(c.req.path, c.req.param());
-  const bodyEntities = await asyncTryJson<EntitiyRequestDto[]>(c.req.json());
+  const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
   if (!Array.isArray(bodyEntities)) {
     throw new HTTPException(400, {
       message: httpError.BODY_IS_NOT_ARRAY,

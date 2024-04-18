@@ -16,7 +16,7 @@ import { ServiceError } from "../utils/service-errors";
 import { findEnvironment } from "./environment.service";
 import type {
   EntityRouteParams,
-  EntitiyRequestDto,
+  EntityRequestDto,
 } from "../routes/entities.ts";
 
 type EntityAggregateResult = {
@@ -305,7 +305,7 @@ export const replaceEntities = async ({
   appName: string;
   envName: string;
   xpath: string;
-  bodyEntities: EntitiyRequestDto[];
+  bodyEntities: EntityRequestDto[];
 }) => {
   const xpathEntitySegments = getXpathSegments(xpath) as string[];
   const entityTypes = xpathEntitySegments.filter(
@@ -360,7 +360,7 @@ export const updateEntities = async ({
   appName: string;
   envName: string;
   xpath: string;
-  bodyEntities: EntitiyRequestDto[];
+  bodyEntities: EntityRequestDto[];
 }) => {
   const xpathEntitySegments = getXpathSegments(xpath) as string[];
   const entityTypes = xpathEntitySegments.filter(
