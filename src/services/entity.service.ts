@@ -398,7 +398,7 @@ export const updateEntities = async ({
     await session.commitTransaction();
     return documentsToBeUpdated.map((e) => e.id);
   } catch (e) {
-    console.error("Error deleting entities", e);
+    console.error("Error updating entities", e);
     await session.abortTransaction();
     throw new ServiceError(httpError.ENTITIES_CANT_UPDATE);
   } finally {
