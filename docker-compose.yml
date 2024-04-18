@@ -1,28 +1,27 @@
 services:
   nodb-app:
     build:
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     image: nodb-app
     ports:
       - 3000:3000
     depends_on:
-      - mongodb
+      - mongo
     volumes:
-      - .:/src
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
     networks:
       - nodb-network
 
-  mongodb:
-    image: mongo
-    ports:
-      - 27017:27017
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: 12345
+  mongo:
+    image: mongodb/atlas
+    privileged: true
+    command: |
+      /bin/bash -c "atlas deployments setup --type local --port 27778 --bindIpAll --username root --password 1234567 --force && tail -f /dev/null"
     volumes:
-      - nodb:/data/db
-    networks:
-      - nodb-network
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 27778:27778
 
 volumes:
   nodb:

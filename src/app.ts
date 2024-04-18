@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import dbconnect from "./mongoconnect";
-import appsRoute from "./src/routes/applications";
-import searchRoute from "./src/routes/search";
-import githubAuth from "./src/routes/auth/github";
-import uiAuthRoute from "./src/routes/examples/auth";
+import appsRoute from "./routes/applications";
+import githubAuth from "./routes/auth/github";
+import uiAuthRoute from "./routes/examples/auth";
+import searchRoute from "./routes/search";
 
 await dbconnect();
 

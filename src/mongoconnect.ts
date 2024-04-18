@@ -16,6 +16,7 @@ const mongoconnect: () => Promise<void> = async () => {
     console.log("Connecting to database...");
     if (globalThis.dbconn) {
       // close on "hot reload": bun --hot, or bun --watch
+      console.log('Closing mongoose...')
       await globalThis.dbconn.connection.close();
     }
     globalThis.dbconn = await mongoose.connect(mongodbUrl, {
@@ -35,7 +36,7 @@ const mongoconnect: () => Promise<void> = async () => {
   }
 };
 
-process.on("SIGINT", async () => {
+process.on("SIGTERM", async () => {
   if (globalThis.dbconn) {
     try {
       await globalThis.dbconn.connection.close();
