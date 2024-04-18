@@ -11,6 +11,7 @@ import {
   getEntities,
   getSingleEntity,
   replaceEntities,
+  updateEntities,
 } from "../services/entity.service";
 import { httpError } from "../utils/const";
 import { entityMetaResponse } from "../utils/entity-utils";
@@ -28,7 +29,7 @@ export type EntityRouteParams = {
   entityName: string;
 };
 
-export type PutRequestEntityDto = {
+export type EntitiyRequestDto = {
   id: string;
   [key: string]: any;
 };
@@ -152,7 +153,7 @@ app.delete("/*", async (c) => {
 app.put("/*", async (c) => {
   const { appName, envName } = c.req.param();
   const { xpath } = getCommonEntityRouteProps(c.req.path, c.req.param());
-  const bodyEntities = await asyncTryJson<PutRequestEntityDto[]>(c.req.json());
+  const bodyEntities = await asyncTryJson<EntitiyRequestDto[]>(c.req.json());
   if (!Array.isArray(bodyEntities)) {
     throw new HTTPException(400, {
       message: httpError.BODY_IS_NOT_ARRAY,
@@ -160,6 +161,37 @@ app.put("/*", async (c) => {
   }
   try {
     const ids = await replaceEntities({
+      appName,
+      envName,
+      xpath,
+      bodyEntities,
+    });
+
+    return c.json({ ids });
+  } catch (e) {
+    if (e instanceof ServiceError) {
+      throw new HTTPException(400, {
+        message: e.explicitMessage,
+      });
+    } else {
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
+      });
+    }
+  }
+});
+
+app.patch("/*", async (c) => {
+  const { appName, envName } = c.req.param();
+  const { xpath } = getCommonEntityRouteProps(c.req.path, c.req.param());
+  const bodyEntities = await asyncTryJson<EntitiyRequestDto[]>(c.req.json());
+  if (!Array.isArray(bodyEntities)) {
+    throw new HTTPException(400, {
+      message: httpError.BODY_IS_NOT_ARRAY,
+    });
+  }
+  try {
+    const ids = await updateEntities({
       appName,
       envName,
       xpath,
