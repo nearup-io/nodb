@@ -308,7 +308,6 @@ export const replaceEntities = async ({
   bodyEntities: PutRequestEntityDto[];
 }) => {
   const xpathEntitySegments = getXpathSegments(xpath) as string[];
-  // const parentIdFromXpath = R.nth(-2, xpathEntitySegments);
   const entityTypes = xpathEntitySegments.filter(
     (_: any, i: number) => i % 2 === 0,
   );
@@ -339,48 +338,3 @@ export const replaceEntities = async ({
   await EntityModel.insertMany(documentsToBeUpdated);
   return documentsToBeUpdated.map((e) => e.id);
 };
-
-// const updateEntities = async ({ xid, body }) => {
-//   const xidSpl = xid.split("/");
-//   const xidSegs = R.drop(2, xidSpl);
-//   const entityTypes = xidSegs.filter((_, i) => i % 2 === 0);
-//   const ancestors = xidSegs.filter((_, i) => i % 2 === 1);
-//   const entityIds = body.filter(({ id }) => id).map(({ id }) => id);
-//   const entitiesFromDb = await Entity.find({
-//     id: { $in: entityIds },
-//     type: `${xidSpl[0]}/${xidSpl[1]}/${entityTypes.join("/")}`,
-//     ancestors,
-//   });
-//   if (R.isEmpty(entitiesFromDb)) {
-//     throw httpError404({ message: "Entities not found" });
-//   }
-//   const existingEntities = entitiesFromDb.map((entity) => ({
-//     id: entity.id,
-//     params: entity.params,
-//     ancestors: entity.ancestors,
-//     type: entity.type,
-//   }));
-//   const existingEntitiesIds = existingEntities.map((entity) => entity.id);
-//   const entitiesToBeUpdated = body.filter(
-//     (entity) =>
-//       typeof entity === "object" &&
-//       entity !== null &&
-//       entity &&
-//       entity.id &&
-//       existingEntitiesIds.includes(entity.id),
-//   );
-//   const updatedEntities = existingEntities.map((entity) => {
-//     const entityToBeUpdated = entitiesToBeUpdated.find(
-//       ({ id }) => id === entity.id,
-//     );
-//     delete entityToBeUpdated.id;
-//     return {
-//       ...entity,
-//       params: {
-//         ...entityToBeUpdated,
-//       },
-//     };
-//   });
-//   await Entity.deleteMany({ id: { $in: existingEntitiesIds } });
-//   await Entity.insertMany(updatedEntities);
-// };
