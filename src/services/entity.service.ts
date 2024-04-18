@@ -17,6 +17,7 @@ import { findEnvironment } from "./environment.service";
 import type {
   EntityRouteParams,
   EntityRequestDto,
+  PostEntityRequestDto,
 } from "../routes/entities.ts";
 
 type EntityAggregateResult = {
@@ -103,7 +104,7 @@ export const createOrOverwriteEntities = async ({
   appName: string;
   envName: string;
   xpath: string;
-  bodyEntities: Omit<EntityRequestDto, "id"> & { id?: string }[];
+  bodyEntities: PostEntityRequestDto[];
 }) => {
   const environment = await findEnvironment({
     appName,

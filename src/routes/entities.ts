@@ -34,6 +34,10 @@ export type EntityRequestDto = {
   [key: string]: any;
 };
 
+export type PostEntityRequestDto = Omit<EntityRequestDto, "id"> & {
+  id?: string;
+};
+
 const app = new Hono<Env, BlankSchema, "/:appName/:envName/:entityName">();
 
 app.get("/*", entityQueryValidator(), async (c) => {
@@ -81,11 +85,7 @@ app.get("/*", entityQueryValidator(), async (c) => {
 app.post("/*", async (c) => {
   const { appName, envName, entityName } = c.req.param();
 
-  const body = (await asyncTryJson(c.req.json())) as Omit<
-    EntityRequestDto,
-    "id"
-  > &
-    { id?: string }[];
+  const body = (await asyncTryJson(c.req.json())) as PostEntityRequestDto[];
   if (!Array.isArray(body)) {
     throw new HTTPException(400, {
       message: httpError.BODY_IS_NOT_ARRAY,
