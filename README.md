@@ -16,5 +16,14 @@ bun install
 To run:
 
 ```bash
-bun run app.ts
+bun start
 ```
+
+## Deploy
+
+### Render
+
+For quick deploy you can use Render:
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/nearup-io/nodb)
+

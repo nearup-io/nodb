@@ -1,0 +1,120 @@
+@bearer=
+@url=
+@app=
+@env=
+
+
+### Get all apps
+{{url}}/apps/all
+Authorization: {{bearer}}
+
+### Get single app
+{{url}}/apps/{{app}}
+Authorization: {{bearer}}
+
+### Create an app
+POST {{url}}/apps/memes-app
+Authorization: {{bearer}}
+
+{
+  "image": "path/to/image.jpg",
+  "description": "Memes app"
+}
+
+### Delete an app
+DELETE {{url}}/apps/memes-app
+Authorization: {{bearer}}
+
+### Update an app
+PATCH {{url}}/apps/better-memes
+Authorization: {{bearer}}
+
+# { "appName": "better-memes", "description": "Way too good" }
+{ "description": "Way too good", "image": "path/nopath.jpg" }
+
+### Get single environment
+{{url}}/apps/{{app}}/{{env}}
+Authorization: {{bearer}}
+
+### Create env (already exists error)
+POST {{url}}/apps/{{app}}/dev
+Authorization: {{bearer}}
+
+{ "description": "This is a staging envronment"}
+
+### Create staging env
+POST {{url}}/apps/{{app}}/staging
+Authorization: {{bearer}}
+
+{ "description": "This is a staging envronment"}
+
+### Delete env
+DELETE {{url}}/apps/{{app}}/staging
+Authorization: {{bearer}}
+
+### Update env
+PATCH {{url}}/apps/{{app}}/prod
+Authorization: {{bearer}}
+
+{ "envName": "dev", "description": "This is development environment for my app" }
+
+### Create entity
+POST {{url}}/apps/{{app}}/{{env}}/my-objects
+Authorization: {{bearer}}
+
+[{ "foo": "bar", "numbr": 101 }]
+
+### Update entity
+PUT {{url}}/apps/{{app}}/{{env}}/my-objects-3
+Authorization: {{bearer}}
+
+[{ "id": "fgxp2skc", "updated-prop":1 }]
+
+### Partially update entity
+PATCH {{url}}/apps/{{app}}/{{env}}/my-objects
+Authorization: {{bearer}}
+
+[{ "id": "fgxp2skc", "new-prop": "new-2", "updated-prop": 5 }]
+
+### Create subentity
+POST {{url}}/apps/{{app}}/{{env}}/my-objects/:id/my-subentity
+Authorization: {{bearer}}
+
+[{ "foo": "bar", "numbr": 1 }, { "foo": "bar2", "numbr": 2 }, { "foo": "bar", "numbr": 3 }]
+
+### Update subentity
+PUT {{url}}/apps/{{app}}/{{env}}/my-objects/:id/my-subentity
+Authorization: {{bearer}}
+
+[{ "id": "02i73tvz", "updated-prop":2 }, { "id": "r8vczn4u", "updated-prop":2 }]
+
+### Partially update subentity
+PATCH {{url}}/apps/{{app}}/{{env}}/my-objects/:id/my-subentity
+Authorization: {{bearer}}
+
+[{ "id": "fgxp2skc", "new-prop": "new-2", "updated-prop": 5 }]
+
+### Get single entity
+{{url}}/apps/{{app}}/{{env}}/my-objects/:id
+Authorization: {{bearer}}
+
+### Get entities
+{{url}}/apps/{{app}}/{{env}}/my-objects
+Authorization: {{bearer}}
+
+### Get entities query by prop
+{{url}}/apps/{{app}}/{{env}}/my-objects
+  ?foo=baz
+  &numbr=5
+Authorization: {{bearer}}
+
+### Get entities __sort_by
+{{url}}/apps/{{app}}/{{env}}/my-objects
+  ?__sort_by=prop1,prop2
+  &__sort_by_desc=prop3,prop4
+Authorization: {{bearer}}
+
+### Get entities __only
+{{url}}/apps/{{app}}/{{env}}/my-objects
+  ?__only=prop1,prop2
+Authorization: {{bearer}}

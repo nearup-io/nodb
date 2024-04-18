@@ -10,37 +10,52 @@ import {
   deleteSubEntitiesAndUpdateEnv,
   getEntities,
   getSingleEntity,
+  replaceEntities,
+  updateEntities,
 } from "../services/entity.service";
 import { httpError } from "../utils/const";
 import { entityMetaResponse } from "../utils/entity-utils";
-import { asyncTryJson } from "../utils/route-utils";
+import {
+  asyncTryJson,
+  getCommonEntityRouteProps,
+  isEntitiesList,
+} from "../utils/route-utils";
 import { entityQueryValidator } from "../utils/route-validators";
 import { RoutingError, ServiceError } from "../utils/service-errors";
+
+export type EntityRouteParams = {
+  appName: string;
+  envName: string;
+  entityName: string;
+};
+
+export type EntityRequestDto = {
+  id: string;
+  [key: string]: any;
+};
+
+export type PostEntityRequestDto = Omit<EntityRequestDto, "id"> & {
+  id?: string;
+};
 
 const app = new Hono<Env, BlankSchema, "/:appName/:envName/:entityName">();
 
 app.get("/*", entityQueryValidator(), async (c) => {
-  const { appName, envName, entityName } = c.req.param();
+  const { entityName } = c.req.param();
   const q = c.req.valid("query");
-  const pathRest = R.replace(
-    `/apps/${appName}/${envName}/${entityName}`,
-    "",
-    c.req.path
+  const { xpath, pathRestSegments } = getCommonEntityRouteProps(
+    c.req.path,
+    c.req.param(),
   );
-  const restSegments = R.split("/", pathRest).filter((p) => !R.isEmpty(p));
-  const xpath = R.isEmpty(restSegments)
-    ? `${appName}/${envName}/${entityName}`
-    : `${appName}/${envName}/${entityName}/${restSegments.join("/")}`;
-  const xpathSegments = c.req.path.split("/").filter((x) => x);
-  const isEntitiesList = xpathSegments.length % 2 == 0;
 
-  if (isEntitiesList) {
+  if (isEntitiesList(pathRestSegments)) {
     const entitiesFromDb = await getEntities({
       xpath,
       propFilters: q.props,
       metaFilters: q.meta,
     });
-    const { entities, totalCount } = entitiesFromDb[0];
+
+    const { entities } = entitiesFromDb[0] ?? {};
     if (!entities || R.isEmpty(entities)) {
       return c.json({ [entityName]: [] });
     }
@@ -59,45 +74,36 @@ app.get("/*", entityQueryValidator(), async (c) => {
     });
   } else {
     const entity = await getSingleEntity({
-      xPath: c.req.param(),
+      xpath: c.req.param(),
       metaFilters: q.meta,
-      entityId: R.last(xpathSegments)!,
+      entityId: R.last(pathRestSegments)!,
     });
     return c.json(entity);
   }
 });
 
 app.post("/*", async (c) => {
-  const { appName, envName, entityName } = c.req.param() as {
-    appName: string;
-    envName: string;
-    entityName: string;
-  };
-  // TODO: validate
-  const body = (await asyncTryJson(c.req.json())) as Omit<Entity, "id">[];
+  const { appName, envName, entityName } = c.req.param();
+
+  const body = (await asyncTryJson(c.req.json())) as PostEntityRequestDto[];
   if (!Array.isArray(body)) {
     throw new HTTPException(400, {
       message: httpError.BODY_IS_NOT_ARRAY,
     });
   }
   try {
-    const pathRest = R.replace(
-      `/apps/${appName}/${envName}/${entityName}`,
-      "",
-      c.req.path
+    const { pathRestSegments, xpath } = getCommonEntityRouteProps(
+      c.req.path,
+      c.req.param(),
     );
-    const pathRestSegments = R.split("/", pathRest).filter(
-      (p) => !R.isEmpty(p)
-    );
-    const isSubentityPath = pathRestSegments.length % 2 === 0;
-    if (!isSubentityPath) {
+
+    if (!isEntitiesList(pathRestSegments)) {
       throw new RoutingError(httpError.ENTITY_PATH_CREATION);
     }
     const ids = await createOrOverwriteEntities({
       appName,
       envName,
-      entityName,
-      restSegments: pathRestSegments,
+      xpath,
       bodyEntities: body,
     });
     return c.json({ ids });
@@ -117,16 +123,10 @@ app.post("/*", async (c) => {
 
 app.delete("/*", async (c) => {
   const { appName, envName, entityName } = c.req.param();
-  const pathRest = R.replace(
-    `/apps/${appName}/${envName}/${entityName}`,
-    "",
-    c.req.path
+  const { pathRest, pathRestSegments, xpath } = getCommonEntityRouteProps(
+    c.req.path,
+    c.req.param(),
   );
-  const restSegments = R.split("/", pathRest).filter((p) => !R.isEmpty(p));
-  const xpath = R.isEmpty(restSegments)
-    ? `${appName}/${envName}/${entityName}`
-    : `${appName}/${envName}/${entityName}/${restSegments.join("/")}`;
-  const pathRestSegments = R.split("/", pathRest).filter((p) => !R.isEmpty(p));
   if (R.isEmpty(pathRestSegments)) {
     const res = await deleteRootAndUpdateEnv({ appName, envName, entityName });
     return c.json({ deleted: res.done });
@@ -146,11 +146,73 @@ app.delete("/*", async (c) => {
         envName,
         xpath,
       });
-      if (!res) return c.json({ found: false });
-      return c.json({ found: true });
+
+      return c.json({ deleted: !!res });
     }
   }
   return c.json({ pathRest, pathRestSegments });
+});
+
+app.put("/*", async (c) => {
+  const { appName, envName } = c.req.param();
+  const { xpath } = getCommonEntityRouteProps(c.req.path, c.req.param());
+  const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
+  if (!Array.isArray(bodyEntities)) {
+    throw new HTTPException(400, {
+      message: httpError.BODY_IS_NOT_ARRAY,
+    });
+  }
+  try {
+    const ids = await replaceEntities({
+      appName,
+      envName,
+      xpath,
+      bodyEntities,
+    });
+
+    return c.json({ ids });
+  } catch (e) {
+    if (e instanceof ServiceError) {
+      throw new HTTPException(400, {
+        message: e.explicitMessage,
+      });
+    } else {
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
+      });
+    }
+  }
+});
+
+app.patch("/*", async (c) => {
+  const { appName, envName } = c.req.param();
+  const { xpath } = getCommonEntityRouteProps(c.req.path, c.req.param());
+  const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
+  if (!Array.isArray(bodyEntities)) {
+    throw new HTTPException(400, {
+      message: httpError.BODY_IS_NOT_ARRAY,
+    });
+  }
+  try {
+    const ids = await updateEntities({
+      appName,
+      envName,
+      xpath,
+      bodyEntities,
+    });
+
+    return c.json({ ids });
+  } catch (e) {
+    if (e instanceof ServiceError) {
+      throw new HTTPException(400, {
+        message: e.explicitMessage,
+      });
+    } else {
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
+      });
+    }
+  }
 });
 
 export default app;

@@ -30,7 +30,7 @@ const EntitySchema = new Schema(
       required: false,
     }
   },
-  { _id: false }
+  { _id: false },
 );
 
 export type Entity = {
@@ -38,8 +38,8 @@ export type Entity = {
   type: string;
   model: Record<string, unknown>;
   extras?: Record<string, unknown>;
-  ancestors?: string[];
-}
+  ancestors?: string[] | null;
+};
 
 const Entity = mongoose.model("Entity", EntitySchema);
 export default Entity;

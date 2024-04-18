@@ -1,6 +1,6 @@
 {
   "name": "nodb",
-  "module": "app.ts",
+  "module": "src/app.ts",
   "type": "module",
   "devDependencies": {
     "@types/bun": "latest",
