@@ -3,6 +3,7 @@
 @app=
 @env=
 
+
 ### Get all apps
 {{url}}/apps/all
 Authorization: {{bearer}}
@@ -64,10 +65,16 @@ Authorization: {{bearer}}
 [{ "foo": "bar", "numbr": 101 }]
 
 ### Update entity
-PUT {{url}}/apps/{{app}}/{{env}}/my-objects
+PUT {{url}}/apps/{{app}}/{{env}}/my-objects-3
 Authorization: {{bearer}}
 
-[{ "id": "02i73tvz", "updated-prop":321 }]
+[{ "id": "fgxp2skc", "updated-prop":1 }]
+
+### Partially update entity
+PATCH {{url}}/apps/{{app}}/{{env}}/my-objects
+Authorization: {{bearer}}
+
+[{ "id": "fgxp2skc", "new-prop": "new-2", "updated-prop": 5 }]
 
 ### Create subentity
 POST {{url}}/apps/{{app}}/{{env}}/my-objects/:id/my-subentity
@@ -79,7 +86,13 @@ Authorization: {{bearer}}
 PUT {{url}}/apps/{{app}}/{{env}}/my-objects/:id/my-subentity
 Authorization: {{bearer}}
 
-[{ "id": "02i73tvz", "updated-prop":321 }, { "updated-prop":321 }, { "id": "r8vczn4u", "updated-prop":321 }]
+[{ "id": "02i73tvz", "updated-prop":2 }, { "id": "r8vczn4u", "updated-prop":2 }]
+
+### Partially update subentity
+PATCH {{url}}/apps/{{app}}/{{env}}/my-objects/:id/my-subentity
+Authorization: {{bearer}}
+
+[{ "id": "fgxp2skc", "new-prop": "new-2", "updated-prop": 5 }]
 
 ### Get single entity
 {{url}}/apps/{{app}}/{{env}}/my-objects/:id
