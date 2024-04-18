@@ -31,5 +31,6 @@ export const httpError = {
   ENTITY_PATH: "Entity path doesn't exist",
   ENTITY_NOT_FOUND: "Entity not found",
   ENTITY_PATH_CREATION: "Wrong path",
+  ENTITIES_CANT_UPDATE: "Cannot update entities",
   UNKNOWN: "Unknown error",
 };

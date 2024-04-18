@@ -334,7 +334,19 @@ export const replaceEntities = async ({
       ancestors: entity.ancestors,
     };
   });
-  await EntityModel.deleteMany({ id: { $in: documentIds } });
-  await EntityModel.insertMany(documentsToBeUpdated);
-  return documentsToBeUpdated.map((e) => e.id);
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    await EntityModel.deleteMany({ id: { $in: documentIds } }, { session });
+    await EntityModel.insertMany(documentsToBeUpdated, { session });
+    await session.commitTransaction();
+    return documentsToBeUpdated.map((e) => e.id);
+  } catch (e) {
+    console.error("Error deleting entities", e);
+    await session.abortTransaction();
+    throw new ServiceError(httpError.ENTITIES_CANT_UPDATE);
+  } finally {
+    await session.endSession();
+  }
 };
