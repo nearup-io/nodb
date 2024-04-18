@@ -81,7 +81,8 @@ app.get("/*", entityQueryValidator(), async (c) => {
 app.post("/*", async (c) => {
   const { appName, envName, entityName } = c.req.param();
 
-  const body = (await asyncTryJson(c.req.json())) as Omit<Entity, "id">[];
+  const body = (await asyncTryJson(c.req.json())) as Omit<Entity, "id"> &
+    { id?: string }[];
   if (!Array.isArray(body)) {
     throw new HTTPException(400, {
       message: httpError.BODY_IS_NOT_ARRAY,
@@ -99,7 +100,6 @@ app.post("/*", async (c) => {
     const ids = await createOrOverwriteEntities({
       appName,
       envName,
-      entityName,
       xpath,
       bodyEntities: body,
     });
