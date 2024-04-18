@@ -63,11 +63,23 @@ Authorization: {{bearer}}
 
 [{ "foo": "bar", "numbr": 101 }]
 
+### Update entity
+PUT {{url}}/apps/{{app}}/{{env}}/my-objects
+Authorization: {{bearer}}
+
+[{ "id": "02i73tvz", "updated-prop":321 }]
+
 ### Create subentity
 POST {{url}}/apps/{{app}}/{{env}}/my-objects/:id/my-subentity
 Authorization: {{bearer}}
 
-[{ "foo": "bar", "numbr": 101 }]
+[{ "foo": "bar", "numbr": 1 }, { "foo": "bar2", "numbr": 2 }, { "foo": "bar", "numbr": 3 }]
+
+### Update subentity
+PUT {{url}}/apps/{{app}}/{{env}}/my-objects/:id/my-subentity
+Authorization: {{bearer}}
+
+[{ "id": "02i73tvz", "updated-prop":321 }, { "updated-prop":321 }, { "id": "r8vczn4u", "updated-prop":321 }]
 
 ### Get single entity
 {{url}}/apps/{{app}}/{{env}}/my-objects/:id

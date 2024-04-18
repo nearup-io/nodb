@@ -14,7 +14,10 @@ import {
 } from "../utils/entity-utils";
 import { ServiceError } from "../utils/service-errors";
 import { findEnvironment } from "./environment.service";
-import type { EntityRouteParams } from "../routes/entities.ts";
+import type {
+  EntityRouteParams,
+  PutRequestEntityDto,
+} from "../routes/entities.ts";
 
 type EntityAggregateResult = {
   totalCount: number;
@@ -291,4 +294,59 @@ export const deleteSingleEntityAndUpdateEnv = async ({
     }
   }
   return entity;
+};
+
+export const replaceEntities = async ({
+  appName,
+  envName,
+  xpath,
+  bodyEntities,
+}: {
+  appName: string;
+  envName: string;
+  xpath: string;
+  bodyEntities: PutRequestEntityDto[];
+}) => {
+  const xpathEntitySegments = getXpathSegments(xpath) as string[];
+  const entityTypes = xpathEntitySegments.filter(
+    (_: any, i: number) => i % 2 === 0,
+  );
+  const ancestors = xpathEntitySegments.filter(
+    (_: any, i: number) => i % 2 !== 0,
+  );
+  const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
+  const dbExistingDocuments = await EntityModel.find({
+    id: { $in: documentIds },
+    type: `${appName}/${envName}/${entityTypes.join("/")}`,
+    ancestors,
+  });
+  if (R.isEmpty(dbExistingDocuments)) {
+    throw new ServiceError(httpError.ENTITY_NOT_FOUND);
+  }
+  const documentsToBeUpdated: Entity[] = dbExistingDocuments.map((entity) => {
+    const { id, ...propsToBeReplaced } = bodyEntities.find(
+      (x) => x.id === entity.id,
+    )!;
+    return {
+      id: entity.id,
+      model: { ...propsToBeReplaced },
+      type: entity.type,
+      ancestors: entity.ancestors,
+    };
+  });
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    await EntityModel.deleteMany({ id: { $in: documentIds } }, { session });
+    await EntityModel.insertMany(documentsToBeUpdated, { session });
+    await session.commitTransaction();
+    return documentsToBeUpdated.map((e) => e.id);
+  } catch (e) {
+    console.error("Error updating entities", e);
+    await session.abortTransaction();
+    throw new ServiceError(httpError.ENTITIES_CANT_UPDATE);
+  } finally {
+    await session.endSession();
+  }
 };
