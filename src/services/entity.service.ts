@@ -105,7 +105,7 @@ export const createOrOverwriteEntities = async ({
   envName: string;
   entityName: string;
   xpath: string;
-  bodyEntities: Omit<Entity, "id">[];
+  bodyEntities: Omit<Entity, "id"> & { id?: string }[];
 }) => {
   const environment = await findEnvironment({
     appName,
@@ -131,6 +131,24 @@ export const createOrOverwriteEntities = async ({
       throw new ServiceError(httpError.ENTITY_PATH);
     }
   }
+
+  const { toBeAdded, toBeReplaced } = bodyEntities.reduce<{
+    toBeReplaced: Entity[];
+    toBeAdded: Omit<Entity, "id">[];
+  }>(
+    (acc, currentEntity) => {
+      if (!!currentEntity.id && typeof R.is(String, currentEntity.id)) {
+        acc.toBeReplaced.push(currentEntity as Entity);
+      }
+
+      return acc;
+    },
+    {
+      toBeReplaced: [],
+      toBeAdded: [],
+    },
+  );
+
   const entitiesToBeInserted = bodyEntities.map((entity) => {
     const id = generateToken(8);
     return {
