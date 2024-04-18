@@ -16,7 +16,7 @@ bun install
 To run:
 
 ```bash
-bun run app.ts
+bun start
 ```
 
 ## Deploy
