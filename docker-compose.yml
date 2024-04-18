@@ -8,7 +8,8 @@ services:
     depends_on:
       - mongodb
     volumes:
-      - .:/src
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
     networks:
       - nodb-network
 
