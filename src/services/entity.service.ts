@@ -130,26 +130,12 @@ export const createOrOverwriteEntities = async ({
     }
   }
 
-  const { entitiesToBeAdded, entitiesToBeReplaced } = bodyEntities.reduce<{
-    entitiesToBeReplaced: Entity[];
-    entitiesToBeAdded: Omit<Entity, "id">[];
-  }>(
-    (acc, currentEntity) => {
-      if (!!currentEntity.id && typeof R.is(String, currentEntity.id)) {
-        acc.entitiesToBeReplaced.push(currentEntity as Entity);
-      } else {
-        acc.entitiesToBeAdded.push(currentEntity as Omit<Entity, "id">);
-      }
-      return acc;
-    },
-    {
-      entitiesToBeReplaced: [],
-      entitiesToBeAdded: [],
-    },
-  );
+  const entitiesIdsToBeReplaced: string[] = bodyEntities
+    .filter((entity) => !!entity.id)
+    .map((entity) => entity.id!);
 
-  const entitiesToBeInserted = entitiesToBeAdded.map((entity) => {
-    const id = generateToken(8);
+  const entitiesToBeInserted: Entity[] = bodyEntities.map((entity) => {
+    const id = entity.id ?? generateToken(8);
     return {
       model: { ...entity },
       id,
@@ -157,12 +143,29 @@ export const createOrOverwriteEntities = async ({
       ancestors,
     };
   });
-  await EnvironmentModel.findOneAndUpdate(
-    { _id: environment._id },
-    { $addToSet: { entities: entityTypes.join("/") } },
-  );
-  await EntityModel.insertMany(entitiesToBeInserted);
-  return entitiesToBeInserted.map((e) => e.id);
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    await EntityModel.deleteMany(
+      { id: { $in: entitiesIdsToBeReplaced } },
+      { session },
+    );
+    await EnvironmentModel.findOneAndUpdate(
+      { _id: environment._id },
+      { $addToSet: { entities: entityTypes.join("/") } },
+      { session },
+    );
+    await EntityModel.insertMany(entitiesToBeInserted, { session });
+    await session.commitTransaction();
+    return entitiesToBeInserted.map((e) => e.id);
+  } catch (e) {
+    console.error("Error adding entities", e);
+    await session.abortTransaction();
+    throw new ServiceError(httpError.ENTITIES_CANT_ADD);
+  } finally {
+    await session.endSession();
+  }
 };
 
 export const deleteRootAndUpdateEnv = async ({
