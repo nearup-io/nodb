@@ -1,7 +1,7 @@
 services:
   nodb-app:
     build:
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     image: nodb-app
     ports:
       - 3000:3000
