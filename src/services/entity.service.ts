@@ -97,15 +97,13 @@ export const getSingleEntity = async ({
 export const createOrOverwriteEntities = async ({
   appName,
   envName,
-  entityName,
   xpath,
   bodyEntities,
 }: {
   appName: string;
   envName: string;
-  entityName: string;
   xpath: string;
-  bodyEntities: Omit<Entity, "id"> & { id?: string }[];
+  bodyEntities: Omit<Entity, "id"> & { id?: string }[]; // TODO I think this type is off here. Entity is not what's arriving to our API
 }) => {
   const environment = await findEnvironment({
     appName,
@@ -132,24 +130,25 @@ export const createOrOverwriteEntities = async ({
     }
   }
 
-  const { toBeAdded, toBeReplaced } = bodyEntities.reduce<{
-    toBeReplaced: Entity[];
-    toBeAdded: Omit<Entity, "id">[];
+  const { entitiesToBeAdded, entitiesToBeReplaced } = bodyEntities.reduce<{
+    entitiesToBeReplaced: Entity[];
+    entitiesToBeAdded: Omit<Entity, "id">[];
   }>(
     (acc, currentEntity) => {
       if (!!currentEntity.id && typeof R.is(String, currentEntity.id)) {
-        acc.toBeReplaced.push(currentEntity as Entity);
+        acc.entitiesToBeReplaced.push(currentEntity as Entity);
+      } else {
+        acc.entitiesToBeAdded.push(currentEntity as Omit<Entity, "id">);
       }
-
       return acc;
     },
     {
-      toBeReplaced: [],
-      toBeAdded: [],
+      entitiesToBeReplaced: [],
+      entitiesToBeAdded: [],
     },
   );
 
-  const entitiesToBeInserted = bodyEntities.map((entity) => {
+  const entitiesToBeInserted = entitiesToBeAdded.map((entity) => {
     const id = generateToken(8);
     return {
       model: { ...entity },
