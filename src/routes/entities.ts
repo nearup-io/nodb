@@ -88,7 +88,7 @@ app.post("/*", async (c) => {
     });
   }
   try {
-    const { pathRestSegments } = getCommonEntityRouteProps(
+    const { pathRestSegments, xpath } = getCommonEntityRouteProps(
       c.req.path,
       c.req.param(),
     );
@@ -100,7 +100,7 @@ app.post("/*", async (c) => {
       appName,
       envName,
       entityName,
-      restSegments: pathRestSegments,
+      xpath,
       bodyEntities: body,
     });
     return c.json({ ids });
