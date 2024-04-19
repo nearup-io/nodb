@@ -1,7 +1,7 @@
 import { validator } from "hono/validator";
 import * as R from "ramda";
 import { z } from "zod";
-import type { EntityQuery, Order } from "./entity-utils";
+import type { EntityQuery, Order } from "./types.ts";
 import { parseToPrimitive } from "./extras";
 
 const entityQuerySchema = z.object({

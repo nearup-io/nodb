@@ -10,9 +10,7 @@ import {
   isTypePathCorrect,
   throwIfNoParent,
   toModelFilters,
-  type EntityQueryMeta,
-  getPaginationDbQuery,
-  type SortBy,
+  getPaginationNumbers,
   entityMetaResponse,
 } from "../utils/entity-utils";
 import { ServiceError } from "../utils/service-errors";
@@ -21,7 +19,9 @@ import type {
   EntityRouteParams,
   EntityRequestDto,
   PostEntityRequestDto,
-} from "../routes/entities.ts";
+  Pagination,
+  EntityQueryMeta,
+} from "../utils/types.ts";
 
 type EntityAggregateResult = {
   totalCount: number;
@@ -42,7 +42,7 @@ export const getEntities = async ({
   routeParams: EntityRouteParams;
 }): Promise<Record<string, any>> => {
   const modelFilters = toModelFilters(propFilters);
-  const paginationQuery = getPaginationDbQuery({
+  const paginationQuery = getPaginationNumbers({
     page: metaFilters?.page,
     perPage: metaFilters?.perPage,
   });
@@ -97,77 +97,6 @@ export const getEntities = async ({
   return {
     [entityName]: result,
     ...paginationMetadata,
-  };
-};
-
-export type Pagination = {
-  totalCount: number;
-  items: number;
-  next?: number;
-  previous?: number;
-  pages: number;
-  page: number;
-  current_page: string;
-  first_page?: string;
-  last_page?: string;
-  previous_page?: string;
-  next_page?: string;
-};
-
-const generatePaginationMetadata = ({
-  rawQuery,
-  appName,
-  envName,
-  xpathEntitySegments,
-  paginationQuery: { skip, limit },
-  totalCount,
-  entityCount,
-}: {
-  xpathEntitySegments: string[];
-  appName: string;
-  envName: string;
-  rawQuery: Record<string, string>;
-  paginationQuery: { skip: number; limit: number };
-  totalCount: number;
-  entityCount: number;
-}): Pagination => {
-  const queries = { ...rawQuery };
-  delete queries["__per_page"];
-  delete queries["__page"];
-
-  const addQueries = !R.isEmpty(queries)
-    ? `&${new URLSearchParams(queries).toString()}`
-    : "";
-
-  const totalPages = Math.ceil(totalCount / limit);
-  const currentPage = skip / limit + 1;
-  const nextPage = currentPage + 1 > totalPages ? undefined : currentPage + 1;
-  const previousPage = currentPage - 1 < 1 ? undefined : currentPage - 1;
-
-  const baseUrl = `/${appName}/${envName}/${xpathEntitySegments.join("/")}`;
-  return {
-    totalCount,
-    items: entityCount,
-    next: totalPages > 1 ? nextPage : undefined,
-    previous: previousPage,
-    pages: totalPages,
-    page: currentPage,
-    first_page:
-      totalPages > 1
-        ? `${baseUrl}?__page=1&__per_page=${limit}${addQueries}`
-        : undefined,
-    last_page:
-      totalPages > 1
-        ? `${baseUrl}?__page=${totalPages}&__per_page=${limit}${addQueries}`
-        : undefined,
-    next_page: R.isNil(nextPage)
-      ? undefined
-      : `${baseUrl}?__page=${nextPage}&__per_page=${limit}${addQueries}`,
-    previous_page:
-      previousPage === undefined
-        ? undefined
-        : `${baseUrl}?__page=${previousPage}&__per_page=${limit}${addQueries}`,
-    current_page: `${baseUrl}?__page=${currentPage}&__per_page=${limit}${addQueries}`,
   };
 };
 
@@ -546,4 +475,61 @@ export const updateEntities = async ({
   } finally {
     await session.endSession();
   }
+};
+
+const generatePaginationMetadata = ({
+  rawQuery,
+  appName,
+  envName,
+  xpathEntitySegments,
+  paginationQuery: { skip, limit },
+  totalCount,
+  entityCount,
+}: {
+  xpathEntitySegments: string[];
+  appName: string;
+  envName: string;
+  rawQuery: Record<string, string>;
+  paginationQuery: { skip: number; limit: number };
+  totalCount: number;
+  entityCount: number;
+}): Pagination => {
+  const queries = { ...rawQuery };
+  delete queries["__per_page"];
+  delete queries["__page"];
+
+  const addQueries = !R.isEmpty(queries)
+    ? `&${new URLSearchParams(queries).toString()}`
+    : "";
+
+  const totalPages = Math.ceil(totalCount / limit);
+  const currentPage = skip / limit + 1;
+  const nextPage = currentPage + 1 > totalPages ? undefined : currentPage + 1;
+  const previousPage = currentPage - 1 < 1 ? undefined : currentPage - 1;
+
+  const baseUrl = `/${appName}/${envName}/${xpathEntitySegments.join("/")}`;
+  return {
+    totalCount,
+    items: entityCount,
+    next: totalPages > 1 ? nextPage : undefined,
+    previous: previousPage,
+    pages: totalPages,
+    page: currentPage,
+    first_page:
+      totalPages > 1
+        ? `${baseUrl}?__page=1&__per_page=${limit}${addQueries}`
+        : undefined,
+    last_page:
+      totalPages > 1
+        ? `${baseUrl}?__page=${totalPages}&__per_page=${limit}${addQueries}`
+        : undefined,
+    next_page: R.isNil(nextPage)
+      ? undefined
+      : `${baseUrl}?__page=${nextPage}&__per_page=${limit}${addQueries}`,
+    previous_page:
+      previousPage === undefined
+        ? undefined
+        : `${baseUrl}?__page=${previousPage}&__per_page=${limit}${addQueries}`,
+    current_page: `${baseUrl}?__page=${currentPage}&__per_page=${limit}${addQueries}`,
+  };
 };

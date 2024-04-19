@@ -2,22 +2,10 @@ import * as R from "ramda";
 import Entity from "../models/entity.model";
 import { httpError } from "./const";
 import { ServiceError } from "./service-errors";
+import type { EntityQueryMeta, SortBy } from "./types.ts";
 
 export const dropAppnameEnvname = R.drop(2);
 export const getXpathSegments = R.pipe(R.split("/"), dropAppnameEnvname);
-export type Order = "desc" | "asc";
-export type SortBy = { name: string; order: Order };
-export type EntityQueryMeta = {
-  only?: string[];
-  page?: number;
-  perPage?: number;
-  sortBy: SortBy[];
-  hasMeta: boolean;
-};
-export type EntityQuery = {
-  meta: EntityQueryMeta;
-  [key: string]: unknown;
-};
 
 export const isTypePathCorrect = (envEntities: string[], xpath: string) => {
   const xpathSegments = xpath.split("/");
@@ -78,7 +66,7 @@ export const getAggregateQuery = ({
   ];
 };
 
-export const getPaginationDbQuery = ({
+export const getPaginationNumbers = ({
   page,
   perPage,
 }: {
