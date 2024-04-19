@@ -11,6 +11,9 @@ import {
   throwIfNoParent,
   toModelFilters,
   type EntityQueryMeta,
+  getPaginationDbQuery,
+  type SortBy,
+  entityMetaResponse,
 } from "../utils/entity-utils";
 import { ServiceError } from "../utils/service-errors";
 import { findEnvironment } from "./environment.service";
@@ -29,22 +32,143 @@ export const getEntities = async ({
   xpath,
   propFilters,
   metaFilters,
+  rawQuery,
+  routeParams: { appName, entityName, envName },
 }: {
   xpath: string;
   propFilters: Record<string, unknown>;
   metaFilters: EntityQueryMeta;
-}): Promise<EntityAggregateResult[]> => {
+  rawQuery: Record<string, string>;
+  routeParams: EntityRouteParams;
+}): Promise<Record<string, any>> => {
   const modelFilters = toModelFilters(propFilters);
+  const paginationQuery = getPaginationDbQuery({
+    page: metaFilters?.page,
+    perPage: metaFilters?.perPage,
+  });
+  console.log(paginationQuery);
+
   const aggregateQuery = getAggregateQuery({
     modelFilters,
     metaFilters,
     xpath,
+    paginationQuery,
   });
+
   const fromDb = await EntityModel.aggregate<EntityAggregateResult>(
     // @ts-ignore TODO: using $sort raises "No overload matches this call"
     aggregateQuery,
   );
-  return fromDb;
+
+  const { totalCount, entities } = fromDb.at(0) || {
+    entities: [],
+    totalCount: 0,
+  };
+
+  if (!entities || R.isEmpty(entities)) {
+    return { [entityName]: [] };
+  }
+  // TODO move this function to router utils
+  const xpathEntitySegments = getXpathSegments(xpath) as string[];
+  const paginationMetadata = metaFilters.hasMeta
+    ? {
+        __meta: generatePaginationMetadata({
+          rawQuery,
+          paginationQuery,
+          appName,
+          envName,
+          xpathEntitySegments,
+          totalCount,
+          entityCount: entities.length,
+        }),
+      }
+    : undefined;
+
+  const result = entities.map((entity) => ({
+    id: entity.id,
+    ...R.pick(metaFilters?.only || R.keys(entity.model), entity.model),
+    __meta: entityMetaResponse({
+      hasMeta: metaFilters?.hasMeta,
+      xpath,
+      id: entity.id,
+    }),
+  }));
+
+  return {
+    [entityName]: result,
+    ...paginationMetadata,
+  };
+};
+
+export type Pagination = {
+  totalCount: number;
+  items: number;
+  next?: number;
+  previous?: number;
+  pages: number;
+  page: number;
+  current_page: string;
+  first_page?: string;
+  last_page?: string;
+  previous_page?: string;
+  next_page?: string;
+};
+
+const generatePaginationMetadata = ({
+  rawQuery,
+  appName,
+  envName,
+  xpathEntitySegments,
+  paginationQuery: { skip, limit },
+  totalCount,
+  entityCount,
+}: {
+  xpathEntitySegments: string[];
+  appName: string;
+  envName: string;
+  rawQuery: Record<string, string>;
+  paginationQuery: { skip: number; limit: number };
+  totalCount: number;
+  entityCount: number;
+}): Pagination => {
+  const queries = { ...rawQuery };
+  delete queries["__per_page"];
+  delete queries["__page"];
+
+  const addQueries = !R.isEmpty(queries)
+    ? `&${new URLSearchParams(queries).toString()}`
+    : "";
+
+  const totalPages = Math.ceil(totalCount / limit);
+  const currentPage = skip / limit + 1;
+  const nextPage = currentPage + 1 > totalPages ? undefined : currentPage + 1;
+  const previousPage = currentPage - 1 < 1 ? undefined : currentPage - 1;
+
+  const baseUrl = `/${appName}/${envName}/${xpathEntitySegments.join("/")}`;
+  return {
+    totalCount,
+    items: entityCount,
+    next: totalPages > 1 ? nextPage : undefined,
+    previous: previousPage,
+    pages: totalPages,
+    page: currentPage,
+    first_page:
+      totalPages > 1
+        ? `${baseUrl}?__page=1&__per_page=${limit}${addQueries}`
+        : undefined,
+    last_page:
+      totalPages > 1
+        ? `${baseUrl}?__page=${totalPages}&__per_page=${limit}${addQueries}`
+        : undefined,
+    next_page: R.isNil(nextPage)
+      ? undefined
+      : `${baseUrl}?__page=${nextPage}&__per_page=${limit}${addQueries}`,
+    previous_page:
+      previousPage === undefined
+        ? undefined
+        : `${baseUrl}?__page=${previousPage}&__per_page=${limit}${addQueries}`,
+    current_page: `${baseUrl}?__page=${currentPage}&__per_page=${limit}${addQueries}`,
+  };
 };
 
 export const getSingleEntity = async ({

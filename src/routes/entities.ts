@@ -41,7 +41,6 @@ export type PostEntityRequestDto = Omit<EntityRequestDto, "id"> & {
 const app = new Hono<Env, BlankSchema, "/:appName/:envName/:entityName">();
 
 app.get("/*", entityQueryValidator(), async (c) => {
-  const { entityName } = c.req.param();
   const q = c.req.valid("query");
   const { xpath, pathRestSegments } = getCommonEntityRouteProps(
     c.req.path,
@@ -49,29 +48,15 @@ app.get("/*", entityQueryValidator(), async (c) => {
   );
 
   if (isEntitiesList(pathRestSegments)) {
-    const entitiesFromDb = await getEntities({
+    const result = await getEntities({
       xpath,
       propFilters: q.props,
       metaFilters: q.meta,
+      routeParams: c.req.param(),
+      rawQuery: c.req.query(),
     });
 
-    const { entities } = entitiesFromDb[0] ?? {};
-    if (!entities || R.isEmpty(entities)) {
-      return c.json({ [entityName]: [] });
-    }
-    // TODO: add pagination based on `totalCount`
-    const result = entities.map((entity) => ({
-      id: entity.id,
-      ...R.pick(q.meta?.only || R.keys(entity.model), entity.model),
-      __meta: entityMetaResponse({
-        hasMeta: q.meta?.hasMeta,
-        xpath,
-        id: entity.id,
-      }),
-    }));
-    return c.json({
-      [entityName]: result,
-    });
+    return c.json(result);
   } else {
     const entity = await getSingleEntity({
       xpath: c.req.param(),
