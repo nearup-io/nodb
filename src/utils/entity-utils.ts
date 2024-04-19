@@ -4,9 +4,6 @@ import { httpError } from "./const";
 import { ServiceError } from "./service-errors";
 import type { EntityQueryMeta, SortBy } from "./types.ts";
 
-export const dropAppnameEnvname = R.drop(2);
-export const getXpathSegments = R.pipe(R.split("/"), dropAppnameEnvname);
-
 export const isTypePathCorrect = (envEntities: string[], xpath: string) => {
   const xpathSegments = xpath.split("/");
   const typePath = xpathSegments.filter((_, i) => i % 2 === 0);
@@ -18,18 +15,20 @@ export const getOnlyArrayFromQuery = (only: string[] | undefined) => {
 };
 
 export const getAggregateQuery = ({
-  xpath,
+  xpathEntitySegments,
   modelFilters,
   metaFilters,
   paginationQuery: { skip, limit },
+  appName,
+  envName,
 }: {
-  xpath: string;
+  xpathEntitySegments: string[];
   modelFilters: Record<string, unknown>;
   metaFilters?: EntityQueryMeta;
   paginationQuery: { skip: number; limit: number };
+  appName: string;
+  envName: string;
 }) => {
-  const [appName, envName] = R.take(2, xpath.split("/"));
-  const xpathEntitySegments = getXpathSegments(xpath) as string[];
   const parentId =
     xpathEntitySegments.length > 1 ? R.nth(-2, xpathEntitySegments) : null;
   const ancestors = xpathEntitySegments.filter((_, i) => i % 2 === 1);
@@ -87,15 +86,17 @@ export const getPaginationNumbers = ({
 
 export const entityMetaResponse = ({
   hasMeta,
-  xpath,
+  xpathEntitySegments,
+  appName,
+  envName,
   id,
 }: {
   hasMeta?: boolean;
-  xpath: string;
+  xpathEntitySegments: string[];
+  appName: string;
+  envName: string;
   id: string;
 }) => {
-  const [appName, envName] = R.take(2, xpath.split("/"));
-  const xpathEntitySegments = getXpathSegments(xpath) as string[];
   return hasMeta
     ? {
         self: `/${appName}/${envName}/${xpathEntitySegments.join("/")}/${id}`,
@@ -148,3 +149,8 @@ export const throwIfNoParent = async (parentId: string) => {
     throw new ServiceError(httpError.ENTITY_NO_PARENT);
   }
 };
+
+export const getEntityTypes = (xpathEntitySegments: string[]): string[] =>
+  xpathEntitySegments.filter((_: any, i: number) => i % 2 === 0);
+export const getAncestors = (xpathEntitySegments: string[]): string[] =>
+  xpathEntitySegments.filter((_: any, i: number) => i % 2 !== 0);
