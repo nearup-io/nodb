@@ -171,12 +171,8 @@ export const createOrOverwriteEntities = async ({
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
   const parentIdFromXpath = R.nth(-2, xpathEntitySegments);
-  const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0,
-  );
-  const ancestors = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 !== 0,
-  );
+  const entityTypes = getEntityTypes(xpathEntitySegments);
+  const ancestors = getAncestors(xpathEntitySegments);
   if (xpathEntitySegments.length > 1 && parentIdFromXpath) {
     await throwIfNoParent(parentIdFromXpath);
     const isPathOk = environment.entities
@@ -193,6 +189,7 @@ export const createOrOverwriteEntities = async ({
 
   const entitiesToBeInserted: Entity[] = bodyEntities.map((entity) => {
     const id = entity.id ?? generateToken(8);
+    delete entity.id;
     return {
       model: { ...entity },
       id,
