@@ -6,11 +6,13 @@ import generateToken from "../utils/backend-token";
 import { httpError } from "../utils/const";
 import {
   getAggregateQuery,
-  getXpathSegments,
   isTypePathCorrect,
   throwIfNoParent,
   toModelFilters,
-  type EntityQueryMeta,
+  getPaginationNumbers,
+  entityMetaResponse,
+  getEntityTypes,
+  getAncestors,
 } from "../utils/entity-utils";
 import { ServiceError } from "../utils/service-errors";
 import { findEnvironment } from "./environment.service";
@@ -18,7 +20,9 @@ import type {
   EntityRouteParams,
   EntityRequestDto,
   PostEntityRequestDto,
-} from "../routes/entities.ts";
+  Pagination,
+  EntityQueryMeta,
+} from "../utils/types.ts";
 
 type EntityAggregateResult = {
   totalCount: number;
@@ -26,25 +30,76 @@ type EntityAggregateResult = {
 };
 
 export const getEntities = async ({
-  xpath,
+  xpathEntitySegments,
   propFilters,
   metaFilters,
+  rawQuery,
+  routeParams: { appName, entityName, envName },
 }: {
-  xpath: string;
+  xpathEntitySegments: string[];
   propFilters: Record<string, unknown>;
   metaFilters: EntityQueryMeta;
-}): Promise<EntityAggregateResult[]> => {
+  rawQuery: Record<string, string>;
+  routeParams: EntityRouteParams;
+}): Promise<Record<string, any>> => {
   const modelFilters = toModelFilters(propFilters);
+  const paginationQuery = getPaginationNumbers({
+    page: metaFilters?.page,
+    perPage: metaFilters?.perPage,
+  });
   const aggregateQuery = getAggregateQuery({
     modelFilters,
     metaFilters,
-    xpath,
+    paginationQuery,
+    appName,
+    envName,
+    xpathEntitySegments,
   });
+
   const fromDb = await EntityModel.aggregate<EntityAggregateResult>(
     // @ts-ignore TODO: using $sort raises "No overload matches this call"
     aggregateQuery,
   );
-  return fromDb;
+
+  const { totalCount, entities } = fromDb.at(0) || {
+    entities: [],
+    totalCount: 0,
+  };
+
+  if (!entities || R.isEmpty(entities)) {
+    return { [entityName]: [] };
+  }
+  // TODO move this function to router utils
+  const paginationMetadata = metaFilters.hasMeta
+    ? {
+        __meta: generatePaginationMetadata({
+          rawQuery,
+          paginationQuery,
+          appName,
+          envName,
+          xpathEntitySegments,
+          totalCount,
+          entityCount: entities.length,
+        }),
+      }
+    : undefined;
+
+  const result = entities.map((entity) => ({
+    id: entity.id,
+    ...R.pick(metaFilters?.only || R.keys(entity.model), entity.model),
+    __meta: entityMetaResponse({
+      hasMeta: metaFilters?.hasMeta,
+      xpathEntitySegments,
+      appName,
+      envName,
+      id: entity.id,
+    }),
+  }));
+
+  return {
+    [entityName]: result,
+    ...paginationMetadata,
+  };
 };
 
 export const getSingleEntity = async ({
@@ -98,12 +153,12 @@ export const getSingleEntity = async ({
 export const createOrOverwriteEntities = async ({
   appName,
   envName,
-  xpath,
+  xpathEntitySegments,
   bodyEntities,
 }: {
   appName: string;
   envName: string;
-  xpath: string;
+  xpathEntitySegments: string[];
   bodyEntities: PostEntityRequestDto[];
 }) => {
   const environment = await findEnvironment({
@@ -113,14 +168,9 @@ export const createOrOverwriteEntities = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const xpathEntitySegments = getXpathSegments(xpath) as string[];
   const parentIdFromXpath = R.nth(-2, xpathEntitySegments);
-  const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0,
-  );
-  const ancestors = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 !== 0,
-  );
+  const entityTypes = getEntityTypes(xpathEntitySegments);
+  const ancestors = getAncestors(xpathEntitySegments);
   if (xpathEntitySegments.length > 1 && parentIdFromXpath) {
     await throwIfNoParent(parentIdFromXpath);
     const isPathOk = environment.entities
@@ -137,8 +187,9 @@ export const createOrOverwriteEntities = async ({
 
   const entitiesToBeInserted: Entity[] = bodyEntities.map((entity) => {
     const id = entity.id ?? generateToken(8);
+    const entityWithoutId = R.omit(["id"], entity);
     return {
-      model: { ...entity },
+      model: { ...entityWithoutId },
       id,
       type: `${appName}/${envName}/${entityTypes.join("/")}`,
       ancestors,
@@ -217,11 +268,11 @@ export const deleteRootAndUpdateEnv = async ({
 export const deleteSubEntitiesAndUpdateEnv = async ({
   appName,
   envName,
-  xpath,
+  xpathEntitySegments,
 }: {
   appName: string;
   envName: string;
-  xpath: string;
+  xpathEntitySegments: string[];
 }) => {
   const environment = await findEnvironment({
     appName,
@@ -230,7 +281,6 @@ export const deleteSubEntitiesAndUpdateEnv = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const xpathEntitySegments = getXpathSegments(xpath) as string[];
   const entityTypes = xpathEntitySegments.filter(
     (_: any, i: number) => i % 2 === 0,
   );
@@ -270,11 +320,11 @@ export const deleteSubEntitiesAndUpdateEnv = async ({
 export const deleteSingleEntityAndUpdateEnv = async ({
   appName,
   envName,
-  xpath,
+  xpathEntitySegments,
 }: {
   appName: string;
   envName: string;
-  xpath: string;
+  xpathEntitySegments: string[];
 }) => {
   const environment = await findEnvironment({
     appName,
@@ -283,7 +333,6 @@ export const deleteSingleEntityAndUpdateEnv = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const xpathEntitySegments = getXpathSegments(xpath) as string[];
   const entityTypes = xpathEntitySegments.filter(
     (_: any, i: number) => i % 2 === 0,
   );
@@ -317,21 +366,16 @@ export const deleteSingleEntityAndUpdateEnv = async ({
 export const replaceEntities = async ({
   appName,
   envName,
-  xpath,
+  xpathEntitySegments,
   bodyEntities,
 }: {
   appName: string;
   envName: string;
-  xpath: string;
+  xpathEntitySegments: string[];
   bodyEntities: EntityRequestDto[];
 }) => {
-  const xpathEntitySegments = getXpathSegments(xpath) as string[];
-  const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0,
-  );
-  const ancestors = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 !== 0,
-  );
+  const entityTypes = getEntityTypes(xpathEntitySegments);
+  const ancestors = getAncestors(xpathEntitySegments);
   const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
   const dbExistingDocuments = await EntityModel.find({
     id: { $in: documentIds },
@@ -372,21 +416,17 @@ export const replaceEntities = async ({
 export const updateEntities = async ({
   appName,
   envName,
-  xpath,
+  xpathEntitySegments,
   bodyEntities,
 }: {
   appName: string;
   envName: string;
-  xpath: string;
+  xpathEntitySegments: string[];
   bodyEntities: EntityRequestDto[];
 }) => {
-  const xpathEntitySegments = getXpathSegments(xpath) as string[];
-  const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0,
-  );
-  const ancestors = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 !== 0,
-  );
+  const entityTypes = getEntityTypes(xpathEntitySegments);
+  const ancestors = getAncestors(xpathEntitySegments);
+
   const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
   const dbExistingDocuments = await EntityModel.find({
     id: { $in: documentIds },
@@ -422,4 +462,59 @@ export const updateEntities = async ({
   } finally {
     await session.endSession();
   }
+};
+
+const generatePaginationMetadata = ({
+  rawQuery,
+  appName,
+  envName,
+  xpathEntitySegments,
+  paginationQuery: { skip, limit },
+  totalCount,
+  entityCount,
+}: {
+  xpathEntitySegments: string[];
+  appName: string;
+  envName: string;
+  rawQuery: Record<string, string>;
+  paginationQuery: { skip: number; limit: number };
+  totalCount: number;
+  entityCount: number;
+}): Pagination => {
+  const queries = R.omit(["__per_page", "__page"], rawQuery);
+
+  const addQueries = !R.isEmpty(queries)
+    ? `&${new URLSearchParams(queries).toString()}`
+    : "";
+
+  const totalPages = Math.ceil(totalCount / limit);
+  const currentPage = skip / limit + 1;
+  const nextPage = currentPage + 1 > totalPages ? undefined : currentPage + 1;
+  const previousPage = currentPage - 1 < 1 ? undefined : currentPage - 1;
+
+  const baseUrl = `/${appName}/${envName}/${xpathEntitySegments.join("/")}`;
+  return {
+    totalCount,
+    items: entityCount,
+    next: totalPages > 1 ? nextPage : undefined,
+    previous: previousPage,
+    pages: totalPages,
+    page: currentPage,
+    first_page:
+      totalPages > 1
+        ? `${baseUrl}?__page=1&__per_page=${limit}${addQueries}`
+        : undefined,
+    last_page:
+      totalPages > 1
+        ? `${baseUrl}?__page=${totalPages}&__per_page=${limit}${addQueries}`
+        : undefined,
+    next_page: R.isNil(nextPage)
+      ? undefined
+      : `${baseUrl}?__page=${nextPage}&__per_page=${limit}${addQueries}`,
+    previous_page:
+      previousPage === undefined
+        ? undefined
+        : `${baseUrl}?__page=${previousPage}&__per_page=${limit}${addQueries}`,
+    current_page: `${baseUrl}?__page=${currentPage}&__per_page=${limit}${addQueries}`,
+  };
 };

@@ -2,7 +2,6 @@ import { Hono, type Env } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { BlankSchema } from "hono/types";
 import * as R from "ramda";
-import type { Entity } from "../models/entity.model";
 import {
   createOrOverwriteEntities,
   deleteRootAndUpdateEnv,
@@ -14,7 +13,6 @@ import {
   updateEntities,
 } from "../services/entity.service";
 import { httpError } from "../utils/const";
-import { entityMetaResponse } from "../utils/entity-utils";
 import {
   asyncTryJson,
   getCommonEntityRouteProps,
@@ -22,56 +20,26 @@ import {
 } from "../utils/route-utils";
 import { entityQueryValidator } from "../utils/route-validators";
 import { RoutingError, ServiceError } from "../utils/service-errors";
-
-export type EntityRouteParams = {
-  appName: string;
-  envName: string;
-  entityName: string;
-};
-
-export type EntityRequestDto = {
-  id: string;
-  [key: string]: any;
-};
-
-export type PostEntityRequestDto = Omit<EntityRequestDto, "id"> & {
-  id?: string;
-};
-
+import type { EntityRequestDto, PostEntityRequestDto } from "../utils/types.ts";
 const app = new Hono<Env, BlankSchema, "/:appName/:envName/:entityName">();
 
 app.get("/*", entityQueryValidator(), async (c) => {
-  const { entityName } = c.req.param();
   const q = c.req.valid("query");
-  const { xpath, pathRestSegments } = getCommonEntityRouteProps(
+  const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
     c.req.path,
     c.req.param(),
   );
 
   if (isEntitiesList(pathRestSegments)) {
-    const entitiesFromDb = await getEntities({
-      xpath,
+    const result = await getEntities({
+      xpathEntitySegments,
       propFilters: q.props,
       metaFilters: q.meta,
+      routeParams: c.req.param(),
+      rawQuery: c.req.query(),
     });
 
-    const { entities } = entitiesFromDb[0] ?? {};
-    if (!entities || R.isEmpty(entities)) {
-      return c.json({ [entityName]: [] });
-    }
-    // TODO: add pagination based on `totalCount`
-    const result = entities.map((entity) => ({
-      id: entity.id,
-      ...R.pick(q.meta?.only || R.keys(entity.model), entity.model),
-      __meta: entityMetaResponse({
-        hasMeta: q.meta?.hasMeta,
-        xpath,
-        id: entity.id,
-      }),
-    }));
-    return c.json({
-      [entityName]: result,
-    });
+    return c.json(result);
   } else {
     const entity = await getSingleEntity({
       xpath: c.req.param(),
@@ -83,7 +51,7 @@ app.get("/*", entityQueryValidator(), async (c) => {
 });
 
 app.post("/*", async (c) => {
-  const { appName, envName, entityName } = c.req.param();
+  const { appName, envName } = c.req.param();
 
   const body = (await asyncTryJson(c.req.json())) as PostEntityRequestDto[];
   if (!Array.isArray(body)) {
@@ -92,7 +60,7 @@ app.post("/*", async (c) => {
     });
   }
   try {
-    const { pathRestSegments, xpath } = getCommonEntityRouteProps(
+    const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
       c.req.path,
       c.req.param(),
     );
@@ -103,7 +71,7 @@ app.post("/*", async (c) => {
     const ids = await createOrOverwriteEntities({
       appName,
       envName,
-      xpath,
+      xpathEntitySegments,
       bodyEntities: body,
     });
     return c.json({ ids });
@@ -123,10 +91,8 @@ app.post("/*", async (c) => {
 
 app.delete("/*", async (c) => {
   const { appName, envName, entityName } = c.req.param();
-  const { pathRest, pathRestSegments, xpath } = getCommonEntityRouteProps(
-    c.req.path,
-    c.req.param(),
-  );
+  const { pathRest, pathRestSegments, xpathEntitySegments } =
+    getCommonEntityRouteProps(c.req.path, c.req.param());
   if (R.isEmpty(pathRestSegments)) {
     const res = await deleteRootAndUpdateEnv({ appName, envName, entityName });
     return c.json({ deleted: res.done });
@@ -136,7 +102,7 @@ app.delete("/*", async (c) => {
       const res = await deleteSubEntitiesAndUpdateEnv({
         appName,
         envName,
-        xpath,
+        xpathEntitySegments,
       });
       return c.json({ deleted: res.done });
     } else if (pathRestSegments.length % 2 !== 0) {
@@ -144,7 +110,7 @@ app.delete("/*", async (c) => {
       const res = await deleteSingleEntityAndUpdateEnv({
         appName,
         envName,
-        xpath,
+        xpathEntitySegments,
       });
 
       return c.json({ deleted: !!res });
@@ -155,7 +121,10 @@ app.delete("/*", async (c) => {
 
 app.put("/*", async (c) => {
   const { appName, envName } = c.req.param();
-  const { xpath } = getCommonEntityRouteProps(c.req.path, c.req.param());
+  const { xpathEntitySegments } = getCommonEntityRouteProps(
+    c.req.path,
+    c.req.param(),
+  );
   const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
   if (!Array.isArray(bodyEntities)) {
     throw new HTTPException(400, {
@@ -166,7 +135,7 @@ app.put("/*", async (c) => {
     const ids = await replaceEntities({
       appName,
       envName,
-      xpath,
+      xpathEntitySegments,
       bodyEntities,
     });
 
@@ -186,7 +155,10 @@ app.put("/*", async (c) => {
 
 app.patch("/*", async (c) => {
   const { appName, envName } = c.req.param();
-  const { xpath } = getCommonEntityRouteProps(c.req.path, c.req.param());
+  const { xpathEntitySegments } = getCommonEntityRouteProps(
+    c.req.path,
+    c.req.param(),
+  );
   const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
   if (!Array.isArray(bodyEntities)) {
     throw new HTTPException(400, {
@@ -197,7 +169,7 @@ app.patch("/*", async (c) => {
     const ids = await updateEntities({
       appName,
       envName,
-      xpath,
+      xpathEntitySegments,
       bodyEntities,
     });
 
