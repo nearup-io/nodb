@@ -187,9 +187,9 @@ export const createOrOverwriteEntities = async ({
 
   const entitiesToBeInserted: Entity[] = bodyEntities.map((entity) => {
     const id = entity.id ?? generateToken(8);
-    delete entity.id;
+    const entityWithoutId = R.omit(["id"], entity);
     return {
-      model: { ...entity },
+      model: { ...entityWithoutId },
       id,
       type: `${appName}/${envName}/${entityTypes.join("/")}`,
       ancestors,
@@ -481,9 +481,7 @@ const generatePaginationMetadata = ({
   totalCount: number;
   entityCount: number;
 }): Pagination => {
-  const queries = { ...rawQuery };
-  delete queries["__per_page"];
-  delete queries["__page"];
+  const queries = R.omit(["__per_page", "__page"], rawQuery);
 
   const addQueries = !R.isEmpty(queries)
     ? `&${new URLSearchParams(queries).toString()}`
