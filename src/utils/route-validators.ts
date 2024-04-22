@@ -1,7 +1,7 @@
 import { validator } from "hono/validator";
 import * as R from "ramda";
 import { z } from "zod";
-import type { EntityQuery, Order } from "./types.ts";
+import type { EntityQuery, QuerySortingOrder } from "./types.ts";
 import { parseToPrimitive } from "./extras";
 
 const entityQuerySchema = z.object({
@@ -54,7 +54,7 @@ export const entityQueryValidator = () => {
               return (
                 parsed.data.__sort_by_desc?.map((data) => ({
                   name: data,
-                  order: "desc" as Order,
+                  order: "desc" as QuerySortingOrder,
                 })) || []
               );
             }
@@ -62,7 +62,7 @@ export const entityQueryValidator = () => {
             return (
               parsed.data.__sort_by?.map((data) => ({
                 name: data,
-                order: "asc" as Order,
+                order: "asc" as QuerySortingOrder,
               })) || []
             );
           }),

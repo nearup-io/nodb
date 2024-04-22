@@ -13,9 +13,9 @@ export type PostEntityRequestDto = Omit<EntityRequestDto, "id"> & {
   id?: string;
 };
 
-export type Order = "desc" | "asc";
+export type QuerySortingOrder = "desc" | "asc";
 
-export type SortBy = { name: string; order: Order };
+export type SortBy = { name: string; order: QuerySortingOrder };
 
 export type EntityQueryMeta = {
   only?: string[];
