@@ -68,7 +68,6 @@ export const searchEntities = async (
       },
     },
   ]);
-  console.log({ res });
   if (ask) {
     const context = res.map((obj) => JSON.stringify(obj)).join(" ");
     let completion = null;
@@ -78,7 +77,6 @@ export const searchEntities = async (
           query,
           context,
         });
-        console.log("openai completion", completion);
         return { answer: completion?.choices[0].message.content };
       case llms.anthropic:
         completion = await getAnthropicMessage({

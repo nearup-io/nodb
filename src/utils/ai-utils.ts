@@ -21,7 +21,6 @@ export const getOpenaiCompletion = async ({
   context: string;
 }): Promise<OpenAI.Chat.ChatCompletion | undefined> => {
   const { OPENAI_API_KEY, LLM_NAME } = Bun.env;
-  console.log({ OPENAI_API_KEY, LLM_NAME });
   if (OPENAI_API_KEY && openaiModel) {
     const llm = getOpenAiLlm({ apiKey: OPENAI_API_KEY });
     const completion = await llm.chat.completions.create({
@@ -55,7 +54,6 @@ export const getAnthropicMessage = async ({
       messages: [{ role: "user", content: query }],
       max_tokens: 1024,
     });
-    console.log("anthropic", { completion });
     return completion;
   }
 };
