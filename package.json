@@ -13,6 +13,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.6",
     "@langchain/openai": "^0.0.28",
     "axios": "^1.6.8",
     "hono": "^4.2.1",

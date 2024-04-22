@@ -6,22 +6,24 @@ services:
     ports:
       - 3000:3000
     depends_on:
-      - mongo
+      - mongodb
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     networks:
       - nodb-network
 
-  mongo:
-    image: mongodb/atlas
-    privileged: true
-    command: |
-      /bin/bash -c "atlas deployments setup --type local --port 27778 --bindIpAll --username root --password 1234567 --force && tail -f /dev/null"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+  mongodb:
+    image: mongo
     ports:
-      - 27778:27778
+      - 27017:27017
+    # environment:
+    #   MONGO_INITDB_ROOT_USERNAME: root
+    #   MONGO_INITDB_ROOT_PASSWORD: 12345
+    volumes:
+      - nodb:/data/db
+    networks:
+      - nodb-network
 
 volumes:
   nodb:

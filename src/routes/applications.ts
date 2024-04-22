@@ -9,7 +9,7 @@ import {
   updateApplication,
 } from "../services/application.service";
 import type { USER_TYPE } from "../utils/auth-utils";
-import { APPNAME_LENGTH, APPNAME_REGEX, httpError } from "../utils/const";
+import { APPNAME_MIN_LENGTH, APPNAME_REGEX, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 import envsRoute from "./environments";
 
@@ -42,9 +42,9 @@ app.get("/:appName", auth, async (c) => {
 app.post("/:appName", auth, async (c) => {
   const appName = c.req.param("appName");
   const body = await c.req.json();
-  if (appName.length < APPNAME_LENGTH) {
+  if (appName.length < APPNAME_MIN_LENGTH) {
     throw new HTTPException(500, {
-      message: `App name must be at least ${APPNAME_LENGTH} characters long`,
+      message: `App name must be at least ${APPNAME_MIN_LENGTH} characters long`,
     });
   }
   if (!APPNAME_REGEX.test(appName)) {
@@ -75,7 +75,7 @@ app.patch("/:appName", auth, async (c) => {
     description?: string;
     image?: string;
   };
-  if (body.appName && body.appName?.length < APPNAME_LENGTH) {
+  if (body.appName && body.appName?.length < APPNAME_MIN_LENGTH) {
     throw new HTTPException(400, {
       message: httpError.APPNAME_LENGTH,
     });

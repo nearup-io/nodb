@@ -47,14 +47,12 @@ app.get("/*", entityQueryValidator(), async (c) => {
     c.req.path,
     c.req.param(),
   );
-
   if (isEntitiesList(pathRestSegments)) {
     const entitiesFromDb = await getEntities({
       xpath,
       propFilters: q.props,
       metaFilters: q.meta,
     });
-
     const { entities } = entitiesFromDb[0] ?? {};
     if (!entities || R.isEmpty(entities)) {
       return c.json({ [entityName]: [] });
