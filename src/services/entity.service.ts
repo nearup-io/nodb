@@ -47,8 +47,6 @@ export const getEntities = async ({
     page: metaFilters?.page,
     perPage: metaFilters?.perPage,
   });
-  console.log(paginationQuery);
-
   const aggregateQuery = getAggregateQuery({
     modelFilters,
     metaFilters,
