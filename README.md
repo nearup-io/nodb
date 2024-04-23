@@ -15,10 +15,10 @@ To install dependencies:
 bun install
 ```
 
-To run:
+Run in development:
 
 ```bash
-bun start
+bun dev
 ```
 
 ## Deploy
