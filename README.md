@@ -2,6 +2,8 @@
 
 Open-source API gateway for your Mongo Atlas database with RAG support, semantic search, auth and CRUD.
 
+<img src="https://github.com/nearup-io/nodb/blob/main/assets/curl-todos.gif" width="600" />
+
 Prerequisites:
 
 1. [Install Bun](https://bun.sh/docs/installation)
