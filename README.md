@@ -1,6 +1,6 @@
 # nodb
 
-Open source API for app development with database, auth and vector search.
+Open-source API gateway for your Mongo Atlas database with RAG support, semantic search, auth and CRUD.
 
 Prerequisites:
 
