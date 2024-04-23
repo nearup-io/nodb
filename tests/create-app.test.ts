@@ -361,8 +361,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
       });
     });
 
-    // TODO to be continued in a different branch
-    describe.skip("GET /apps/:appName", () => {
+    describe("GET /apps/:appName", () => {
       test("Should return 404 NOT FOUND for an app that does not exist", async () => {
         const response = await app.request(`/apps/none-existing-app`, {
           method: "GET",
