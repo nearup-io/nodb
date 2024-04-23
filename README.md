@@ -21,6 +21,12 @@ Run in development:
 bun dev
 ```
 
+To run MongoDB Atlas locally run it using docker-compose:
+
+```bash
+docker-compose up
+```
+
 ## Deploy
 
 ### Render
