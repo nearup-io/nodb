@@ -176,3 +176,6 @@ dist
 
 # Dummy tests
 requests.http
+
+# Tests
+.env.test

@@ -27,3 +27,17 @@ For quick deploy you can use Render:
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/nearup-io/nodb)
 
+## Tests
+
+Create `.env.test` file with the following content:
+
+```
+MONGODB_URL=...your url here...
+JWT_SECRET=...your secret here...
+```
+
+Then run:
+
+```bash
+bun e2e-tests
+```
