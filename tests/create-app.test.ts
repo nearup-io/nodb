@@ -360,5 +360,30 @@ describe("All endpoints used for apps CRUD operations", async () => {
         expect(await response.json()).toEqual([]);
       });
     });
+
+    // TODO to be continued in a different branch
+    describe.skip("GET /apps/:appName", () => {
+      test("Should return 404 NOT FOUND for an app that does not exist", async () => {
+        const response = await app.request(`/apps/none-existing-app`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: jwtForGetRequests,
+          },
+        });
+        expect(response.status).toBe(404);
+      });
+
+      test("Should return 200 OK and found app", async () => {
+        const response = await app.request(`/apps/${apps[0].name}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: jwtForGetRequests,
+          },
+        });
+        expect(response.status).toBe(200);
+      });
+    });
   });
 });
