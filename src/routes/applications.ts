@@ -103,7 +103,10 @@ app.patch("/:appName", auth, async (c) => {
       description: body.description,
       image: body.image,
     });
-    if (!doc?.name) return c.json({ found: false });
+    if (!doc?.name) {
+      c.status(404);
+      return c.json({ found: false });
+    }
     return c.json({ found: true });
   } catch (err) {
     console.log(err);

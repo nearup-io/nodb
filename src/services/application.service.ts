@@ -95,7 +95,7 @@ const getEnvironmentsByAppName = async (appName: string) => {
           _id: "$environments._id",
         },
       },
-    ]
+    ],
   );
   return applicationEnvironments;
 };
@@ -185,13 +185,13 @@ export const createApplication = async ({
           status: "BAD_REQUEST",
           number: 400,
           message: "App with that name already exists",
-        })
+        }),
       );
     }
   }
   await User.findOneAndUpdate(
     { email: userEmail },
-    { $addToSet: { applications: appName } }
+    { $addToSet: { applications: appName } },
   );
 };
 
@@ -209,7 +209,7 @@ export const updateApplication = async (props: {
   }) as { name?: string; description?: string; image?: string };
   const doc = await ApplicationModel.findOneAndUpdate(
     { name: props.oldAppName },
-    { ...updateProps }
+    { ...updateProps },
   );
   if (
     doc &&
@@ -218,7 +218,7 @@ export const updateApplication = async (props: {
   ) {
     await User.findOneAndUpdate(
       { email: props.userEmail, applications: props.oldAppName },
-      { $set: { "applications.$": props.newAppName } }
+      { $set: { "applications.$": props.newAppName } },
     );
   }
   return doc;
@@ -237,25 +237,25 @@ export const deleteApplication = async ({
   try {
     const app = await ApplicationModel.findOneAndDelete<Application>(
       { name: appName },
-      { session }
+      { session },
     );
     if (app && app._id) {
       await EnvironmentModel.deleteMany(
         {
           _id: { $in: envs.map((e) => e._id) },
         },
-        { session }
+        { session },
       );
       await User.findOneAndUpdate(
         { email: userEmail },
         {
           $pull: { applications: appName },
         },
-        { session }
+        { session },
       );
       await EntityModel.deleteMany(
         { type: { $regex: `^${appName}/` } },
-        { session }
+        { session },
       );
       await session.commitTransaction();
     }
