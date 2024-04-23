@@ -18,9 +18,11 @@ const mongoconnect: () => Promise<void> = async () => {
       // close on "hot reload": bun --hot, or bun --watch
       await globalThis.dbconn.connection.close();
     }
+
     globalThis.dbconn = await mongoose.connect(mongodbUrl, {
       maxPoolSize: MAX_POOL_SIZE ? parseInt(MAX_POOL_SIZE, 10) : 2,
-      autoIndex: false,
+      // create all indexes automatically
+      autoIndex: true,
     });
     console.log("Connected!");
     if (globalThis.dbconn) {
