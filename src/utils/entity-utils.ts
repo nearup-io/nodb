@@ -125,19 +125,15 @@ const getSortDbQuery = (
   sortBy: SortBy[] | undefined,
 ): {} | { $sort: Record<string, 1 | -1> } => {
   const initObj: Record<string, 1 | -1> = {};
-
   if (!sortBy || R.isEmpty(sortBy)) {
     return initObj;
   }
-
   const sort = sortBy.reduce((acc, cur) => {
     if (!acc[`model.${cur.name}`]) {
       acc[`model.${cur.name}`] = cur.order === "asc" ? 1 : -1;
     }
-
     return acc;
   }, initObj);
-
   return { $sort: sort };
 };
 

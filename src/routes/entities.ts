@@ -27,9 +27,8 @@ app.get("/*", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
   const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
     c.req.path,
-    c.req.param(),
+    c.req.param()
   );
-
   if (isEntitiesList(pathRestSegments)) {
     const result = await getEntities({
       xpathEntitySegments,
@@ -38,7 +37,6 @@ app.get("/*", entityQueryValidator(), async (c) => {
       routeParams: c.req.param(),
       rawQuery: c.req.query(),
     });
-
     return c.json(result);
   } else {
     const entity = await getSingleEntity({
@@ -62,7 +60,7 @@ app.post("/*", async (c) => {
   try {
     const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
       c.req.path,
-      c.req.param(),
+      c.req.param()
     );
 
     if (!isEntitiesList(pathRestSegments)) {
@@ -123,7 +121,7 @@ app.put("/*", async (c) => {
   const { appName, envName } = c.req.param();
   const { xpathEntitySegments } = getCommonEntityRouteProps(
     c.req.path,
-    c.req.param(),
+    c.req.param()
   );
   const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
   if (!Array.isArray(bodyEntities)) {
@@ -157,7 +155,7 @@ app.patch("/*", async (c) => {
   const { appName, envName } = c.req.param();
   const { xpathEntitySegments } = getCommonEntityRouteProps(
     c.req.path,
-    c.req.param(),
+    c.req.param()
   );
   const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
   if (!Array.isArray(bodyEntities)) {

@@ -23,11 +23,14 @@ const EntitySchema = new Schema(
     },
     model: {
       type: Object,
-      // type: Model<unknown>,
+      required: false,
+    },
+    embedding: {
+      type: Array<number>,
       required: false,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 export type Entity = {
@@ -36,6 +39,7 @@ export type Entity = {
   model: Record<string, unknown>;
   extras?: Record<string, unknown>;
   ancestors?: string[] | null;
+  embedding?: number[] | null;
 };
 
 const Entity = mongoose.model("Entity", EntitySchema);

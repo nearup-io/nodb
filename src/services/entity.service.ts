@@ -2,31 +2,133 @@ import mongoose from "mongoose";
 import * as R from "ramda";
 import EntityModel, { type Entity } from "../models/entity.model";
 import EnvironmentModel from "../models/environment.model";
-import generateToken from "../utils/backend-token";
-import { httpError } from "../utils/const";
 import {
+  getAnthropicMessage,
+  getEmbedding,
+  getOpenaiCompletion,
+} from "../utils/ai-utils.ts";
+import generateToken from "../utils/backend-token";
+import { httpError, llms } from "../utils/const";
+import {
+  entityMetaResponse,
   getAggregateQuery,
+  getAncestors,
+  getEntityTypes,
+  getPaginationNumbers,
   isTypePathCorrect,
   throwIfNoParent,
   toModelFilters,
-  getPaginationNumbers,
-  entityMetaResponse,
-  getEntityTypes,
-  getAncestors,
 } from "../utils/entity-utils";
 import { ServiceError } from "../utils/service-errors";
-import { findEnvironment } from "./environment.service";
 import type {
-  EntityRouteParams,
-  EntityRequestDto,
-  PostEntityRequestDto,
-  Pagination,
   EntityQueryMeta,
+  EntityRequestDto,
+  EntityRouteParams,
+  Pagination,
+  PostEntityRequestDto,
 } from "../utils/types.ts";
+import { findEnvironment } from "./environment.service";
 
 type EntityAggregateResult = {
   totalCount: number;
   entities: Entity[];
+};
+
+const { NODB_VECTOR_INDEX: vectorIndex = "nodb_vector_index" } = Bun.env;
+
+export const searchEntities = async ({
+  query,
+  limit = 5,
+  entityType,
+}: {
+  query: string;
+  limit: number;
+  entityType: string | null;
+}) => {
+  const embedding = await getEmbedding(query);
+  const res = await EntityModel.aggregate([
+    {
+      $vectorSearch: {
+        index: vectorIndex,
+        path: "embedding",
+        queryVector: embedding,
+        numCandidates: limit * 15,
+        limit,
+        filter: entityType ? { type: entityType } : {},
+      },
+    },
+    {
+      $replaceRoot: {
+        newRoot: {
+          $mergeObjects: [
+            "$$ROOT",
+            "$model",
+            { __meta: { score: { $meta: "vectorSearchScore" } } },
+          ],
+        },
+      },
+    },
+    { $unset: ["_id", "ancestors", "model", "type", "embedding", "__v"] },
+  ]);
+  return res;
+};
+
+export const searchAiEntities = async ({
+  query,
+  limit = 5,
+  entityType,
+}: {
+  query: string;
+  limit: number;
+  entityType: string | null;
+}) => {
+  const embedding = await getEmbedding(query);
+  const res = await EntityModel.aggregate([
+    {
+      $vectorSearch: {
+        index: vectorIndex,
+        path: "embedding",
+        queryVector: embedding,
+        numCandidates: limit * 15,
+        limit,
+        filter: entityType ? { type: entityType } : {},
+      },
+    },
+    {
+      $replaceRoot: {
+        newRoot: {
+          $mergeObjects: [
+            "$$ROOT",
+            "$model",
+            { meta: { score: { $meta: "vectorSearchScore" } } },
+          ],
+        },
+      },
+    },
+    { $unset: ["_id", "ancestors", "model", "type", "embedding", "__v"] },
+  ]);
+  const context = res.map((obj) => JSON.stringify(obj)).join(" ");
+  let completion = null;
+  try {
+    switch (Bun.env.AI_PROVIDER) {
+      default:
+        completion = await getOpenaiCompletion({
+          query,
+          context,
+        });
+        return { answer: completion?.choices[0].message.content };
+      case llms.anthropic:
+        completion = await getAnthropicMessage({
+          query,
+          context,
+        });
+        return { answer: completion?.content[0] };
+    }
+  } catch (e) {
+    if (e instanceof Error) {
+      throw new ServiceError(e.message);
+    }
+  }
 };
 
 export const getEntities = async ({
@@ -55,17 +157,14 @@ export const getEntities = async ({
     envName,
     xpathEntitySegments,
   });
-
   const fromDb = await EntityModel.aggregate<EntityAggregateResult>(
     // @ts-ignore TODO: using $sort raises "No overload matches this call"
-    aggregateQuery,
+    aggregateQuery
   );
-
   const { totalCount, entities } = fromDb.at(0) || {
     entities: [],
     totalCount: 0,
   };
-
   if (!entities || R.isEmpty(entities)) {
     return { [entityName]: [] };
   }
@@ -83,7 +182,6 @@ export const getEntities = async ({
         }),
       }
     : undefined;
-
   const result = entities.map((entity) => ({
     id: entity.id,
     ...R.pick(metaFilters?.only || R.keys(entity.model), entity.model),
@@ -95,7 +193,6 @@ export const getEntities = async ({
       id: entity.id,
     }),
   }));
-
   return {
     [entityName]: result,
     ...paginationMetadata,
@@ -180,37 +277,42 @@ export const createOrOverwriteEntities = async ({
       throw new ServiceError(httpError.ENTITY_PATH);
     }
   }
-
   const entitiesIdsToBeReplaced: string[] = bodyEntities
     .filter((entity) => !!entity.id)
     .map((entity) => entity.id!);
-
-  const entitiesToBeInserted: Entity[] = bodyEntities.map((entity) => {
-    const id = entity.id ?? generateToken(8);
-    const entityWithoutId = R.omit(["id"], entity);
-    return {
-      model: { ...entityWithoutId },
+  const insertEntities: Entity[] = [];
+  for (let bodyEntity of bodyEntities) {
+    const embeddingInput = {
+      ...bodyEntity,
+      __vector_title: R.last(entityTypes),
+    };
+    const input = JSON.stringify(embeddingInput);
+    const embedding = await getEmbedding(input);
+    const id = bodyEntity.id ?? generateToken(8);
+    const entityWithoutId = R.omit(["id"], bodyEntity);
+    insertEntities.push({
       id,
+      model: { ...entityWithoutId },
       type: `${appName}/${envName}/${entityTypes.join("/")}`,
       ancestors,
-    };
-  });
-
+      embedding,
+    });
+  }
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
     await EntityModel.deleteMany(
       { id: { $in: entitiesIdsToBeReplaced } },
-      { session },
+      { session }
     );
     await EnvironmentModel.findOneAndUpdate(
       { _id: environment._id },
       { $addToSet: { entities: entityTypes.join("/") } },
-      { session },
+      { session }
     );
-    await EntityModel.insertMany(entitiesToBeInserted, { session });
+    await EntityModel.insertMany(insertEntities, { session });
     await session.commitTransaction();
-    return entitiesToBeInserted.map((e) => e.id);
+    return insertEntities.map((e) => e.id);
   } catch (e) {
     console.error("Error adding entities", e);
     await session.abortTransaction();
@@ -243,16 +345,16 @@ export const deleteRootAndUpdateEnv = async ({
       {
         type: {
           $regex: new RegExp(
-            `\\b(${`${appName}/${envName}/${entityName}`})\\b`,
+            `\\b(${`${appName}/${envName}/${entityName}`})\\b`
           ),
         },
       },
-      { session },
+      { session }
     );
     await EnvironmentModel.findOneAndUpdate(
       { _id: environment._id },
       { $pull: { entities: { $regex: new RegExp(`\\b(${entityName})\\b`) } } },
-      { session },
+      { session }
     );
     await session.commitTransaction();
     return { done: entities.deletedCount };
@@ -282,10 +384,10 @@ export const deleteSubEntitiesAndUpdateEnv = async ({
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
   const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0,
+    (_: any, i: number) => i % 2 === 0
   );
   const ancestors = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 !== 0,
+    (_: any, i: number) => i % 2 !== 0
   );
   const entityTypeRegex = `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`;
   const envEntityTypeRegex = `\\b(${entityTypes.join("/")})\\b`;
@@ -299,12 +401,12 @@ export const deleteSubEntitiesAndUpdateEnv = async ({
           $regex: new RegExp(entityTypeRegex),
         },
       },
-      { session },
+      { session }
     );
     await EnvironmentModel.findOneAndUpdate(
       { _id: environment._id },
       { $pull: { entities: { $regex: envEntityTypeRegex } } },
-      { session },
+      { session }
     );
     await session.commitTransaction();
     return { done: entities.deletedCount };
@@ -334,7 +436,7 @@ export const deleteSingleEntityAndUpdateEnv = async ({
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
   const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0,
+    (_: any, i: number) => i % 2 === 0
   );
   const entityId = R.last(xpathEntitySegments);
   const entity = await EntityModel.findOne({ id: entityId });
@@ -356,7 +458,7 @@ export const deleteSingleEntityAndUpdateEnv = async ({
               $regex: new RegExp(`\\b(${entityTypes.join("/")})\\b`),
             },
           },
-        },
+        }
       );
     }
   }
@@ -387,7 +489,7 @@ export const replaceEntities = async ({
   }
   const documentsToBeUpdated: Entity[] = dbExistingDocuments.map((entity) => {
     const { id, ...propsToBeReplaced } = bodyEntities.find(
-      (x) => x.id === entity.id,
+      (x) => x.id === entity.id
     )!;
     return {
       id: entity.id,
@@ -426,7 +528,6 @@ export const updateEntities = async ({
 }) => {
   const entityTypes = getEntityTypes(xpathEntitySegments);
   const ancestors = getAncestors(xpathEntitySegments);
-
   const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
   const dbExistingDocuments = await EntityModel.find({
     id: { $in: documentIds },
@@ -438,7 +539,7 @@ export const updateEntities = async ({
   }
   const documentsToBeUpdated: Entity[] = dbExistingDocuments.map((entity) => {
     const { id, ...propsToBeReplaced } = bodyEntities.find(
-      (x) => x.id === entity.id,
+      (x) => x.id === entity.id
     )!;
     return {
       id: entity.id,

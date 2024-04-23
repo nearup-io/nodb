@@ -1,9 +1,11 @@
 import { Hono } from "hono";
 import { logger } from "hono/logger";
-import dbconnect from "./mongoconnect.ts";
-import appsRoute from "./routes/applications.ts";
-import githubAuth from "./routes/auth/github.ts";
-import uiAuthRoute from "./routes/examples/auth.ts";
+import dbconnect from "./mongoconnect";
+import appsRoute from "./routes/applications";
+import githubAuth from "./routes/auth/github";
+import uiAuthRoute from "./routes/examples/auth";
+import searchRoute from "./routes/search";
+import ragRoute from "./routes/rag";
 
 await dbconnect();
 
@@ -12,8 +14,9 @@ if (Bun.env.NODE_ENV === "development") {
   app.use(logger());
 }
 app.route("/apps", appsRoute);
+app.route("/search", searchRoute);
+app.route("/knowledgebase", ragRoute);
 app.route("/auth/github", githubAuth);
 app.route("/examples/auth", uiAuthRoute);
-// app.route("/auth/google", googleAuth);
 
 export default app;
