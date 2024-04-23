@@ -43,12 +43,12 @@ app.post("/:appName", auth, async (c) => {
   const appName = c.req.param("appName");
   const body = await c.req.json();
   if (appName.length < APPNAME_MIN_LENGTH) {
-    throw new HTTPException(500, {
+    throw new HTTPException(400, {
       message: `App name must be at least ${APPNAME_MIN_LENGTH} characters long`,
     });
   }
   if (!APPNAME_REGEX.test(appName)) {
-    throw new HTTPException(500, {
+    throw new HTTPException(400, {
       message: `App name follow hyphenated-url-pattern`,
     });
   }
@@ -60,12 +60,16 @@ app.post("/:appName", auth, async (c) => {
       userEmail: user.email,
       appDescription: body.description || "",
     });
+    c.status(201);
     return c.json({ success: "success" });
-  } catch (e) {
-    console.log('Unknown error', e)
-    throw new HTTPException(500, {
-      message: "Unknown error",
-    });
+  } catch (err) {
+    if (err instanceof ServiceError) {
+      throw new HTTPException(400, { message: err.explicitMessage });
+    } else {
+      throw new HTTPException(500, {
+        message: "Unknown error",
+      });
+    }
   }
 });
 
@@ -103,7 +107,10 @@ app.patch("/:appName", auth, async (c) => {
       description: body.description,
       image: body.image,
     });
-    if (!doc?.name) return c.json({ found: false });
+    if (!doc?.name) {
+      c.status(404);
+      return c.json({ found: false });
+    }
     return c.json({ found: true });
   } catch (err) {
     console.log(err);

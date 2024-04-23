@@ -59,6 +59,7 @@ export const httpError = {
   APPNAME_LENGTH: `Application name length must be greater than ${APPNAME_MIN_LENGTH}`,
   APPNAME_NOT_ALLOWED:
     "Application name must follow hyphenated url pattern (my-app)",
+  APPNAME_EXISTS: "App with that name already exists",
   SAME_APPNAME: "App names are the same",
   SAME_ENVNAME: "Environment names are the same",
   ENV_NOTFOUND: "Environment not found",
@@ -81,3 +82,5 @@ export const httpError = {
   ENTITIES_CANT_ADD: "Cannot add entities",
   UNKNOWN: "Unknown error",
 };
+
+export const defaultNodbEnv = "dev";

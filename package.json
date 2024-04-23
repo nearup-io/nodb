@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "NODE_ENV=development bun --hot src/app.ts",
-    "start": "bun src/app.ts"
+    "start": "bun src/app.ts",
+    "e2e-tests": "bun test --env-file=.env.test"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -24,7 +25,7 @@
     "hono": "^4.2.1",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "6.5",
-    "mongoose": "^8.3.0",
+    "mongoose": "^8.3.2",
     "openai": "^4.36.0",
     "ramda": "^0.29.1",
     "unique-names-generator": "^4.7.1",
