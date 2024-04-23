@@ -33,9 +33,15 @@ app.get("/:appName", auth, async (c) => {
     });
     return c.json(application);
   } catch (err) {
-    throw new HTTPException(500, {
-      message: "Couldn't fetch application",
-    });
+    if (err instanceof ServiceError) {
+      throw new HTTPException(404, {
+        message: err.explicitMessage,
+      });
+    } else {
+      throw new HTTPException(500, {
+        message: "Couldn't fetch application",
+      });
+    }
   }
 });
 

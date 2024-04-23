@@ -2,7 +2,7 @@ export const Permissions = Object.freeze({
   ALL: "ALL",
   READ_ONLY: "READ-ONLY",
 });
-import chalk from 'chalk'
+import chalk from "chalk";
 
 export const PROVIDER_GOOGLE = "Google";
 export const PROVIDER_GITHUB = "Github";
@@ -40,7 +40,9 @@ export const embeddingModel = Bun.env.EMBEDDING_MODEL as
   | VoyageEmbeddingModels
   | undefined;
 if (!Bun.env.LLM_NAME) {
-  console.log(chalk.yellow("LLM_NAME env is missing, search features are disabled"));
+  console.log(
+    chalk.yellow("LLM_NAME env is missing, search features are disabled"),
+  );
 }
 export const anthropicModel = Bun.env.LLM_NAME as AnthropicModel | undefined;
 export const openaiModel = Bun.env.LLM_NAME as OpenaiModel | undefined;
@@ -60,6 +62,7 @@ export const httpError = {
   APPNAME_NOT_ALLOWED:
     "Application name must follow hyphenated url pattern (my-app)",
   APPNAME_EXISTS: "App with that name already exists",
+  APPNAME_NOT_FOUND: "App with that name is not found",
   SAME_APPNAME: "App names are the same",
   SAME_ENVNAME: "Environment names are the same",
   ENV_NOTFOUND: "Environment not found",

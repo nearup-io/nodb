@@ -1,4 +1,3 @@
-import { HTTPException } from "hono/http-exception";
 import { ObjectId } from "mongodb";
 import mongoose from "mongoose";
 import * as R from "ramda";
@@ -65,9 +64,7 @@ export const getApplication = async ({
   ]);
 
   if (!userApplications.length) {
-    throw new HTTPException(404, {
-      message: "Application not found",
-    });
+    throw new ServiceError(httpError.APPNAME_NOT_FOUND);
   }
 
   return userApplications[0];
