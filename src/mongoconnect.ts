@@ -13,21 +13,16 @@ declare global {
 const mongoconnect: () => Promise<void> = async () => {
   const { MAX_POOL_SIZE } = Bun.env;
   try {
-    console.log("Connecting to database...");
     if (globalThis.dbconn) {
       // close on "hot reload": bun --hot, or bun --watch
+      console.log("Closing mongoose...");
       await globalThis.dbconn.connection.close();
     }
     globalThis.dbconn = await mongoose.connect(mongodbUrl, {
       maxPoolSize: MAX_POOL_SIZE ? parseInt(MAX_POOL_SIZE, 10) : 2,
       autoIndex: false,
     });
-    console.log("Connected!");
-    if (globalThis.dbconn) {
-      console.log(
-        `Number of connections: ${globalThis.dbconn.connections.length}`,
-      );
-    }
+    console.log("Connected to database!");
   } catch (e) {
     console.log(e);
     await Bun.sleep(3000);
