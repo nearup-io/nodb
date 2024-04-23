@@ -43,12 +43,12 @@ app.post("/:appName", auth, async (c) => {
   const appName = c.req.param("appName");
   const body = await c.req.json();
   if (appName.length < APPNAME_LENGTH) {
-    throw new HTTPException(500, {
+    throw new HTTPException(400, {
       message: `App name must be at least ${APPNAME_LENGTH} characters long`,
     });
   }
   if (!APPNAME_REGEX.test(appName)) {
-    throw new HTTPException(500, {
+    throw new HTTPException(400, {
       message: `App name follow hyphenated-url-pattern`,
     });
   }
@@ -60,6 +60,7 @@ app.post("/:appName", auth, async (c) => {
       userEmail: user.email,
       appDescription: body.description || "",
     });
+    c.status(201);
     return c.json({ success: "success" });
   } catch (err) {
     throw new HTTPException(500, {
