@@ -9,7 +9,7 @@ import User from "../models/user.model";
 import generateAppName from "../utils/app-name";
 import { generateState } from "../utils/auth-utils";
 import generateToken from "../utils/backend-token";
-import { PROVIDER_GOOGLE, Permissions } from "../utils/const";
+import { defaultNodbEnv, Permissions, PROVIDER_GOOGLE } from "../utils/const";
 
 export const getGithubLoginUrl = ({ redirectUrl }: { redirectUrl: string }) => {
   const { GITHUB_CLIENT_ID, GITHUB_AUTH_ENDPOINT } = Bun.env;
@@ -53,13 +53,13 @@ export const finalizeAuth = async ({
   const user = await User.findOneAndUpdate(
     { email },
     { $addToSet: { providers: provider }, $set: { lastProvider: provider } },
-    { returnNewDocument: true }
+    { returnNewDocument: true },
   );
   let newUser;
   if (!user) {
     const applicationName = generateAppName();
     const environment = await Environment.create({
-      name: Bun.env.NODB_ENV,
+      name: defaultNodbEnv,
       tokens: [
         {
           key: generateToken(),

@@ -36,3 +36,5 @@ export const httpError = {
   ENTITIES_CANT_ADD: "Cannot add entities",
   UNKNOWN: "Unknown error",
 };
+
+export const defaultNodbEnv = "dev";
