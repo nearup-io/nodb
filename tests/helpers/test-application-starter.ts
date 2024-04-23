@@ -3,14 +3,15 @@ import app from "../../src/app";
 import type { USER_TYPE } from "../../src/utils/auth-utils.ts";
 import { sign as jwt_sign } from "hono/jwt";
 import { MongoClient } from "mongodb";
+import User from "../../src/models/user.model.ts";
+import Application from "../../src/models/application.model.ts";
 
 export class TestApplicationStarter {
   private readonly application: Hono;
-  private readonly mongoClient: MongoClient;
-
   constructor() {
     this.application = app;
-    this.mongoClient = new MongoClient(Bun.env.MONGODB_URL!);
+    // TODO figure out a proper solution for this
+    Application.ensureIndexes().then(() => console.log("indexes pushed"));
   }
 
   get app(): Hono {
@@ -18,6 +19,7 @@ export class TestApplicationStarter {
   }
 
   public async generateJwtToken(userData: USER_TYPE): Promise<string> {
+    await User.create({ email: userData.email });
     return jwt_sign(userData, Bun.env.JWT_SECRET!);
   }
 
@@ -26,12 +28,13 @@ export class TestApplicationStarter {
   }
 
   private async cleanup() {
+    const mongoClient = new MongoClient(Bun.env.MONGODB_URL!);
     try {
       // Connect to the MongoDB server
-      await this.mongoClient.connect();
+      await mongoClient.connect();
 
       // Select the database
-      const db = this.mongoClient.db("e2e_tests");
+      const db = mongoClient.db("e2e_tests");
 
       // Drop the database
       await db.dropDatabase();
@@ -41,7 +44,7 @@ export class TestApplicationStarter {
       console.error("Error dropping database:", error);
     } finally {
       // Close the connection
-      await this.mongoClient.close();
+      await mongoClient.close();
     }
   }
 }

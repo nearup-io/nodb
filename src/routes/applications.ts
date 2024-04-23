@@ -63,9 +63,13 @@ app.post("/:appName", auth, async (c) => {
     c.status(201);
     return c.json({ success: "success" });
   } catch (err) {
-    throw new HTTPException(500, {
-      message: "Unknown error",
-    });
+    if (err instanceof ServiceError) {
+      throw new HTTPException(400, { message: err.explicitMessage });
+    } else {
+      throw new HTTPException(500, {
+        message: "Unknown error",
+      });
+    }
   }
 });
 

@@ -1,8 +1,9 @@
-import { expect, test, describe, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { TestApplicationStarter } from "./helpers/test-application-starter.ts";
 import Application, {
   type Application as AppType,
 } from "../src/models/application.model.ts";
+import * as R from "ramda";
 
 const getAppFromDbByName = async (appName: string): Promise<AppType | null> => {
   return Application.findOne<AppType>({
@@ -61,12 +62,8 @@ describe("All endpoints used for apps CRUD operations", async () => {
       });
 
       test("when appName already exists", async () => {
-        const newApp: Omit<AppType, "_id"> = {
-          name: "uniqueAppName",
-          environments: [],
-        };
-        const appInDb = await Application.create(newApp);
-        const response = await app.request(`/apps/${newApp.name}`, {
+        const appName = "app-name";
+        const response = await app.request(`/apps/${appName}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -77,8 +74,22 @@ describe("All endpoints used for apps CRUD operations", async () => {
             description: "Memes app",
           }),
         });
-        expect(response.status).toBe(400);
-        await Application.findByIdAndDelete(appInDb._id);
+
+        expect(response.status).toBe(201);
+
+        const response1 = await app.request(`/apps/${appName}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: jwtToken,
+          },
+          body: JSON.stringify({
+            image: "path/to/image.jpg",
+            description: "Memes app",
+          }),
+        });
+        expect(response1.status).toBe(400);
+        await Application.findOneAndDelete({ name: appName });
       });
     });
 
@@ -203,7 +214,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
           image: "path/to/image-new.jpg",
         }),
       });
-      expect(patchResponse.status).toBe(200);
+      expect(patchResponse.status).toBe(404);
       expect(await patchResponse.json()).toEqual({ found: false });
     });
 
@@ -250,6 +261,104 @@ describe("All endpoints used for apps CRUD operations", async () => {
       });
 
       await Application.findOneAndDelete({ name: "new-app-name" });
+    });
+  });
+
+  describe("GET requests", async () => {
+    const apps: Omit<AppType, "_id" | "environments">[] = [
+      {
+        name: "app-name-1",
+        image: "path/to/image-1.jpg",
+        description: "description 1",
+      },
+      {
+        name: "app-name-2",
+        image: "path/to/image-2.jpg",
+        description: "description 2",
+      },
+      {
+        name: "app-name-3",
+        image: "path/to/image-3.jpg",
+        description: "description 3",
+      },
+      {
+        name: "app-name-4",
+        image: "path/to/image-4.jpg",
+        description: "description 4",
+      },
+    ];
+
+    const jwtForGetRequests = await helper.generateJwtToken({
+      email: "newJwt@test.com",
+      lastProvider: "",
+      applications: [],
+    });
+    beforeAll(async () => {
+      for (const { name, ...otherProps } of apps) {
+        const postResponse = await app.request(`/apps/${name}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: jwtForGetRequests,
+          },
+          body: JSON.stringify(otherProps),
+        });
+        expect(postResponse.status).toBe(201);
+      }
+    });
+
+    describe("GET /apps/all", async () => {
+      test("Should return 200 OK and all users apps", async () => {
+        const response = await app.request(`/apps/all`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: jwtForGetRequests,
+          },
+        });
+        expect(response.status).toBe(200);
+
+        const entities = (await response.json()) as any[];
+
+        const [first] = entities;
+        expect(first.environments).toBeArray();
+
+        const [firstEnvironment] = first.environments;
+
+        expect(R.keys(firstEnvironment)).toEqual([
+          "name",
+          "tokens",
+          "entities",
+        ]);
+
+        expect(firstEnvironment.entities).toBeArray();
+        expect(firstEnvironment.name).toBeString();
+        expect(firstEnvironment.tokens).toBeArray();
+
+        const [firstToken] = firstEnvironment.tokens;
+        expect(firstToken.key).toBeString();
+        expect(firstToken.permission).toBeString();
+
+        expect(
+          entities.map((entity) => R.omit(["environments"], entity)),
+        ).toEqual(apps);
+      });
+
+      test("Should return 200 OK and empty array when the user does not have any apps", async () => {
+        const response = await app.request(`/apps/all`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: await helper.generateJwtToken({
+              email: "test@test.com",
+              lastProvider: "",
+              applications: [],
+            }),
+          },
+        });
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual([]);
+      });
     });
   });
 });

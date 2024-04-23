@@ -11,7 +11,7 @@ import EnvironmentModel, {
 } from "../models/environment.model";
 import User from "../models/user.model";
 import generateToken from "../utils/backend-token";
-import { Permissions, httpError } from "../utils/const";
+import { httpError, Permissions } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 
 export const getApplication = async ({
@@ -180,13 +180,7 @@ export const createApplication = async ({
     });
   } catch (err: any) {
     if (err.code === 11000) {
-      throw new Error(
-        JSON.stringify({
-          status: "BAD_REQUEST",
-          number: 400,
-          message: "App with that name already exists",
-        }),
-      );
+      throw new ServiceError(httpError.APPNAME_EXISTS);
     }
   }
   await User.findOneAndUpdate(
