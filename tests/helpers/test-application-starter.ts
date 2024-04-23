@@ -8,9 +8,16 @@ import User from "../../src/models/user.model.ts";
 export class TestApplicationStarter {
   private readonly application: Hono;
   private readonly mongoClient: MongoClient;
+  private readonly databaseName: string;
+
   constructor() {
     this.application = app;
     this.mongoClient = new MongoClient(Bun.env.MONGODB_URL!);
+    this.databaseName = Bun.env
+      .MONGODB_URL!.split("/")
+      .at(-1)!
+      .split("?")
+      .at(0)!;
   }
 
   get app(): Hono {
@@ -32,12 +39,12 @@ export class TestApplicationStarter {
       await this.mongoClient.connect();
 
       // Select the database
-      const db = this.mongoClient.db("e2e_tests");
+      const db = this.mongoClient.db(this.databaseName);
 
       // Drop the database
       await db.dropDatabase();
 
-      console.log(`Database e2e_tests dropped successfully.`);
+      console.log(`Database ${this.databaseName} dropped successfully.`);
     } catch (error) {
       console.error("Error dropping database:", error);
     } finally {
