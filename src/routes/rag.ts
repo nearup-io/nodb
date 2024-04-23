@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import * as R from "ramda";
-import { searchEntities } from "../services/entity.service";
-import { httpError } from "../utils/const";
+import { searchAiEntities } from "../services/entity.service";
+import { ServiceError } from "../utils/service-errors";
 
 const app = new Hono();
 
@@ -11,7 +11,7 @@ app.post("/:app/:env/*", async (c) => {
   const { path } = c.req;
   const last = R.last(path);
   const entityType = R.replace(
-    "/search/",
+    "/knowledgebase/",
     "",
     last === "/" ? R.init(path) : path
   );
@@ -19,16 +19,18 @@ app.post("/:app/:env/*", async (c) => {
   const body = await c.req.json();
   if (body.query) {
     try {
-      const res = await searchEntities({
+      const res = await searchAiEntities({
         query: body.query,
         limit: body.limit,
         entityType: hasTypeFilter ? entityType : null,
       });
       return c.json(res);
     } catch (e) {
-      throw new HTTPException(400, {
-        message: httpError.UNKNOWN,
-      });
+      if (e instanceof ServiceError) {
+        throw new HTTPException(400, {
+          message: e.explicitMessage,
+        });
+      }
     }
   } else {
     throw new HTTPException(400, {

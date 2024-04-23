@@ -5,6 +5,7 @@ import appsRoute from "./routes/applications";
 import githubAuth from "./routes/auth/github";
 import uiAuthRoute from "./routes/examples/auth";
 import searchRoute from "./routes/search";
+import ragRoute from "./routes/rag";
 
 await dbconnect();
 
@@ -14,8 +15,8 @@ if (Bun.env.NODE_ENV === "development") {
 }
 app.route("/apps", appsRoute);
 app.route("/search", searchRoute);
+app.route("/knowledgebase", ragRoute);
 app.route("/auth/github", githubAuth);
 app.route("/examples/auth", uiAuthRoute);
-// app.route("/auth/google", googleAuth);
 
 export default app;

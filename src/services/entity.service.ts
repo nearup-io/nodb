@@ -34,43 +34,82 @@ type EntityAggregateResult = {
   entities: Entity[];
 };
 
-const {
-  NODB_VECTOR_INDEX: vectorIndex = "nodb_vector_index",
-  NODB_VECTOR_PATH: vectorPath = "embedding",
-} = Bun.env;
+const { NODB_VECTOR_INDEX: vectorIndex = "nodb_vector_index" } = Bun.env;
 
-export const searchEntities = async (
-  query: string,
-  limit: number,
-  ask: boolean = false
-) => {
+export const searchEntities = async ({
+  query,
+  limit = 5,
+  entityType,
+}: {
+  query: string;
+  limit: number;
+  entityType: string | null;
+}) => {
   const embedding = await getEmbedding(query);
   const res = await EntityModel.aggregate([
     {
       $vectorSearch: {
         index: vectorIndex,
-        path: vectorPath,
+        path: "embedding",
         queryVector: embedding,
         numCandidates: limit * 15,
         limit,
+        filter: entityType ? { type: entityType } : {},
       },
     },
     {
-      $project: {
-        _id: 0,
-        id: 1,
-        type: 1,
-        ancestors: 1,
-        model: 1,
-        score: {
-          $meta: "vectorSearchScore",
+      $replaceRoot: {
+        newRoot: {
+          $mergeObjects: [
+            "$$ROOT",
+            "$model",
+            { __meta: { score: { $meta: "vectorSearchScore" } } },
+          ],
         },
       },
     },
+    { $unset: ["_id", "ancestors", "model", "type", "embedding", "__v"] },
   ]);
-  if (ask) {
-    const context = res.map((obj) => JSON.stringify(obj)).join(" ");
-    let completion = null;
+  return res;
+};
+
+export const searchAiEntities = async ({
+  query,
+  limit = 5,
+  entityType,
+}: {
+  query: string;
+  limit: number;
+  entityType: string | null;
+}) => {
+  const embedding = await getEmbedding(query);
+  const res = await EntityModel.aggregate([
+    {
+      $vectorSearch: {
+        index: vectorIndex,
+        path: "embedding",
+        queryVector: embedding,
+        numCandidates: limit * 15,
+        limit,
+        filter: entityType ? { type: entityType } : {},
+      },
+    },
+    {
+      $replaceRoot: {
+        newRoot: {
+          $mergeObjects: [
+            "$$ROOT",
+            "$model",
+            { meta: { score: { $meta: "vectorSearchScore" } } },
+          ],
+        },
+      },
+    },
+    { $unset: ["_id", "ancestors", "model", "type", "embedding", "__v"] },
+  ]);
+  const context = res.map((obj) => JSON.stringify(obj)).join(" ");
+  let completion = null;
+  try {
     switch (Bun.env.AI_PROVIDER) {
       default:
         completion = await getOpenaiCompletion({
@@ -85,8 +124,11 @@ export const searchEntities = async (
         });
         return { answer: completion?.content[0] };
     }
+  } catch (e) {
+    if (e instanceof Error) {
+      throw new ServiceError(e.message);
+    }
   }
-  return res;
 };
 
 export const getEntities = async ({
@@ -115,17 +157,14 @@ export const getEntities = async ({
     envName,
     xpathEntitySegments,
   });
-
   const fromDb = await EntityModel.aggregate<EntityAggregateResult>(
     // @ts-ignore TODO: using $sort raises "No overload matches this call"
     aggregateQuery
   );
-
   const { totalCount, entities } = fromDb.at(0) || {
     entities: [],
     totalCount: 0,
   };
-
   if (!entities || R.isEmpty(entities)) {
     return { [entityName]: [] };
   }
@@ -143,7 +182,6 @@ export const getEntities = async ({
         }),
       }
     : undefined;
-
   const result = entities.map((entity) => ({
     id: entity.id,
     ...R.pick(metaFilters?.only || R.keys(entity.model), entity.model),
@@ -155,7 +193,6 @@ export const getEntities = async ({
       id: entity.id,
     }),
   }));
-
   return {
     [entityName]: result,
     ...paginationMetadata,
@@ -245,7 +282,11 @@ export const createOrOverwriteEntities = async ({
     .map((entity) => entity.id!);
   const insertEntities: Entity[] = [];
   for (let bodyEntity of bodyEntities) {
-    const input = JSON.stringify(bodyEntity);
+    const embeddingInput = {
+      ...bodyEntity,
+      __vector_title: R.last(entityTypes),
+    };
+    const input = JSON.stringify(embeddingInput);
     const embedding = await getEmbedding(input);
     const id = bodyEntity.id ?? generateToken(8);
     const entityWithoutId = R.omit(["id"], bodyEntity);

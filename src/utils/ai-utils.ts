@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Message } from "@anthropic-ai/sdk/src/resources/messages.js";
 import OpenAI from "openai";
-import { anthropicModel, embeddingProviders, openaiModel } from "./const";
+import { anthropicModel, openaiModel } from "./const";
 
 export const getOpenAiLlm = ({ apiKey }: { apiKey: string }) =>
   new OpenAI({
@@ -20,7 +20,7 @@ export const getOpenaiCompletion = async ({
   query: string;
   context: string;
 }): Promise<OpenAI.Chat.ChatCompletion | undefined> => {
-  const { OPENAI_API_KEY, LLM_NAME } = Bun.env;
+  const { OPENAI_API_KEY } = Bun.env;
   if (OPENAI_API_KEY && openaiModel) {
     const llm = getOpenAiLlm({ apiKey: OPENAI_API_KEY });
     const completion = await llm.chat.completions.create({
@@ -35,6 +35,8 @@ export const getOpenaiCompletion = async ({
       ],
     });
     return completion;
+  } else {
+    throw new Error("LLM or API key is missing");
   }
 };
 

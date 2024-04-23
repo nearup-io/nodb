@@ -61,7 +61,8 @@ app.post("/:appName", auth, async (c) => {
       appDescription: body.description || "",
     });
     return c.json({ success: "success" });
-  } catch (err) {
+  } catch (e) {
+    console.log('Unknown error', e)
     throw new HTTPException(500, {
       message: "Unknown error",
     });

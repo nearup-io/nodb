@@ -161,7 +161,7 @@ export const createApplication = async ({
   appDescription: string;
 }) => {
   const environment = await EnvironmentModel.create({
-    name: Bun.env.NODB_ENV,
+    name: "dev",
     tokens: [
       {
         key: generateToken(),

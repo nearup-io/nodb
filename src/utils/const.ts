@@ -2,6 +2,7 @@ export const Permissions = Object.freeze({
   ALL: "ALL",
   READ_ONLY: "READ-ONLY",
 });
+import chalk from 'chalk'
 
 export const PROVIDER_GOOGLE = "Google";
 export const PROVIDER_GITHUB = "Github";
@@ -38,6 +39,9 @@ export const embeddingModel = Bun.env.EMBEDDING_MODEL as
   | OpenAiEmbeddingModels
   | VoyageEmbeddingModels
   | undefined;
+if (!Bun.env.LLM_NAME) {
+  console.log(chalk.yellow("LLM_NAME env is missing, search features are disabled"));
+}
 export const anthropicModel = Bun.env.LLM_NAME as AnthropicModel | undefined;
 export const openaiModel = Bun.env.LLM_NAME as OpenaiModel | undefined;
 
