@@ -29,6 +29,33 @@ For quick deploy you can use Render:
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/nearup-io/nodb)
 
+## Search Index
+
+Before you can do a semantic search or RAG you must create vector search index for your database. You can follow [here](https://www.mongodb.com/docs/atlas/atlas-vector-search/create-index/#procedure) how to create it. In the field where you define the index please use the following:
+
+```json
+{
+  "fields": [
+    {
+      "numDimensions": 1536,
+      "path": "embedding",
+      "similarity": "cosine",
+      "type": "vector"
+    },
+    {
+      "path": "type",
+      "type": "filter"
+    },
+    {
+      "path": "model",
+      "type": "filter"
+    }
+  ]
+}
+```
+
+`numDimensions` can be any number which depends on the dimension of the embedding vector model you want to use.
+
 ## Tests
 
 Create `.env.test` file with the following content:
