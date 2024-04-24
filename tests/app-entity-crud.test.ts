@@ -38,7 +38,7 @@ const getUserAppsFromDbByEmail = async (email: string): Promise<string[]> => {
 describe("All endpoints used for apps CRUD operations", async () => {
   const helper = new TestApplicationStarter();
   const app = helper.app;
-  const jwtToken = await helper.generateJwtToken({
+  const jwtToken = await helper.generateJWTTokenAndUser({
     email: "random@random.com",
     lastProvider: "",
     applications: [],
@@ -310,7 +310,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
       },
     ];
 
-    const jwtForGetRequests = await helper.generateJwtToken({
+    const jwtForGetRequests = await helper.generateJWTTokenAndUser({
       email: "newJwt@test.com",
       lastProvider: "",
       applications: [],
@@ -375,7 +375,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: await helper.generateJwtToken({
+            Authorization: await helper.generateJWTTokenAndUser({
               email: "test@test.com",
               lastProvider: "",
               applications: [],
@@ -413,7 +413,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
   });
 
   describe("DELETE /apps/:appName", async () => {
-    const jwtForDeleteRequests = await helper.generateJwtToken({
+    const jwtForDeleteRequests = await helper.generateJWTTokenAndUser({
       email: "delete@test.com",
       lastProvider: "",
       applications: [],
