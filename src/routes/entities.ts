@@ -1,4 +1,4 @@
-import { Hono, type Env } from "hono";
+import { type Env, Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { BlankSchema } from "hono/types";
 import * as R from "ramda";
@@ -21,13 +21,14 @@ import {
 import { entityQueryValidator } from "../utils/route-validators";
 import { RoutingError, ServiceError } from "../utils/service-errors";
 import type { EntityRequestDto, PostEntityRequestDto } from "../utils/types.ts";
+
 const app = new Hono<Env, BlankSchema, "/:appName/:envName/:entityName">();
 
 app.get("/*", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
   const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
     c.req.path,
-    c.req.param()
+    c.req.param(),
   );
   if (isEntitiesList(pathRestSegments)) {
     const result = await getEntities({
@@ -60,7 +61,7 @@ app.post("/*", async (c) => {
   try {
     const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
       c.req.path,
-      c.req.param()
+      c.req.param(),
     );
 
     if (!isEntitiesList(pathRestSegments)) {
@@ -72,6 +73,7 @@ app.post("/*", async (c) => {
       xpathEntitySegments,
       bodyEntities: body,
     });
+    c.status(201);
     return c.json({ ids });
   } catch (e) {
     console.log(e);
@@ -121,7 +123,7 @@ app.put("/*", async (c) => {
   const { appName, envName } = c.req.param();
   const { xpathEntitySegments } = getCommonEntityRouteProps(
     c.req.path,
-    c.req.param()
+    c.req.param(),
   );
   const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
   if (!Array.isArray(bodyEntities)) {
@@ -155,7 +157,7 @@ app.patch("/*", async (c) => {
   const { appName, envName } = c.req.param();
   const { xpathEntitySegments } = getCommonEntityRouteProps(
     c.req.path,
-    c.req.param()
+    c.req.param(),
   );
   const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
   if (!Array.isArray(bodyEntities)) {

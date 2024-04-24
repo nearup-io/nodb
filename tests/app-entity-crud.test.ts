@@ -4,6 +4,13 @@ import Application, {
   type Application as AppType,
 } from "../src/models/application.model.ts";
 import * as R from "ramda";
+import Entity, {
+  type Entity as EntityType,
+} from "../src/models/entity.model.ts";
+import Environment, {
+  type Environment as EnvironmentType,
+} from "../src/models/environment.model.ts";
+import User from "../src/models/user.model.ts";
 
 const getAppFromDbByName = async (appName: string): Promise<AppType | null> => {
   return Application.findOne<AppType>({
@@ -13,10 +20,25 @@ const getAppFromDbByName = async (appName: string): Promise<AppType | null> => {
     .lean();
 };
 
+const getEntityFromDbById = async (id: string): Promise<EntityType | null> => {
+  return Entity.findById(id).select("-__v").lean();
+};
+
+const getEnvironmentsFromDbByAppName = async (
+  appName: string,
+): Promise<EnvironmentType[]> => {
+  return Environment.find({ app: appName }).select("-__v").lean();
+};
+
+const getUserAppsFromDbByEmail = async (email: string): Promise<string[]> => {
+  const user = await User.findOne({ email }).select("applications").lean();
+  return user?.applications || [];
+};
+
 describe("All endpoints used for apps CRUD operations", async () => {
   const helper = new TestApplicationStarter();
   const app = helper.app;
-  const jwtToken = await helper.generateJwtToken({
+  const jwtToken = await helper.generateJWTTokenAndUser({
     email: "random@random.com",
     lastProvider: "",
     applications: [],
@@ -288,7 +310,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
       },
     ];
 
-    const jwtForGetRequests = await helper.generateJwtToken({
+    const jwtForGetRequests = await helper.generateJWTTokenAndUser({
       email: "newJwt@test.com",
       lastProvider: "",
       applications: [],
@@ -305,6 +327,10 @@ describe("All endpoints used for apps CRUD operations", async () => {
         });
         expect(postResponse.status).toBe(201);
       }
+    });
+
+    afterAll(async () => {
+      await Application.deleteMany({ name: { $in: apps.map((x) => x.name) } });
     });
 
     describe("GET /apps/all", async () => {
@@ -349,7 +375,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: await helper.generateJwtToken({
+            Authorization: await helper.generateJWTTokenAndUser({
               email: "test@test.com",
               lastProvider: "",
               applications: [],
@@ -383,6 +409,118 @@ describe("All endpoints used for apps CRUD operations", async () => {
         });
         expect(response.status).toBe(200);
       });
+    });
+  });
+
+  describe("DELETE /apps/:appName", async () => {
+    const jwtForDeleteRequests = await helper.generateJWTTokenAndUser({
+      email: "delete@test.com",
+      lastProvider: "",
+      applications: [],
+    });
+
+    test("should return 200 OK {found: false} when app is not found", async () => {
+      const response = await app.request(`/apps/not-found-name`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: jwtForDeleteRequests,
+        },
+      });
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ found: false });
+    });
+
+    test("should remove all environments, entities and remove the app from the user", async () => {
+      const appForDeletion: Omit<AppType, "_id" | "environments"> = {
+        name: "app-name-1",
+        image: "path/to/image-1.jpg",
+        description: "description 1",
+      };
+
+      const postResponse = await app.request(`/apps/${appForDeletion.name}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: jwtForDeleteRequests,
+        },
+        body: JSON.stringify(R.omit(["name"], appForDeletion)),
+      });
+      expect(postResponse.status).toBe(201);
+
+      const environmentName = "environment";
+      const envResponse = await app.request(
+        `/apps/${appForDeletion.name}/${environmentName}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: jwtForDeleteRequests,
+          },
+          body: JSON.stringify({
+            description: "This is a staging environment",
+          }),
+        },
+      );
+      expect(envResponse.status).toBe(201);
+      const entityName = "todo";
+      const entityResponse = await app.request(
+        `/apps/${appForDeletion.name}/${environmentName}/${entityName}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: jwtForDeleteRequests,
+          },
+          body: JSON.stringify([
+            { title: "Grocery Shopping", completed: false, priority: "medium" },
+          ]),
+        },
+      );
+      expect(entityResponse.status).toBe(201);
+      const [createdEntityId] = (
+        (await entityResponse.json()) as { ids: string[] }
+      ).ids;
+
+      const subEntityName = "subentity";
+      const subEntityResponse = await app.request(
+        `/apps/${appForDeletion.name}/${environmentName}/${entityName}/${createdEntityId}/${subEntityName}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: jwtForDeleteRequests,
+          },
+          body: JSON.stringify([{ prop: "randomProp", prop2: "randomProp2" }]),
+        },
+      );
+      expect(subEntityResponse.status).toBe(201);
+      const [createdSubEntityId] = (
+        (await subEntityResponse.json()) as { ids: string[] }
+      ).ids;
+
+      const response = await app.request(`/apps/${appForDeletion.name}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: jwtForDeleteRequests,
+        },
+      });
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ found: true });
+
+      expect(await getEntityFromDbById(createdEntityId)).toBeNull();
+      expect(await getEntityFromDbById(createdSubEntityId)).toBeNull();
+
+      const environmentsForApp = await getEnvironmentsFromDbByAppName(
+        appForDeletion.name,
+      );
+      expect(environmentsForApp).toBeArrayOfSize(0);
+      expect(await getUserAppsFromDbByEmail("delete@test.com")).toBeArrayOfSize(
+        0,
+      );
     });
   });
 });

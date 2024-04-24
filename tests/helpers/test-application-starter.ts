@@ -24,8 +24,11 @@ export class TestApplicationStarter {
     return this.application;
   }
 
-  public async generateJwtToken(userData: USER_TYPE): Promise<string> {
-    await User.create({ email: userData.email });
+  public async generateJWTTokenAndUser(
+    userData: USER_TYPE,
+    createUser: boolean = true,
+  ): Promise<string> {
+    createUser && (await User.create({ email: userData.email }));
     return jwt_sign(userData, Bun.env.JWT_SECRET!);
   }
 

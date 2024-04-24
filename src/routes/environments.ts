@@ -26,6 +26,7 @@ app.get("/", async (c) => {
         message: httpError.ENV_NOTFOUND,
       });
     }
+
     return c.json(env);
   } catch (e) {
     console.log(e);
@@ -47,6 +48,7 @@ app.post("/", async (c) => {
       envName,
       description: body.description,
     });
+    c.status(201);
     return c.json(doc);
   } catch (e) {
     if (e instanceof ServiceError) {
