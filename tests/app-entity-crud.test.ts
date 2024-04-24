@@ -10,6 +10,7 @@ import Entity, {
 import Environment, {
   type Environment as EnvironmentType,
 } from "../src/models/environment.model.ts";
+import User from "../src/models/user.model.ts";
 
 const getAppFromDbByName = async (appName: string): Promise<AppType | null> => {
   return Application.findOne<AppType>({
@@ -19,14 +20,19 @@ const getAppFromDbByName = async (appName: string): Promise<AppType | null> => {
     .lean();
 };
 
-const getEntityFromDbById = (id: string): Promise<EntityType | null> => {
+const getEntityFromDbById = async (id: string): Promise<EntityType | null> => {
   return Entity.findById(id).select("-__v").lean();
 };
 
-const getEnvironmentsByAppName = (
+const getEnvironmentsFromDbByAppName = async (
   appName: string,
 ): Promise<EnvironmentType[]> => {
   return Environment.find({ app: appName }).select("-__v").lean();
+};
+
+const getUserAppsFromDbByEmail = async (email: string): Promise<string[]> => {
+  const user = await User.findOne({ email }).select("applications").lean();
+  return user?.applications || [];
 };
 
 describe("All endpoints used for apps CRUD operations", async () => {
@@ -458,7 +464,6 @@ describe("All endpoints used for apps CRUD operations", async () => {
         },
       );
       expect(envResponse.status).toBe(201);
-
       const entityName = "todo";
       const entityResponse = await app.request(
         `/apps/${appForDeletion.name}/${environmentName}/${entityName}`,
@@ -509,10 +514,13 @@ describe("All endpoints used for apps CRUD operations", async () => {
       expect(await getEntityFromDbById(createdEntityId)).toBeNull();
       expect(await getEntityFromDbById(createdSubEntityId)).toBeNull();
 
-      const environmentsForApp = await getEnvironmentsByAppName(
+      const environmentsForApp = await getEnvironmentsFromDbByAppName(
         appForDeletion.name,
       );
       expect(environmentsForApp).toBeArrayOfSize(0);
+      expect(await getUserAppsFromDbByEmail("delete@test.com")).toBeArrayOfSize(
+        0,
+      );
     });
   });
 });
