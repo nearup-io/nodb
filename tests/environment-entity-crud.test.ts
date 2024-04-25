@@ -41,8 +41,9 @@ describe("Environment entity CRUD", async () => {
   });
 
   describe("POST /apps/:appName/:envName", async () => {
+    const appName = "test-app-name";
+
     test("should return 400 BAD REQUEST when environment for that app already exists", async () => {
-      const appName = "test-app-name-2";
       const response = await app.request(`/apps/${appName}`, {
         method: "POST",
         headers: {
@@ -102,7 +103,6 @@ describe("Environment entity CRUD", async () => {
     });
 
     test("should return 201 CREATED and create the environment for the app", async () => {
-      const appName = "test-app-name-3";
       const response = await app.request(`/apps/${appName}`, {
         method: "POST",
         headers: {
@@ -115,7 +115,7 @@ describe("Environment entity CRUD", async () => {
         }),
       });
       expect(response.status).toBe(201);
-      const environmentName = "environment-test-3";
+      const environmentName = "environment-1";
       const environmentResponse = await app.request(
         `/apps/${appName}/${environmentName}`,
         {
