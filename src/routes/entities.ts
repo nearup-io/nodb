@@ -21,9 +21,10 @@ import {
 import { entityQueryValidator } from "../utils/route-validators";
 import { RoutingError, ServiceError } from "../utils/service-errors";
 import type { EntityRequestDto, PostEntityRequestDto } from "../utils/types.ts";
+import authMiddleware from "../middlewares/auth.middleware.ts";
 
 const app = new Hono<Env, BlankSchema, "/:appName/:envName/:entityName">();
-
+app.use(authMiddleware);
 app.get("/*", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
   const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
