@@ -28,10 +28,13 @@ app.get("/", async (c) => {
 
     return c.json(env);
   } catch (e) {
-    console.log(e);
-    throw new HTTPException(500, {
-      message: httpError.UNKNOWN,
-    });
+    if (e instanceof HTTPException) {
+      throw e;
+    } else {
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
+      });
+    }
   }
 });
 

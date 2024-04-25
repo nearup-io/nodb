@@ -562,4 +562,122 @@ describe("Environment entity CRUD", async () => {
       expect(deleteAppResponse.status).toBe(200);
     });
   });
+
+  describe("GET /apps/:appName/:envName", async () => {
+    const appName = "test-app-name";
+
+    test("should return 404 NOT FOUND when environment is not found", async () => {
+      const response = await app.request(`/apps/${appName}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: jwtToken,
+        },
+        body: JSON.stringify({
+          image: "path/to/image.jpg",
+          description: "Memes app",
+        }),
+      });
+      expect(response.status).toBe(201);
+
+      const getResponse = await app.request(
+        `/apps/${appName}/not-existing-environment`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: jwtToken,
+          },
+        },
+      );
+
+      expect(getResponse.status).toBe(404);
+
+      const deleteAppResponse = await app.request(`/apps/${appName}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: jwtToken,
+        },
+      });
+      expect(deleteAppResponse.status).toBe(200);
+    });
+
+    test("should return 200 OK and environment", async () => {
+      const response = await app.request(`/apps/${appName}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: jwtToken,
+        },
+        body: JSON.stringify({
+          image: "path/to/image.jpg",
+          description: "Memes app",
+        }),
+      });
+      expect(response.status).toBe(201);
+      const environmentName = "environment";
+      const environmentResponse = await app.request(
+        `/apps/${appName}/${environmentName}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: jwtToken,
+          },
+          body: JSON.stringify({
+            description: "This is a staging environment",
+          }),
+        },
+      );
+      expect(environmentResponse.status).toBe(201);
+
+      const getResponse = await app.request(
+        `/apps/${appName}/${environmentName}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: jwtToken,
+          },
+        },
+      );
+
+      expect(getResponse.status).toBe(200);
+
+      const body = (await getResponse.json()) as Omit<EnvironmentType, "app">;
+
+      expect(R.keys(body)).toStrictEqual([
+        "name",
+        "tokens",
+        "description",
+        "_id",
+        "entities",
+      ]);
+
+      const { _id, tokens, ...props } = body;
+
+      expect(_id).toBeString();
+      expect(tokens).toBeArray();
+
+      const [firstToken] = tokens;
+      expect(firstToken.key).toBeString();
+      expect(firstToken.permission).toBeString();
+
+      expect(props).toEqual({
+        description: "This is a staging environment",
+        entities: [],
+        name: environmentName,
+      });
+
+      const deleteAppResponse = await app.request(`/apps/${appName}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: jwtToken,
+        },
+      });
+      expect(deleteAppResponse.status).toBe(200);
+    });
+  });
 });
