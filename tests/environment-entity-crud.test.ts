@@ -171,6 +171,48 @@ describe("Environment entity CRUD", async () => {
   describe("PATCH /apps/:appName/:envName", async () => {
     const appName = "test-app-name";
 
+    test("should return 404 NOT FOUND when the environment does not exist", async () => {
+      const response = await app.request(`/apps/${appName}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: jwtToken,
+        },
+        body: JSON.stringify({
+          image: "path/to/image.jpg",
+          description: "Memes app",
+        }),
+      });
+
+      expect(response.status).toBe(201);
+      // first environment
+      const environmentName = "environment";
+      const patchResponse = await app.request(
+        `/apps/${appName}/${environmentName}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: jwtToken,
+          },
+          body: JSON.stringify({
+            envName: "new-env-name",
+            description: "This is a staging environment",
+          }),
+        },
+      );
+      expect(patchResponse.status).toBe(404);
+
+      const deleteResponse = await app.request(`/apps/${appName}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: jwtToken,
+        },
+      });
+      expect(deleteResponse.status).toBe(200);
+    });
+
     describe("should return 400 BAD REQUEST", () => {
       test("when you try to rename the environment to the same name", async () => {
         const response = await app.request(`/apps/${appName}`, {
@@ -203,48 +245,6 @@ describe("Environment entity CRUD", async () => {
           },
         );
         expect(firstEnvironmentResponse.status).toBe(400);
-
-        const deleteResponse = await app.request(`/apps/${appName}`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: jwtToken,
-          },
-        });
-        expect(deleteResponse.status).toBe(200);
-      });
-
-      test("when the environment does not exist", async () => {
-        const response = await app.request(`/apps/${appName}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: jwtToken,
-          },
-          body: JSON.stringify({
-            image: "path/to/image.jpg",
-            description: "Memes app",
-          }),
-        });
-
-        expect(response.status).toBe(201);
-        // first environment
-        const environmentName = "environment";
-        const patchResponse = await app.request(
-          `/apps/${appName}/${environmentName}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: jwtToken,
-            },
-            body: JSON.stringify({
-              envName: "new-env-name",
-              description: "This is a staging environment",
-            }),
-          },
-        );
-        expect(patchResponse.status).toBe(400);
 
         const deleteResponse = await app.request(`/apps/${appName}`, {
           method: "DELETE",

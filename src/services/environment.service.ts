@@ -153,7 +153,7 @@ export const updateEnvironment = async ({
   newEnvName: string;
   oldEnvName: string;
   description: string;
-}) => {
+}): Promise<Environment | null> => {
   const environment = await findEnvironment({
     appName,
     envName: oldEnvName,
@@ -175,10 +175,9 @@ export const updateEnvironment = async ({
   if (R.isEmpty(updateProps)) {
     throw new ServiceError(httpError.NO_UPDATE_PROPS);
   }
-  const doc: Environment | null = await EnvironmentModel.findByIdAndUpdate(
+  return EnvironmentModel.findByIdAndUpdate(
     environment._id,
     { ...updateProps },
     { returnDocument: "after", new: true },
   );
-  return doc;
 };
