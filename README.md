@@ -76,3 +76,8 @@ Then run:
 ```bash
 bun e2e-tests
 ```
+
+#### Contact
+
+1. Discord: https://discord.gg/QBGH49Bcp7
+2. Email: hi@nodb.sh
