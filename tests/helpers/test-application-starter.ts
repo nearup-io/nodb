@@ -20,22 +20,6 @@ export class TestApplicationStarter {
       .at(0)!;
   }
 
-  get app(): Hono {
-    return this.application;
-  }
-
-  public async generateJWTTokenAndUser(
-    userData: USER_TYPE,
-    createUser: boolean = true,
-  ): Promise<string> {
-    createUser && (await User.create({ email: userData.email }));
-    return jwt_sign(userData, Bun.env.JWT_SECRET!);
-  }
-
-  public async stopApplication(): Promise<void> {
-    await this.cleanup();
-  }
-
   private async cleanup() {
     try {
       // Connect to the MongoDB server
@@ -54,5 +38,91 @@ export class TestApplicationStarter {
       // Close the connection
       await this.mongoClient.close();
     }
+  }
+
+  get app(): Hono {
+    return this.application;
+  }
+
+  public async generateJWTTokenAndUser(
+    userData: USER_TYPE,
+    createUser: boolean = true,
+  ): Promise<string> {
+    createUser && (await User.create({ email: userData.email }));
+    return jwt_sign(userData, Bun.env.JWT_SECRET!);
+  }
+
+  public async stopApplication(): Promise<void> {
+    await this.cleanup();
+  }
+
+  public async executePostRequest({
+    url,
+    token,
+    body,
+  }: {
+    url: string;
+    token?: string;
+    body?: any;
+  }): Promise<Response> {
+    return this.app.request(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: token }),
+      },
+      ...(body && { body: JSON.stringify(body) }),
+    });
+  }
+
+  public async executePatchRequest({
+    url,
+    token,
+    body,
+  }: {
+    url: string;
+    token?: string;
+    body?: any;
+  }): Promise<Response> {
+    return this.app.request(url, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: token }),
+      },
+      ...(body && { body: JSON.stringify(body) }),
+    });
+  }
+
+  public async executeGetRequest({
+    url,
+    token,
+  }: {
+    url: string;
+    token?: string;
+  }): Promise<Response> {
+    return this.app.request(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: token }),
+      },
+    });
+  }
+
+  public async executeDeleteRequest({
+    url,
+    token,
+  }: {
+    url: string;
+    token?: string;
+  }): Promise<Response> {
+    return this.app.request(url, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: token }),
+      },
+    });
   }
 }
