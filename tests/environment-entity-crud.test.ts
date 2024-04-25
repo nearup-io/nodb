@@ -1,19 +1,9 @@
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { TestApplicationStarter } from "./helpers/test-application-starter.ts";
 import Environment, {
   type Environment as EnvironmentType,
 } from "../src/models/environment.model.ts";
-import Application, {
-  type Application as AppType,
-} from "../src/models/application.model.ts";
+import Application from "../src/models/application.model.ts";
 import * as R from "ramda";
 
 const getEnvironmentFromDbByName = async (
@@ -22,8 +12,15 @@ const getEnvironmentFromDbByName = async (
   return Environment.findOne({ name }).select("-__v").lean();
 };
 
-const getApplicationByName = async (name: string): Promise<AppType | null> => {
-  return Application.findOne({ name }).select("-__v").lean();
+const getEnvironmentsFromAppName = async (name: string): Promise<string[]> => {
+  const app = await Application.findOne({ name }).select("-__v").lean();
+  if (!app) return [];
+
+  const environments = await Environment.find({
+    _id: { $in: app.environments.map((x) => x._id.toString()) },
+  });
+
+  return environments.map((x) => x.name);
 };
 
 describe("Environment entity CRUD", async () => {
@@ -44,23 +41,8 @@ describe("Environment entity CRUD", async () => {
   });
 
   describe("POST /apps/:appName/:envName", async () => {
-    const appName = "test-app-name";
-
-    afterEach(async () => {
-      console.log("trying to clear up app");
-      const deleteResponse = await app.request(`/apps/${appName}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: jwtToken,
-        },
-      });
-      expect(deleteResponse.status).toBe(200);
-      console.log("cleaned up app");
-    });
-
-    beforeEach(async () => {
-      // create app
+    test("should return 400 BAD REQUEST when environment for that app already exists", async () => {
+      const appName = "test-app-name-2";
       const response = await app.request(`/apps/${appName}`, {
         method: "POST",
         headers: {
@@ -74,10 +56,6 @@ describe("Environment entity CRUD", async () => {
       });
 
       expect(response.status).toBe(201);
-      console.log("created up app");
-    });
-
-    test("should return 400 BAD REQUEST when environment for that app already exists", async () => {
       // first environment
       const environmentName = "environment";
       const firstEnvironmentResponse = await app.request(
@@ -124,8 +102,20 @@ describe("Environment entity CRUD", async () => {
     });
 
     test("should return 201 CREATED and create the environment for the app", async () => {
-      console.log("made it to the second test");
-      const environmentName = "environment";
+      const appName = "test-app-name-3";
+      const response = await app.request(`/apps/${appName}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: jwtToken,
+        },
+        body: JSON.stringify({
+          image: "path/to/image.jpg",
+          description: "Memes app",
+        }),
+      });
+      expect(response.status).toBe(201);
+      const environmentName = "environment-test-3";
       const environmentResponse = await app.request(
         `/apps/${appName}/${environmentName}`,
         {
@@ -161,12 +151,11 @@ describe("Environment entity CRUD", async () => {
       expect(props).toEqual({
         description: "This is a staging environment",
         entities: [],
-        name: "environment",
+        name: environmentName,
       });
 
-      const application = await getApplicationByName(appName);
-      expect(application).not.toBeNull();
-      expect(application?.environments).toInclude(environmentName);
+      const environments = await getEnvironmentsFromAppName(appName);
+      expect(environments).toContain(environmentName);
 
       const deleteResponse = await app.request(`/apps/${appName}`, {
         method: "DELETE",
