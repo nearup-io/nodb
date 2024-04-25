@@ -76,7 +76,6 @@ app.post("/*", async (c) => {
     c.status(201);
     return c.json({ ids });
   } catch (e) {
-    console.log(e);
     if (e instanceof ServiceError || e instanceof RoutingError) {
       throw new HTTPException(400, {
         message: e.explicitMessage,
