@@ -6,7 +6,7 @@ const TokenSchema = new Schema(
     key: { type: String },
     permission: { type: String, enum: ["ALL", "READ-ONLY"] },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const EnvironmentSchema = new Schema({
@@ -35,7 +35,7 @@ export type Environment = {
   name: string;
   app: string;
   extras?: Record<string, unknown>;
-  tokens: Record<string, unknown>;
+  tokens: Record<string, unknown>[];
   entities?: string[]; // only names/slugs ["my-entity", "movies"]
   description: string;
 };
