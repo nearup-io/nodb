@@ -476,6 +476,13 @@ export const replaceEntities = async ({
   xpathEntitySegments: string[];
   bodyEntities: EntityRequestDto[];
 }) => {
+  const environment = await findEnvironment({
+    appName,
+    envName,
+  });
+  if (!environment) {
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
+  }
   const entityTypes = getEntityTypes(xpathEntitySegments);
   const ancestors = getAncestors(xpathEntitySegments);
   const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
@@ -484,28 +491,40 @@ export const replaceEntities = async ({
     type: `${appName}/${envName}/${entityTypes.join("/")}`,
     ancestors,
   });
-  if (R.isEmpty(dbExistingDocuments)) {
+
+  if (
+    R.isEmpty(dbExistingDocuments) &&
+    bodyEntities.filter((x) => !x.id).length === 0
+  ) {
     throw new ServiceError(httpError.ENTITY_NOT_FOUND);
   }
-  const documentsToBeUpdated: Entity[] = dbExistingDocuments.map((entity) => {
-    const { id, ...propsToBeReplaced } = bodyEntities.find(
-      (x) => x.id === entity.id,
-    )!;
-    return {
-      id: entity.id,
-      model: { ...propsToBeReplaced },
-      type: entity.type,
-      ancestors: entity.ancestors,
+
+  const entitiesToBeInserted: Entity[] = [];
+  for (let bodyEntity of bodyEntities) {
+    const embeddingInput = {
+      ...R.omit(["id"], bodyEntity),
+      __vector_title: R.last(entityTypes),
     };
-  });
+    const input = JSON.stringify(embeddingInput);
+    const embedding = await getEmbedding(input);
+    const id = bodyEntity.id ?? generateToken(8);
+    const entityWithoutId = R.omit(["id"], bodyEntity);
+    entitiesToBeInserted.push({
+      id,
+      model: { ...entityWithoutId },
+      type: `${appName}/${envName}/${entityTypes.join("/")}`,
+      ancestors,
+      embedding,
+    });
+  }
 
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
     await EntityModel.deleteMany({ id: { $in: documentIds } }, { session });
-    await EntityModel.insertMany(documentsToBeUpdated, { session });
+    await EntityModel.insertMany(entitiesToBeInserted, { session });
     await session.commitTransaction();
-    return documentsToBeUpdated.map((e) => e.id);
+    return entitiesToBeInserted.map((e) => e.id);
   } catch (e) {
     console.error("Error updating entities", e);
     await session.abortTransaction();
@@ -526,6 +545,13 @@ export const updateEntities = async ({
   xpathEntitySegments: string[];
   bodyEntities: EntityRequestDto[];
 }) => {
+  const environment = await findEnvironment({
+    appName,
+    envName,
+  });
+  if (!environment) {
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
+  }
   const entityTypes = getEntityTypes(xpathEntitySegments);
   const ancestors = getAncestors(xpathEntitySegments);
   const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
@@ -537,26 +563,36 @@ export const updateEntities = async ({
   if (R.isEmpty(dbExistingDocuments)) {
     throw new ServiceError(httpError.ENTITY_NOT_FOUND);
   }
-  const documentsToBeUpdated: Entity[] = dbExistingDocuments.map((entity) => {
+
+  const entitiesToBeInserted: Entity[] = [];
+
+  for (let entity of dbExistingDocuments) {
     const { id, ...propsToBeReplaced } = bodyEntities.find(
       (x) => x.id === entity.id,
     )!;
-    // TODO Add embeddings here
-    return {
+    const embeddingInput = {
+      ...{ ...entity.model, ...propsToBeReplaced },
+      __vector_title: R.last(entityTypes),
+    };
+    const input = JSON.stringify(embeddingInput);
+    const embedding = await getEmbedding(input);
+
+    entitiesToBeInserted.push({
       id: entity.id,
       model: { ...entity.model, ...propsToBeReplaced },
       type: entity.type,
       ancestors: entity.ancestors,
-    };
-  });
+      embedding,
+    });
+  }
 
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
     await EntityModel.deleteMany({ id: { $in: documentIds } }, { session });
-    await EntityModel.insertMany(documentsToBeUpdated, { session });
+    await EntityModel.insertMany(entitiesToBeInserted, { session });
     await session.commitTransaction();
-    return documentsToBeUpdated.map((e) => e.id);
+    return entitiesToBeInserted.map((e) => e.id);
   } catch (e) {
     console.error("Error updating entities", e);
     await session.abortTransaction();

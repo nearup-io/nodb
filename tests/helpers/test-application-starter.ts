@@ -94,6 +94,25 @@ export class TestApplicationStarter {
     });
   }
 
+  public async executePutRequest({
+    url,
+    token,
+    body,
+  }: {
+    url: string;
+    token?: string;
+    body?: any;
+  }): Promise<Response> {
+    return this.app.request(url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: token }),
+      },
+      ...(body && { body: JSON.stringify(body) }),
+    });
+  }
+
   public async executeGetRequest({
     url,
     token,
