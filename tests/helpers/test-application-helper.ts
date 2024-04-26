@@ -20,7 +20,11 @@ export class TestApplicationHelper {
   constructor() {
     this.application = app;
     this.mongoClient = new MongoClient(Bun.env.MONGODB_URL!);
-    this.databaseName = "e2e_tests";
+    this.databaseName = Bun.env
+      .MONGODB_URL!.split("/")
+      .at(-1)!
+      .split("?")
+      .at(0)!;
   }
 
   private async cleanup() {
