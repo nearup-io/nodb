@@ -1,32 +1,35 @@
 services:
   nodb-app:
+    image: nodb-app
     build:
       dockerfile: Dockerfile.dev
-    image: nodb-app
     ports:
       - 3000:3000
     depends_on:
-      - mongo
+      - mongodb-primary
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     networks:
       - nodb-network
-
-  mongo:
-    image: mongodb/atlas
-    privileged: true
-    command: |
-      /bin/bash -c "atlas deployments setup --type local --port 27017 --bindIpAll --username root --password root --force && tail -f /dev/null"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+  mongodb-primary:
+    image: docker.io/bitnami/mongodb:7.0
     ports:
       - 27017:27017
+    environment:
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb-primary
+      - MONGODB_REPLICA_SET_MODE=primary
+      - MONGODB_ROOT_PASSWORD=1234abcd
+      - MONGODB_DATABASE=nodb
+      - MONGODB_REPLICA_SET_KEY=replicasetkey123
+    volumes:
+      - 'mongodb_data:/dbdata/mongodb'
     networks:
       - nodb-network
 
 volumes:
-  nodb:
+  mongodb_data:
 
 networks:
   nodb-network:
+    driver: bridge
