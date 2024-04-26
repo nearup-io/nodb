@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { type Environment } from "../models/environment.model";
 import {
   createEnvironment,
   deleteEnvironment,
@@ -29,10 +28,13 @@ app.get("/", async (c) => {
 
     return c.json(env);
   } catch (e) {
-    console.log(e);
-    throw new HTTPException(500, {
-      message: httpError.UNKNOWN,
-    });
+    if (e instanceof HTTPException) {
+      throw e;
+    } else {
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
+      });
+    }
   }
 });
 
@@ -75,19 +77,25 @@ app.patch("/", async (c) => {
     });
   }
   try {
-    const doc = (await updateEnvironment({
+    const doc = await updateEnvironment({
       appName,
       newEnvName: body.envName,
       oldEnvName: envName,
       description: body.description,
-    })) as Environment;
-    if (!doc.name) return c.json({ found: false });
+    });
+    if (!doc) return c.json({ found: false });
     return c.json({ found: true });
   } catch (e) {
     if (e instanceof ServiceError) {
-      throw new HTTPException(400, {
-        message: e.explicitMessage,
-      });
+      if (e.explicitMessage === httpError.ENV_DOESNT_EXIST) {
+        throw new HTTPException(404, {
+          message: e.explicitMessage,
+        });
+      } else {
+        throw new HTTPException(400, {
+          message: e.explicitMessage,
+        });
+      }
     } else {
       console.log(e);
       throw new HTTPException(500, {

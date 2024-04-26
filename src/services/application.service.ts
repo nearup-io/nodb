@@ -71,7 +71,6 @@ export const getApplication = async ({
 };
 
 const getEnvironmentsByAppName = async (appName: string) => {
-  console.log("GOT HERE", mongoose.connection.readyState);
   const applicationEnvironments = await ApplicationModel.aggregate<Environment>(
     [
       { $match: { name: appName } },
@@ -95,7 +94,6 @@ const getEnvironmentsByAppName = async (appName: string) => {
       },
     ],
   );
-  console.log("QUERY EXECUTED");
   return applicationEnvironments;
 };
 

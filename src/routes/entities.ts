@@ -25,6 +25,7 @@ import authMiddleware from "../middlewares/auth.middleware.ts";
 
 const app = new Hono<Env, BlankSchema, "/:appName/:envName/:entityName">();
 app.use(authMiddleware);
+
 app.get("/*", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
   const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
