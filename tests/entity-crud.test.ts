@@ -116,7 +116,7 @@ describe("Entity CRUD operations", async () => {
     expect(response.status).toBe(400);
   });
 
-  test.skip("when environment does not exist", async () => {
+  test("when environment does not exist", async () => {
     const response = await helper.executePostRequest({
       url: `/apps/${appName}/not-existing-environment/entityName`,
       token: jwtToken,

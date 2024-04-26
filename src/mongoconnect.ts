@@ -23,6 +23,7 @@ const mongoconnect: () => Promise<void> = async () => {
       maxPoolSize: MAX_POOL_SIZE ? parseInt(MAX_POOL_SIZE, 10) : 2,
       // create all indexes automatically
       autoIndex: true,
+      directConnection: true,
     });
     console.log("Connected to database!");
   } catch (e) {
