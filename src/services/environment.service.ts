@@ -6,7 +6,7 @@ import EnvironmentModel, {
   type Environment,
 } from "../models/environment.model";
 import generateToken from "../utils/backend-token";
-import { Permissions, httpError } from "../utils/const";
+import { httpError, Permissions } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 
 export const getEnvironmentsByAppName = async (appName: string) => {
@@ -67,7 +67,7 @@ export const findEnvironment = async ({
           entities: "$environments.entities",
         },
       },
-    ]
+    ],
   );
   return applicationEnvironments[0];
 };
@@ -98,7 +98,7 @@ export const createEnvironment = async ({
   });
   await ApplicationModel.findOneAndUpdate(
     { name: appName },
-    { $addToSet: { environments: environment._id } }
+    { $addToSet: { environments: environment._id } },
   );
   return environment;
 };
@@ -122,7 +122,7 @@ export const deleteEnvironment = async ({
   try {
     await EntityModel.deleteMany(
       { type: { $regex: `${appName}/${envName}/` } },
-      { session }
+      { session },
     );
     await EnvironmentModel.findByIdAndDelete(environment._id, { session });
     await ApplicationModel.findOneAndUpdate(
@@ -130,7 +130,7 @@ export const deleteEnvironment = async ({
       {
         $pull: { environments: environment._id },
       },
-      { session }
+      { session },
     );
     await session.commitTransaction();
     return environment;
@@ -153,19 +153,19 @@ export const updateEnvironment = async ({
   newEnvName: string;
   oldEnvName: string;
   description: string;
-}) => {
-  const environment = (await findEnvironment({
+}): Promise<Environment | null> => {
+  const environment = await findEnvironment({
     appName,
     envName: oldEnvName,
-  })) as Environment;
-  if (!environment.name) {
+  });
+  if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const newEnvironment = (await findEnvironment({
+  const newEnvironment = await findEnvironment({
     appName,
     envName: newEnvName,
-  })) as Environment;
-  if (newEnvironment.name && newEnvName !== oldEnvName) {
+  });
+  if (!!newEnvironment && newEnvName !== oldEnvName) {
     throw new ServiceError(httpError.NEW_ENV_EXISTS);
   }
   const updateProps = R.pickBy(R.pipe(R.isNil, R.not), {
@@ -175,10 +175,9 @@ export const updateEnvironment = async ({
   if (R.isEmpty(updateProps)) {
     throw new ServiceError(httpError.NO_UPDATE_PROPS);
   }
-  const doc: Environment | null = await EnvironmentModel.findByIdAndUpdate(
+  return EnvironmentModel.findByIdAndUpdate(
     environment._id,
     { ...updateProps },
-    { returnDocument: "after", new: true }
+    { returnDocument: "after", new: true },
   );
-  return doc;
 };
