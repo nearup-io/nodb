@@ -1,32 +1,57 @@
 services:
   nodb-app:
+    image: nodb-app
     build:
       dockerfile: Dockerfile.dev
-    image: nodb-app
     ports:
       - 3000:3000
     depends_on:
-      - mongo
+      - mongodb-development-primary
+      - mongodb-production-primary
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     networks:
       - nodb-network
 
-  mongo:
-    image: mongodb/atlas
-    privileged: true
-    command: |
-      /bin/bash -c "atlas deployments setup --type local --port 27017 --bindIpAll --username root --password root --force && tail -f /dev/null"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+  mongodb-development-primary:
+    image: bitnami/mongodb:latest
     ports:
       - 27017:27017
+    environment:
+      MONGODB_REPLICA_SET_MODE: primary
+      MONGODB_REPLICA_SET_KEY: 789mno
+      MONGODB_PRIMARY_HOST: mongodb-development-primary
+      MONGODB_ROOT_PASSWORD: 1234abcd
+      MONGODB_USERNAME: nodb
+      MONGODB_PASSWORD: 1234abcd
+      MONGODB_DATABASE: nodb-dev
+    volumes:
+      - 'mongodb_dev_data:/dbdata/mongodb'
+    networks:
+      - nodb-network
+
+  mongodb-production-primary:
+    image: bitnami/mongodb:latest
+    ports:
+      - 27018:27017
+    environment:
+      MONGODB_REPLICA_SET_MODE: primary
+      MONGODB_REPLICA_SET_KEY: 789mno
+      MONGODB_PRIMARY_HOST: mongodb-production-primary
+      MONGODB_ROOT_PASSWORD: 1234abcd
+      MONGODB_USERNAME: nodb
+      MONGODB_PASSWORD: 1234abcd
+      # MONGODB_DATABASE: nodb
+    volumes:
+      - 'mongodb_prod_data:/dbdata/mongodb'
     networks:
       - nodb-network
 
 volumes:
-  nodb:
+  mongodb_dev_data:
+  mongodb_prod_data:
 
 networks:
   nodb-network:
+    driver: bridge

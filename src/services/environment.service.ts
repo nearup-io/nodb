@@ -8,6 +8,7 @@ import EnvironmentModel, {
 import generateToken from "../utils/backend-token";
 import { Permissions, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
+import config from "../config";
 
 export const getEnvironmentsByAppName = async (appName: string) => {
   const applicationEnvironments = await ApplicationModel.aggregate([

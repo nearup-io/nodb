@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 
-const EntitySchema = new Schema(
+export const EntitySchema = new Schema(
   {
     id: {
       type: String,
@@ -42,5 +42,5 @@ export type Entity = {
   embedding?: number[] | null;
 };
 
-const Entity = mongoose.model("Entity", EntitySchema);
+const Entity = mongoose.connection.model("Entity", EntitySchema);
 export default Entity;

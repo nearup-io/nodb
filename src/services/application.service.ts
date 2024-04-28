@@ -71,7 +71,6 @@ export const getApplication = async ({
 };
 
 const getEnvironmentsByAppName = async (appName: string) => {
-  console.log("GOT HERE", mongoose.connection.readyState);
   const applicationEnvironments = await ApplicationModel.aggregate<Environment>(
     [
       { $match: { name: appName } },
@@ -93,17 +92,19 @@ const getEnvironmentsByAppName = async (appName: string) => {
           _id: "$environments._id",
         },
       },
-    ],
+    ]
   );
-  console.log("QUERY EXECUTED");
   return applicationEnvironments;
 };
 
 export const getUserApplications = async ({
+  conn,
   userEmail,
 }: {
+  conn: mongoose.Connection;
   userEmail: string;
 }) => {
+  const User = conn.model("User");
   const userApplications = await User.aggregate([
     { $match: { email: userEmail } },
     { $limit: 1 },
@@ -184,7 +185,7 @@ export const createApplication = async ({
   }
   await User.findOneAndUpdate(
     { email: userEmail },
-    { $addToSet: { applications: appName } },
+    { $addToSet: { applications: appName } }
   );
 };
 
@@ -202,7 +203,7 @@ export const updateApplication = async (props: {
   }) as { name?: string; description?: string; image?: string };
   const doc = await ApplicationModel.findOneAndUpdate(
     { name: props.oldAppName },
-    { ...updateProps },
+    { ...updateProps }
   );
   if (
     doc &&
@@ -211,7 +212,7 @@ export const updateApplication = async (props: {
   ) {
     await User.findOneAndUpdate(
       { email: props.userEmail, applications: props.oldAppName },
-      { $set: { "applications.$": props.newAppName } },
+      { $set: { "applications.$": props.newAppName } }
     );
   }
   return doc;
@@ -230,25 +231,25 @@ export const deleteApplication = async ({
   try {
     const app = await ApplicationModel.findOneAndDelete<Application>(
       { name: appName },
-      { session },
+      { session }
     );
     if (app && app._id) {
       await EnvironmentModel.deleteMany(
         {
           _id: { $in: envs.map((e) => e._id) },
         },
-        { session },
+        { session }
       );
       await User.findOneAndUpdate(
         { email: userEmail },
         {
           $pull: { applications: appName },
         },
-        { session },
+        { session }
       );
       await EntityModel.deleteMany(
         { type: { $regex: `^${appName}/` } },
-        { session },
+        { session }
       );
       await session.commitTransaction();
     }

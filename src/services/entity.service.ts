@@ -83,50 +83,57 @@ export const searchAiEntities = async ({
   entityType: string | null;
 }) => {
   const embedding = await getEmbedding(query);
-  const res = await EntityModel.aggregate([
-    {
-      $vectorSearch: {
-        index: vectorIndex,
-        path: "embedding",
-        queryVector: embedding,
-        numCandidates: limit * 15,
-        limit,
-        filter: entityType ? { type: entityType } : {},
-      },
-    },
-    {
-      $replaceRoot: {
-        newRoot: {
-          $mergeObjects: [
-            "$$ROOT",
-            "$model",
-            { meta: { score: { $meta: "vectorSearchScore" } } },
-          ],
+  try {
+    const res = await EntityModel.aggregate([
+      {
+        $vectorSearch: {
+          index: vectorIndex,
+          path: "embedding",
+          queryVector: embedding,
+          numCandidates: limit * 15,
+          limit,
+          filter: entityType ? { type: entityType } : {},
         },
       },
-    },
-    { $unset: ["_id", "ancestors", "model", "type", "embedding", "__v"] },
-  ]);
-  const context = res.map((obj) => JSON.stringify(obj)).join(" ");
-  let completion = null;
-  try {
-    switch (Bun.env.AI_PROVIDER) {
-      default:
-        completion = await getOpenaiCompletion({
-          query,
-          context,
-        });
-        return { answer: completion?.choices[0].message.content };
-      case llms.anthropic:
-        completion = await getAnthropicMessage({
-          query,
-          context,
-        });
-        return { answer: completion?.content[0] };
+      {
+        $replaceRoot: {
+          newRoot: {
+            $mergeObjects: [
+              "$$ROOT",
+              "$model",
+              { meta: { score: { $meta: "vectorSearchScore" } } },
+            ],
+          },
+        },
+      },
+      { $unset: ["_id", "ancestors", "model", "type", "embedding", "__v"] },
+    ]);
+    const context = res.map((obj) => JSON.stringify(obj)).join(" ");
+    let completion = null;
+    try {
+      switch (Bun.env.AI_PROVIDER) {
+        default:
+          completion = await getOpenaiCompletion({
+            query,
+            context,
+          });
+          return { answer: completion?.choices[0].message.content };
+        case llms.anthropic:
+          completion = await getAnthropicMessage({
+            query,
+            context,
+          });
+          return { answer: completion?.content[0] };
+      }
+    } catch (e) {
+      if (e instanceof Error) {
+        throw new ServiceError(e.message);
+      }
     }
   } catch (e) {
+    console.error(e);
     if (e instanceof Error) {
-      throw new ServiceError(e.message);
+      throw new ServiceError(httpError.UNKNOWN);
     }
   }
 };

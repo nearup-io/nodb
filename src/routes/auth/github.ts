@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { sign as jwt_sign } from "hono/jwt";
+import { getConnection as switchConnection } from "../../connections/connect";
+import withDb from "../../middlewares/db.middleware";
 import { finalizeAuth, getGithubUserData } from "../../services/auth.service";
 import type { USER_TYPE } from "../../utils/auth-utils";
 import { PROVIDER_GITHUB } from "../../utils/const";
@@ -21,6 +23,14 @@ app.get("/", async (c) => {
       message: "Authorization code or redirect URL is missing in the request",
     });
   }
+  const db = c.req.query("db");
+  if (!db) {
+    throw new HTTPException(400, {
+      message: "Database parameter is missing in the request",
+    });
+  }
+  switchConnection(db);
+  console.log(`Using ${db} database`);
   try {
     const userData: USER_TYPE = await getGithubUserData({
       redirectUrl: githubRedirectUrl,
@@ -33,7 +43,7 @@ app.get("/", async (c) => {
     }
     const jwtToken = await jwt_sign(userData, jwtSecret);
     c.res.headers.set("Authorization", `Bearer ${jwtToken}`);
-    await finalizeAuth({ email: userData.email, provider: PROVIDER_GITHUB });
+    await finalizeAuth({ db, email: userData.email, provider: PROVIDER_GITHUB });
     return c.json({ userData });
   } catch (e: any) {
     console.log(e.message);
