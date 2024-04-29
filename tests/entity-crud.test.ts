@@ -9,7 +9,7 @@ import Environment, {
 import * as R from "ramda";
 import { deepEqual } from "assert";
 
-const getEnvironmentsFromDbByName = async (
+const getEnvironmentFromDbByName = async (
   name: string,
 ): Promise<EnvironmentType | null> => {
   return Environment.findOne({ name }).select("-__v").lean();
@@ -23,6 +23,79 @@ const getEntitiesByIdFromDatabase = async (
     .select(["-__v", "-_id"])
     .sort(sortByProp)
     .lean();
+};
+
+const createApp = async ({
+  appName,
+  token,
+  environmentName,
+  entityName,
+  appStarter,
+  entities,
+  subEntityName,
+  subEntities,
+}: {
+  appName: string;
+  environmentName: string;
+  token: string;
+  entityName: string;
+  appStarter: TestApplicationStarter;
+  entities: any[];
+  subEntityName?: string;
+  subEntities?: any[];
+}): Promise<{
+  createdEntityIds: string[];
+  createdSubEntityIds?: string[];
+  entityIdWithSubEntity?: string;
+}> => {
+  const appResponse = await appStarter.executePostRequest({
+    url: `/apps/${appName}`,
+    token,
+    body: {
+      image: "path/to/image.jpg",
+      description: "Memes app",
+    },
+  });
+  expect(appResponse.status).toBe(201);
+
+  const environmentResponse = await appStarter.executePostRequest({
+    url: `/apps/${appName}/${environmentName}`,
+    token,
+    body: {
+      description: "This is an environment",
+    },
+  });
+  expect(environmentResponse.status).toBe(201);
+
+  const entityResponse = await appStarter.executePostRequest({
+    url: `/apps/${appName}/${environmentName}/${entityName}`,
+    token,
+    body: entities,
+  });
+  expect(entityResponse.status).toBe(201);
+  const { ids } = (await entityResponse.json()) as { ids: string[] };
+
+  if (!!subEntityName && !!subEntities) {
+    const entityIdWithSubEntity = ids[2];
+    const subEntityResponse = await appStarter.executePostRequest({
+      url: `/apps/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}`,
+      token,
+      body: subEntities,
+    });
+    expect(subEntityResponse.status).toBe(201);
+    const { ids: subEntityIds } = (await subEntityResponse.json()) as {
+      ids: string[];
+    };
+    return {
+      createdEntityIds: ids,
+      entityIdWithSubEntity: entityIdWithSubEntity,
+      createdSubEntityIds: subEntityIds,
+    };
+  }
+
+  return {
+    createdEntityIds: ids,
+  };
 };
 
 describe("Entity CRUD operations", async () => {
@@ -61,15 +134,6 @@ describe("Entity CRUD operations", async () => {
       });
       expect(environmentResponse.status).toBe(201);
     });
-
-    // TODO verify later why this fails
-    // afterAll(async () => {
-    //   const appResponse = await helper.executeDeleteRequest({
-    //     url: `/apps/${appName}`,
-    //     token: jwtToken,
-    //   });
-    //   expect(appResponse.status).toBe(201);
-    // });
 
     test("Should return 401 UNAUTHORIZED when no token is present", async () => {
       const response = await helper.executePostRequest({
@@ -167,7 +231,7 @@ describe("Entity CRUD operations", async () => {
         },
       ]);
 
-      const environment = await getEnvironmentsFromDbByName(environmentName);
+      const environment = await getEnvironmentFromDbByName(environmentName);
       expect(environment).not.toBeNull();
       expect(environment?.entities).toStrictEqual([entityName]);
 
@@ -227,7 +291,7 @@ describe("Entity CRUD operations", async () => {
         },
       ]);
 
-      const environment = await getEnvironmentsFromDbByName(environmentName);
+      const environment = await getEnvironmentFromDbByName(environmentName);
       expect(environment).not.toBeNull();
       expect(environment?.entities).toStrictEqual([
         mainEntityName,
@@ -264,45 +328,24 @@ describe("Entity CRUD operations", async () => {
     let entityIdWithSubEntity: string = "";
 
     beforeAll(async () => {
-      const appResponse = await helper.executePostRequest({
-        url: `/apps/${patchAppName}`,
+      const {
+        createdEntityIds: ids,
+        createdSubEntityIds: subIds,
+        entityIdWithSubEntity: entityId,
+      } = await createApp({
+        appStarter: helper,
+        appName: patchAppName,
+        environmentName: patchEnvironmentName,
         token: jwtToken,
-        body: {
-          image: "path/to/image.jpg",
-          description: "Memes app",
-        },
+        entities,
+        subEntityName: patchSubEntityName,
+        subEntities,
+        entityName: patchEntityName,
       });
-      expect(appResponse.status).toBe(201);
 
-      const environmentResponse = await helper.executePostRequest({
-        url: `/apps/${patchAppName}/${patchEnvironmentName}`,
-        token: jwtToken,
-        body: {
-          description: "This is an environment",
-        },
-      });
-      expect(environmentResponse.status).toBe(201);
-
-      const entityResponse = await helper.executePostRequest({
-        url: `/apps/${patchAppName}/${patchEnvironmentName}/${patchEntityName}`,
-        token: jwtToken,
-        body: entities,
-      });
-      expect(entityResponse.status).toBe(201);
-      const { ids } = (await entityResponse.json()) as { ids: string[] };
       createdEntityIds.push(...ids);
-
-      entityIdWithSubEntity = createdEntityIds[2];
-      const subEntityResponse = await helper.executePostRequest({
-        url: `/apps/${patchAppName}/${patchEnvironmentName}/${patchEntityName}/${entityIdWithSubEntity}/${patchSubEntityName}`,
-        token: jwtToken,
-        body: subEntities,
-      });
-      expect(subEntityResponse.status).toBe(201);
-      const { ids: subEntityIds } = (await subEntityResponse.json()) as {
-        ids: string[];
-      };
-      createdSubEntityIds.push(...subEntityIds);
+      createdSubEntityIds.push(...subIds!);
+      entityIdWithSubEntity = entityId!;
     });
 
     test("Should return 401 UNAUTHORIZED when no token is present", async () => {
@@ -524,45 +567,26 @@ describe("Entity CRUD operations", async () => {
     let entityIdWithSubEntity: string = "";
 
     beforeAll(async () => {
-      const appResponse = await helper.executePostRequest({
-        url: `/apps/${putAppName}`,
-        token: jwtToken,
-        body: {
-          image: "path/to/image.jpg",
-          description: "Memes app",
-        },
-      });
-      expect(appResponse.status).toBe(201);
+      beforeAll(async () => {
+        const {
+          createdEntityIds: ids,
+          createdSubEntityIds: subIds,
+          entityIdWithSubEntity: entityId,
+        } = await createApp({
+          appStarter: helper,
+          appName: putAppName,
+          environmentName: putEnvironmentName,
+          token: jwtToken,
+          entities,
+          subEntityName: putSubEntityName,
+          subEntities,
+          entityName: putEntityName,
+        });
 
-      const environmentResponse = await helper.executePostRequest({
-        url: `/apps/${putAppName}/${putEnvironmentName}`,
-        token: jwtToken,
-        body: {
-          description: "This is an environment",
-        },
+        createdEntityIds.push(...ids);
+        createdSubEntityIds.push(...subIds!);
+        entityIdWithSubEntity = entityId!;
       });
-      expect(environmentResponse.status).toBe(201);
-
-      const entityResponse = await helper.executePostRequest({
-        url: `/apps/${putAppName}/${putEnvironmentName}/${putEntityName}`,
-        token: jwtToken,
-        body: entities,
-      });
-      expect(entityResponse.status).toBe(201);
-      const { ids } = (await entityResponse.json()) as { ids: string[] };
-      createdEntityIds.push(...ids);
-
-      entityIdWithSubEntity = createdEntityIds[2];
-      const subEntityResponse = await helper.executePostRequest({
-        url: `/apps/${putAppName}/${putEnvironmentName}/${putEntityName}/${entityIdWithSubEntity}/${putSubEntityName}`,
-        token: jwtToken,
-        body: subEntities,
-      });
-      expect(subEntityResponse.status).toBe(201);
-      const { ids: subEntityIds } = (await subEntityResponse.json()) as {
-        ids: string[];
-      };
-      createdSubEntityIds.push(...subEntityIds);
     });
 
     test("Should return 401 UNAUTHORIZED when no token is present", async () => {
@@ -782,6 +806,232 @@ describe("Entity CRUD operations", async () => {
           type: `${putAppName}/${putEnvironmentName}/${putEntityName}/${putSubEntityName}`,
         },
       ]);
+    });
+  });
+
+  describe("DELETE /apps/:appName/:envName/:entityName", async () => {
+    const deleteAppName = "memes-app-4";
+    const deleteEnvironmentName = "environment-4";
+    const deleteEntityName = "myEntity-4";
+    const deleteSubEntityName = "mySubEntity-4";
+    const entities: { prop: number }[] = [
+      { prop: 1 },
+      { prop: 2 },
+      { prop: 3 },
+    ];
+
+    const subEntities: { subEntityProp: number }[] = [
+      { subEntityProp: 1 },
+      { subEntityProp: 2 },
+      { subEntityProp: 3 },
+    ];
+
+    const createdEntityIds: string[] = [];
+
+    beforeAll(async () => {
+      const { createdEntityIds: ids, createdSubEntityIds: subIds } =
+        await createApp({
+          appName: deleteAppName,
+          environmentName: deleteEnvironmentName,
+          token: jwtToken,
+          entityName: deleteEntityName,
+          subEntityName: deleteSubEntityName,
+          entities,
+          subEntities,
+          appStarter: helper,
+        });
+
+      createdEntityIds.push(...ids);
+    });
+
+    test("should return 404 NOT FOUND when environment does not exist", async () => {
+      const response = await helper.executeDeleteRequest({
+        url: `/apps/${deleteAppName}/not-existing-environment/${deleteEntityName}`,
+        token: jwtToken,
+      });
+      expect(response.status).toBe(404);
+    });
+
+    test("Should return 401 UNAUTHORIZED when no token is present", async () => {
+      const response = await helper.executeDeleteRequest({
+        url: `/apps/${deleteAppName}/${deleteEnvironmentName}/${deleteEntityName}`,
+      });
+      expect(response.status).toBe(401);
+    });
+
+    test("Should return 200 OK and delete the entity + update the environment", async () => {
+      const response = await helper.executeDeleteRequest({
+        url: `/apps/${deleteAppName}/${deleteEnvironmentName}/${deleteEntityName}`,
+        token: jwtToken,
+      });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toStrictEqual({ deleted: 6 });
+
+      const entitiesFromDb = await getEntitiesByIdFromDatabase(
+        createdEntityIds,
+        "model.secondProp",
+      );
+
+      expect(entitiesFromDb).toBeArrayOfSize(0);
+
+      const environment = await getEnvironmentFromDbByName(
+        deleteEnvironmentName,
+      );
+      expect(environment?.entities).toBeArrayOfSize(0);
+    });
+
+    test("Should return 200 OK and delete the entity by id", async () => {
+      const appName = "random-app";
+      const environmentName = "random-environment";
+      const entityName = "random-entity-name";
+      const { createdEntityIds: ids } = await createApp({
+        appName,
+        environmentName,
+        token: jwtToken,
+        entityName,
+        entities: [entities[0], entities[1]],
+        appStarter: helper,
+      });
+
+      const response = await helper.executeDeleteRequest({
+        url: `/apps/${appName}/${environmentName}/${entityName}/${ids[0]}`,
+        token: jwtToken,
+      });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toStrictEqual({ deleted: true });
+
+      const entitiesFromDb = await getEntitiesByIdFromDatabase(ids);
+
+      expect(entitiesFromDb).toBeArrayOfSize(1);
+      deepEqual(R.omit(["id"], entitiesFromDb[0]), {
+        ancestors: [],
+        embedding: [],
+        model: {
+          prop: 2,
+        },
+        type: `${appName}/${environmentName}/${entityName}`,
+      });
+
+      const environment = await getEnvironmentFromDbByName(environmentName);
+      expect(environment?.entities).toBeArrayOfSize(1);
+      expect(environment?.entities).toStrictEqual([entityName]);
+
+      // when we delete the second one, the environment should be updated as well
+      const finalDeleteResponse = await helper.executeDeleteRequest({
+        url: `/apps/${appName}/${environmentName}/${entityName}/${ids[1]}`,
+        token: jwtToken,
+      });
+      expect(finalDeleteResponse.status).toBe(200);
+      expect(await finalDeleteResponse.json()).toStrictEqual({ deleted: true });
+
+      const entitiesFromDb1 = await getEntitiesByIdFromDatabase(ids);
+
+      expect(entitiesFromDb1).toBeArrayOfSize(0);
+
+      const environment1 = await getEnvironmentFromDbByName(environmentName);
+      expect(environment1?.entities).toBeArrayOfSize(0);
+    });
+
+    test("Should return 200 OK and delete the sub entity", async () => {
+      const appName = "random-app-1";
+      const environmentName = "random-environment-1";
+      const entityName = "random-entity-name-1";
+      const subEntityName = "random-sub-entity-name-1";
+
+      const {
+        createdEntityIds: ids,
+        entityIdWithSubEntity: entityId,
+        createdSubEntityIds: subIds,
+      } = await createApp({
+        appName,
+        environmentName,
+        token: jwtToken,
+        entityName,
+        entities,
+        appStarter: helper,
+        subEntityName,
+        subEntities,
+      });
+
+      const response = await helper.executeDeleteRequest({
+        url: `/apps/${appName}/${environmentName}/${entityName}/${entityId}/${subEntityName}`,
+        token: jwtToken,
+      });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toStrictEqual({ deleted: 3 });
+
+      const entitiesFromDb = await getEntitiesByIdFromDatabase(subIds!);
+
+      expect(entitiesFromDb).toBeArrayOfSize(0);
+
+      const environment = await getEnvironmentFromDbByName(environmentName);
+      expect(environment!.entities).toBeArrayOfSize(1);
+      expect(environment!.entities).toStrictEqual([entityName]);
+    });
+
+    test("Should return 200 OK and delete the sub entity by id", async () => {
+      const appName = "random-app-2";
+      const environmentName = "random-environment-2";
+      const entityName = "random-entity-name-2";
+      const subEntityName = "random-sub-entity-name-2";
+
+      const {
+        createdEntityIds: ids,
+        entityIdWithSubEntity: entityId,
+        createdSubEntityIds: subIds,
+      } = await createApp({
+        appName,
+        environmentName,
+        token: jwtToken,
+        entityName,
+        entities,
+        appStarter: helper,
+        subEntityName,
+        subEntities: [subEntities[0], subEntities[1]],
+      });
+
+      const response = await helper.executeDeleteRequest({
+        url: `/apps/${appName}/${environmentName}/${entityName}/${entityId}/${subEntityName}/${subIds![0]}`,
+        token: jwtToken,
+      });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toStrictEqual({ deleted: true });
+
+      const entitiesFromDb = await getEntitiesByIdFromDatabase(subIds!);
+
+      expect(entitiesFromDb).toBeArrayOfSize(1);
+
+      deepEqual(R.omit(["id"], entitiesFromDb[0]), {
+        ancestors: [entityId],
+        embedding: [],
+        model: {
+          subEntityProp: 2,
+        },
+        type: `${appName}/${environmentName}/${entityName}/${subEntityName}`,
+      });
+
+      const environment = await getEnvironmentFromDbByName(environmentName);
+      expect(environment!.entities).toBeArrayOfSize(2);
+      expect(environment!.entities).toStrictEqual([
+        entityName,
+        `${entityName}/${subEntityName}`,
+      ]);
+
+      // when we delete the second one, the environment should be updated as well
+      const finalDeleteResponse = await helper.executeDeleteRequest({
+        url: `/apps/${appName}/${environmentName}/${entityName}/${entityId}/${subEntityName}/${subIds![1]}`,
+        token: jwtToken,
+      });
+      expect(finalDeleteResponse.status).toBe(200);
+      expect(await finalDeleteResponse.json()).toStrictEqual({ deleted: true });
+
+      const entitiesFromDb1 = await getEntitiesByIdFromDatabase(subIds!);
+
+      expect(entitiesFromDb1).toBeArrayOfSize(0);
+
+      const environment1 = await getEnvironmentFromDbByName(environmentName);
+      expect(environment1!.entities).toBeArrayOfSize(1);
+      expect(environment1!.entities).toStrictEqual([entityName]);
     });
   });
 });
