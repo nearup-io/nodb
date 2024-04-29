@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { TestApplicationStarter } from "./helpers/test-application-starter.ts";
+import { TestApplicationHelper } from "./helpers/test-application-helper.ts";
 import Application, {
   type Application as AppType,
 } from "../src/models/application.model.ts";
@@ -36,7 +36,7 @@ const getUserAppsFromDbByEmail = async (email: string): Promise<string[]> => {
 };
 
 describe("All endpoints used for apps CRUD operations", async () => {
-  const helper = new TestApplicationStarter();
+  const helper = new TestApplicationHelper();
   const app = helper.app;
   const jwtToken = await helper.generateJWTTokenAndUser({
     email: "random@random.com",

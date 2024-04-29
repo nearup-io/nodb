@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { TestApplicationStarter } from "./helpers/test-application-starter.ts";
+import { TestApplicationHelper } from "./helpers/test-application-helper.ts";
 import Environment, {
   type Environment as EnvironmentType,
 } from "../src/models/environment.model.ts";
@@ -24,7 +24,7 @@ const getEnvironmentsFromAppName = async (name: string): Promise<string[]> => {
 };
 
 describe("Environment entity CRUD", async () => {
-  const helper = new TestApplicationStarter();
+  const helper = new TestApplicationHelper();
   const app = helper.app;
   let jwtToken = "";
 
