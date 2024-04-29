@@ -1036,7 +1036,7 @@ describe("Entity CRUD operations", async () => {
     });
   });
 
-  describe.only("GET /apps/:appName/:envName/:entityName", async () => {
+  describe("GET /apps/:appName/:envName/:entityName", async () => {
     const appName = "memes-app-5";
     const environmentName = "environment-5";
     const entityName = "my-entity-5";
@@ -1240,44 +1240,18 @@ describe("Entity CRUD operations", async () => {
         totalCount: entities.length,
       });
 
-      deepEqual(body[entityName], [
-        {
-          id: createdEntityIds[0],
-          ...entities[0],
-          __meta: {
-            self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[0]}`,
-          },
-        },
-        {
-          id: createdEntityIds[1],
-          ...entities[1],
-          __meta: {
-            self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[1]}`,
-          },
-        },
-        {
-          id: createdEntityIds[2],
-          ...entities[2],
-          __meta: {
-            self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[2]}`,
-          },
-        },
-
-        {
-          id: createdEntityIds[3],
-          ...entities[3],
-          __meta: {
-            self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[3]}`,
-          },
-        },
-        {
-          id: createdEntityIds[4],
-          ...entities[4],
-          __meta: {
-            self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[4]}`,
-          },
-        },
-      ]);
+      deepEqual(
+        body[entityName],
+        entities.map((entity, index) => {
+          return {
+            id: createdEntityIds[index],
+            __meta: {
+              self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[index]}`,
+            },
+            ...entity,
+          };
+        }),
+      );
     });
 
     test("should return 200 OK and all entities of requested sub entity types", async () => {
@@ -1300,35 +1274,24 @@ describe("Entity CRUD operations", async () => {
         totalCount: subEntities.length,
       });
 
-      deepEqual(body[subEntityName], [
-        {
-          id: createdSubEntityIds[0],
-          ...subEntities[0],
-          __meta: {
-            self: `/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${createdSubEntityIds[0]}`,
-          },
-        },
-        {
-          id: createdSubEntityIds[1],
-          ...subEntities[1],
-          __meta: {
-            self: `/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${createdSubEntityIds[1]}`,
-          },
-        },
-        {
-          id: createdSubEntityIds[2],
-          ...subEntities[2],
-          __meta: {
-            self: `/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${createdSubEntityIds[2]}`,
-          },
-        },
-      ]);
+      deepEqual(
+        body[subEntityName],
+        subEntities.map((subEntity, index) => {
+          return {
+            id: createdSubEntityIds[index],
+            __meta: {
+              self: `/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${createdSubEntityIds[index]}`,
+            },
+            ...subEntity,
+          };
+        }),
+      );
     });
 
-    describe.skip("Query params", () => {
-      test("should return 200 OK and all entities of requested type", async () => {
+    describe("Query params", () => {
+      test("should return 200 OK and return only the requested props using __only query param", async () => {
         const response = await helper.executeGetRequest({
-          url: `/apps/${appName}/${environmentName}/${entityName}`,
+          url: `/apps/${appName}/${environmentName}/${entityName}?__only=prop1,prop2`,
           token: jwtToken,
         });
         expect(response.status).toBe(200);
@@ -1339,53 +1302,245 @@ describe("Entity CRUD operations", async () => {
         deepEqual(keys, [entityName, "__meta"]);
 
         deepEqual(body["__meta"], {
-          current_page: `/${appName}/${environmentName}/${entityName}?__page=1&__per_page=10`,
+          current_page: `/${appName}/${environmentName}/${entityName}?__page=1&__per_page=10&__only=${encodeURIComponent("prop1,prop2")}`,
           items: entities.length,
           page: 1,
           pages: 1,
           totalCount: entities.length,
         });
 
-        deepEqual(body[entityName], [
-          {
-            id: createdEntityIds[0],
-            ...entities[0],
-            __meta: {
-              self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[0]}`,
+        deepEqual(
+          body[entityName],
+          entities.map((entity, index) => {
+            return {
+              id: createdEntityIds[index],
+              __meta: {
+                self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[index]}`,
+              },
+              ...R.pick(["prop1", "prop2"], entity),
+            };
+          }),
+        );
+      });
+
+      test("should return 200 OK and not return any meta when using __no_meta query param", async () => {
+        const response = await helper.executeGetRequest({
+          url: `/apps/${appName}/${environmentName}/${entityName}?__no_meta=true`,
+          token: jwtToken,
+        });
+        expect(response.status).toBe(200);
+
+        const body = await response.json();
+        const keys = R.keys(body);
+        expect(keys).toBeArrayOfSize(2);
+        deepEqual(keys, [entityName, "__meta"]);
+
+        deepEqual(body["__meta"], {
+          current_page: `/${appName}/${environmentName}/${entityName}?__page=1&__per_page=10&__no_meta=true`,
+          items: entities.length,
+          page: 1,
+          pages: 1,
+          totalCount: entities.length,
+        });
+
+        deepEqual(
+          body[entityName],
+          entities.map((entity, index) => {
+            return {
+              id: createdEntityIds[index],
+              ...entity,
+            };
+          }),
+        );
+      });
+
+      test("should return 200 OK and sort by requested param using __sort_by query param", async () => {
+        const response = await helper.executeGetRequest({
+          url: `/apps/${appName}/${environmentName}/${entityName}?__sort_by=prop1`,
+          token: jwtToken,
+        });
+        expect(response.status).toBe(200);
+
+        const body = await response.json();
+        const keys = R.keys(body);
+        expect(keys).toBeArrayOfSize(2);
+        deepEqual(keys, [entityName, "__meta"]);
+
+        deepEqual(body["__meta"], {
+          current_page: `/${appName}/${environmentName}/${entityName}?__page=1&__per_page=10&__sort_by=prop1`,
+          items: entities.length,
+          page: 1,
+          pages: 1,
+          totalCount: entities.length,
+        });
+
+        deepEqual(
+          body[entityName],
+          entities.map((entity, index) => {
+            return {
+              id: createdEntityIds[index],
+              __meta: {
+                self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[index]}`,
+              },
+              ...entity,
+            };
+          }),
+        );
+      });
+
+      test("should return 200 OK and sort by requested param using __sort_by_desc query param", async () => {
+        const response = await helper.executeGetRequest({
+          url: `/apps/${appName}/${environmentName}/${entityName}?__sort_by_desc=prop1`,
+          token: jwtToken,
+        });
+        expect(response.status).toBe(200);
+
+        const body = await response.json();
+        const keys = R.keys(body);
+        expect(keys).toBeArrayOfSize(2);
+        deepEqual(keys, [entityName, "__meta"]);
+
+        deepEqual(body["__meta"], {
+          current_page: `/${appName}/${environmentName}/${entityName}?__page=1&__per_page=10&__sort_by_desc=prop1`,
+          items: entities.length,
+          page: 1,
+          pages: 1,
+          totalCount: entities.length,
+        });
+
+        deepEqual(
+          body[entityName],
+          [...entities].reverse().map((entity, index) => {
+            const reversedEntityIds = [...createdEntityIds].reverse();
+            return {
+              id: reversedEntityIds[index],
+              __meta: {
+                self: `/${appName}/${environmentName}/${entityName}/${reversedEntityIds[index]}`,
+              },
+              ...entity,
+            };
+          }),
+        );
+      });
+
+      describe("Pagination", () => {
+        test("should return 200 OK and return the requested amount of items on a page + specific page", async () => {
+          const response = await helper.executeGetRequest({
+            url: `/apps/${appName}/${environmentName}/${entityName}?__per_page=2&__page=1`,
+            token: jwtToken,
+          });
+          expect(response.status).toBe(200);
+
+          const body = await response.json();
+          const keys = R.keys(body);
+          expect(keys).toBeArrayOfSize(2);
+          deepEqual(keys, [entityName, "__meta"]);
+
+          deepEqual(body["__meta"], {
+            current_page: `/${appName}/${environmentName}/${entityName}?__page=1&__per_page=2`,
+            first_page: `/${appName}/${environmentName}/${entityName}?__page=1&__per_page=2`,
+            items: 2,
+            last_page: `/${appName}/${environmentName}/${entityName}?__page=3&__per_page=2`,
+            next: 2,
+            next_page: `/${appName}/${environmentName}/${entityName}?__page=2&__per_page=2`,
+            page: 1,
+            pages: 3,
+            totalCount: entities.length,
+          });
+
+          deepEqual(
+            body[entityName],
+            R.take(2, entities).map((entity, index) => {
+              return {
+                id: createdEntityIds[index],
+                __meta: {
+                  self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[index]}`,
+                },
+                ...entity,
+              };
+            }),
+          );
+        });
+
+        test("should return 200 OK and return the requested amount of items on a page + second page", async () => {
+          const response = await helper.executeGetRequest({
+            url: `/apps/${appName}/${environmentName}/${entityName}?__per_page=2&__page=2`,
+            token: jwtToken,
+          });
+          expect(response.status).toBe(200);
+
+          const body = await response.json();
+          const keys = R.keys(body);
+          expect(keys).toBeArrayOfSize(2);
+          deepEqual(keys, [entityName, "__meta"]);
+
+          deepEqual(body["__meta"], {
+            current_page: `/${appName}/${environmentName}/${entityName}?__page=2&__per_page=2`,
+            first_page: `/${appName}/${environmentName}/${entityName}?__page=1&__per_page=2`,
+            items: 2,
+            last_page: `/${appName}/${environmentName}/${entityName}?__page=3&__per_page=2`,
+            next: 3,
+            next_page: `/${appName}/${environmentName}/${entityName}?__page=3&__per_page=2`,
+            page: 2,
+            pages: 3,
+            previous: 1,
+            previous_page: `/${appName}/${environmentName}/${entityName}?__page=1&__per_page=2`,
+            totalCount: entities.length,
+          });
+
+          deepEqual(body[entityName], [
+            {
+              id: createdEntityIds[2],
+              __meta: {
+                self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[2]}`,
+              },
+              ...entities[2],
             },
-          },
-          {
-            id: createdEntityIds[1],
-            ...entities[1],
-            __meta: {
-              self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[1]}`,
+            {
+              id: createdEntityIds[3],
+              __meta: {
+                self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[3]}`,
+              },
+              ...entities[3],
             },
-          },
-          {
-            id: createdEntityIds[2],
-            ...entities[2],
-            __meta: {
-              self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[2]}`,
+          ]);
+        });
+
+        test("should return 200 OK and return the requested amount of items on a page + last page", async () => {
+          const response = await helper.executeGetRequest({
+            url: `/apps/${appName}/${environmentName}/${entityName}?__per_page=2&__page=3`,
+            token: jwtToken,
+          });
+          expect(response.status).toBe(200);
+
+          const body = await response.json();
+          const keys = R.keys(body);
+          expect(keys).toBeArrayOfSize(2);
+          deepEqual(keys, [entityName, "__meta"]);
+
+          deepEqual(body["__meta"], {
+            current_page: `/${appName}/${environmentName}/${entityName}?__page=3&__per_page=2`,
+            first_page: `/${appName}/${environmentName}/${entityName}?__page=1&__per_page=2`,
+            items: 1,
+            last_page: `/${appName}/${environmentName}/${entityName}?__page=3&__per_page=2`,
+            page: 3,
+            pages: 3,
+            previous: 2,
+            previous_page: `/${appName}/${environmentName}/${entityName}?__page=2&__per_page=2`,
+            totalCount: entities.length,
+          });
+
+          deepEqual(body[entityName], [
+            {
+              id: createdEntityIds[4],
+              __meta: {
+                self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[4]}`,
+              },
+              ...entities[4],
             },
-          },
-          {
-            id: createdEntityIds[3],
-            ...entities[3],
-            __meta: {
-              self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[3]}`,
-            },
-          },
-          {
-            id: createdEntityIds[4],
-            ...entities[4],
-            __meta: {
-              self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[4]}`,
-            },
-          },
-        ]);
+          ]);
+        });
       });
     });
-
-    describe.skip("Pagination", () => {});
   });
 });
