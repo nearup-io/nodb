@@ -1039,12 +1039,19 @@ describe("Entity CRUD operations", async () => {
   describe.only("GET /apps/:appName/:envName/:entityName", async () => {
     const appName = "memes-app-5";
     const environmentName = "environment-5";
-    const entityName = "myEntity-5";
-    const subEntityName = "mySubEntity-5";
-    const entities: { prop: number }[] = [
-      { prop: 1 },
-      { prop: 2 },
-      { prop: 3 },
+    const entityName = "my-entity-5";
+    const subEntityName = "my-sub-entity-5";
+    const entities: {
+      prop1: number;
+      prop2: number;
+      prop3: number;
+      prop4: number;
+    }[] = [
+      { prop1: 1, prop2: 1, prop3: 1, prop4: 1 },
+      { prop1: 2, prop2: 2, prop3: 2, prop4: 2 },
+      { prop1: 3, prop2: 3, prop3: 3, prop4: 3 },
+      { prop1: 4, prop2: 4, prop3: 4, prop4: 4 },
+      { prop1: 5, prop2: 5, prop3: 5, prop4: 5 },
     ];
 
     const subEntities: { subEntityProp: number }[] = [
@@ -1182,9 +1189,203 @@ describe("Entity CRUD operations", async () => {
         });
       });
 
-      test("Should return 200 OK and should apply the __only filter from query params", async () => {});
+      test("Should return 200 OK and should apply the __only filter from query params", async () => {
+        const response = await helper.executeGetRequest({
+          url: `/apps/${appName}/${environmentName}/${entityName}/${requestedEntityId}?__only=prop1`,
+          token: jwtToken,
+        });
+        expect(response.status).toBe(200);
+        deepEqual(await response.json(), {
+          __meta: {
+            self: `/${appName}/${environmentName}/${entityName}/${requestedEntityId}`,
+            subtypes: {
+              [`${subEntityName}`]: `/${appName}/${environmentName}/${entityName}/${requestedEntityId}/${subEntityName}`,
+            },
+          },
+          id: requestedEntityId,
+          ...R.pick(["prop1"], requestedEntity),
+        });
+      });
 
-      test("Should return 200 OK and not return the meta filters when __hasMeta=false is added to the query params", async () => {});
+      test("Should return 200 OK and not return the meta filters when __no_meta=true is added to the query params", async () => {
+        const response = await helper.executeGetRequest({
+          url: `/apps/${appName}/${environmentName}/${entityName}/${requestedEntityId}?__only=prop1&__no_meta=true`,
+          token: jwtToken,
+        });
+        expect(response.status).toBe(200);
+        deepEqual(await response.json(), {
+          id: requestedEntityId,
+          ...R.pick(["prop1"], requestedEntity),
+        });
+      });
     });
+
+    test("should return 200 OK and all entities of requested type", async () => {
+      const response = await helper.executeGetRequest({
+        url: `/apps/${appName}/${environmentName}/${entityName}`,
+        token: jwtToken,
+      });
+      expect(response.status).toBe(200);
+
+      const body = await response.json();
+      const keys = R.keys(body);
+      expect(keys).toBeArrayOfSize(2);
+      deepEqual(keys, [entityName, "__meta"]);
+
+      deepEqual(body["__meta"], {
+        current_page: `/${appName}/${environmentName}/${entityName}?__page=1&__per_page=10`,
+        items: entities.length,
+        page: 1,
+        pages: 1,
+        totalCount: entities.length,
+      });
+
+      deepEqual(body[entityName], [
+        {
+          id: createdEntityIds[0],
+          ...entities[0],
+          __meta: {
+            self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[0]}`,
+          },
+        },
+        {
+          id: createdEntityIds[1],
+          ...entities[1],
+          __meta: {
+            self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[1]}`,
+          },
+        },
+        {
+          id: createdEntityIds[2],
+          ...entities[2],
+          __meta: {
+            self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[2]}`,
+          },
+        },
+
+        {
+          id: createdEntityIds[3],
+          ...entities[3],
+          __meta: {
+            self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[3]}`,
+          },
+        },
+        {
+          id: createdEntityIds[4],
+          ...entities[4],
+          __meta: {
+            self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[4]}`,
+          },
+        },
+      ]);
+    });
+
+    test("should return 200 OK and all entities of requested sub entity types", async () => {
+      const response = await helper.executeGetRequest({
+        url: `/apps/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}`,
+        token: jwtToken,
+      });
+      expect(response.status).toBe(200);
+
+      const body = await response.json();
+      const keys = R.keys(body);
+      expect(keys).toBeArrayOfSize(2);
+      deepEqual(keys, [subEntityName, "__meta"]);
+
+      deepEqual(body["__meta"], {
+        current_page: `/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}?__page=1&__per_page=10`,
+        items: subEntities.length,
+        page: 1,
+        pages: 1,
+        totalCount: subEntities.length,
+      });
+
+      deepEqual(body[subEntityName], [
+        {
+          id: createdSubEntityIds[0],
+          ...subEntities[0],
+          __meta: {
+            self: `/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${createdSubEntityIds[0]}`,
+          },
+        },
+        {
+          id: createdSubEntityIds[1],
+          ...subEntities[1],
+          __meta: {
+            self: `/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${createdSubEntityIds[1]}`,
+          },
+        },
+        {
+          id: createdSubEntityIds[2],
+          ...subEntities[2],
+          __meta: {
+            self: `/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${createdSubEntityIds[2]}`,
+          },
+        },
+      ]);
+    });
+
+    describe.skip("Query params", () => {
+      test("should return 200 OK and all entities of requested type", async () => {
+        const response = await helper.executeGetRequest({
+          url: `/apps/${appName}/${environmentName}/${entityName}`,
+          token: jwtToken,
+        });
+        expect(response.status).toBe(200);
+
+        const body = await response.json();
+        const keys = R.keys(body);
+        expect(keys).toBeArrayOfSize(2);
+        deepEqual(keys, [entityName, "__meta"]);
+
+        deepEqual(body["__meta"], {
+          current_page: `/${appName}/${environmentName}/${entityName}?__page=1&__per_page=10`,
+          items: entities.length,
+          page: 1,
+          pages: 1,
+          totalCount: entities.length,
+        });
+
+        deepEqual(body[entityName], [
+          {
+            id: createdEntityIds[0],
+            ...entities[0],
+            __meta: {
+              self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[0]}`,
+            },
+          },
+          {
+            id: createdEntityIds[1],
+            ...entities[1],
+            __meta: {
+              self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[1]}`,
+            },
+          },
+          {
+            id: createdEntityIds[2],
+            ...entities[2],
+            __meta: {
+              self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[2]}`,
+            },
+          },
+          {
+            id: createdEntityIds[3],
+            ...entities[3],
+            __meta: {
+              self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[3]}`,
+            },
+          },
+          {
+            id: createdEntityIds[4],
+            ...entities[4],
+            __meta: {
+              self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[4]}`,
+            },
+          },
+        ]);
+      });
+    });
+
+    describe.skip("Pagination", () => {});
   });
 });
