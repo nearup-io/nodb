@@ -25,7 +25,7 @@ const getEntitiesByIdFromDatabase = async (
     .lean();
 };
 
-const createApp = async ({
+const createAppWithEnvironmentEntitiesAndSubEntities = async ({
   appName,
   token,
   environmentName,
@@ -332,7 +332,7 @@ describe("Entity CRUD operations", async () => {
         createdEntityIds: ids,
         createdSubEntityIds: subIds,
         entityIdWithSubEntity: entityId,
-      } = await createApp({
+      } = await createAppWithEnvironmentEntitiesAndSubEntities({
         appStarter: helper,
         appName: patchAppName,
         environmentName: patchEnvironmentName,
@@ -572,7 +572,7 @@ describe("Entity CRUD operations", async () => {
           createdEntityIds: ids,
           createdSubEntityIds: subIds,
           entityIdWithSubEntity: entityId,
-        } = await createApp({
+        } = await createAppWithEnvironmentEntitiesAndSubEntities({
           appStarter: helper,
           appName: putAppName,
           environmentName: putEnvironmentName,
@@ -830,7 +830,7 @@ describe("Entity CRUD operations", async () => {
 
     beforeAll(async () => {
       const { createdEntityIds: ids, createdSubEntityIds: subIds } =
-        await createApp({
+        await createAppWithEnvironmentEntitiesAndSubEntities({
           appName: deleteAppName,
           environmentName: deleteEnvironmentName,
           token: jwtToken,
@@ -884,14 +884,15 @@ describe("Entity CRUD operations", async () => {
       const appName = "random-app";
       const environmentName = "random-environment";
       const entityName = "random-entity-name";
-      const { createdEntityIds: ids } = await createApp({
-        appName,
-        environmentName,
-        token: jwtToken,
-        entityName,
-        entities: [entities[0], entities[1]],
-        appStarter: helper,
-      });
+      const { createdEntityIds: ids } =
+        await createAppWithEnvironmentEntitiesAndSubEntities({
+          appName,
+          environmentName,
+          token: jwtToken,
+          entityName,
+          entities: [entities[0], entities[1]],
+          appStarter: helper,
+        });
 
       const response = await helper.executeDeleteRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}/${ids[0]}`,
@@ -942,7 +943,7 @@ describe("Entity CRUD operations", async () => {
         createdEntityIds: ids,
         entityIdWithSubEntity: entityId,
         createdSubEntityIds: subIds,
-      } = await createApp({
+      } = await createAppWithEnvironmentEntitiesAndSubEntities({
         appName,
         environmentName,
         token: jwtToken,
@@ -979,7 +980,7 @@ describe("Entity CRUD operations", async () => {
         createdEntityIds: ids,
         entityIdWithSubEntity: entityId,
         createdSubEntityIds: subIds,
-      } = await createApp({
+      } = await createAppWithEnvironmentEntitiesAndSubEntities({
         appName,
         environmentName,
         token: jwtToken,
@@ -1032,6 +1033,158 @@ describe("Entity CRUD operations", async () => {
       const environment1 = await getEnvironmentFromDbByName(environmentName);
       expect(environment1!.entities).toBeArrayOfSize(1);
       expect(environment1!.entities).toStrictEqual([entityName]);
+    });
+  });
+
+  describe.only("GET /apps/:appName/:envName/:entityName", async () => {
+    const appName = "memes-app-5";
+    const environmentName = "environment-5";
+    const entityName = "myEntity-5";
+    const subEntityName = "mySubEntity-5";
+    const entities: { prop: number }[] = [
+      { prop: 1 },
+      { prop: 2 },
+      { prop: 3 },
+    ];
+
+    const subEntities: { subEntityProp: number }[] = [
+      { subEntityProp: 1 },
+      { subEntityProp: 2 },
+      { subEntityProp: 3 },
+    ];
+
+    const createdEntityIds: string[] = [];
+    const createdSubEntityIds: string[] = [];
+    let entityIdWithSubEntity = "";
+
+    beforeAll(async () => {
+      const {
+        createdEntityIds: ids,
+        createdSubEntityIds: subIds,
+        entityIdWithSubEntity: entityId,
+      } = await createAppWithEnvironmentEntitiesAndSubEntities({
+        appName: appName,
+        environmentName,
+        token: jwtToken,
+        entityName,
+        subEntityName,
+        entities,
+        subEntities,
+        appStarter: helper,
+      });
+
+      createdEntityIds.push(...ids);
+      createdSubEntityIds.push(...subIds!);
+      entityIdWithSubEntity = entityId!;
+    });
+
+    test("should return 404 NOT FOUND when environment does not exist for get entity by id", async () => {
+      const response = await helper.executeGetRequest({
+        url: `/apps/${appName}/not-existing-environment/${entityName}/${createdEntityIds[0]}`,
+        token: jwtToken,
+      });
+      expect(response.status).toBe(404);
+    });
+
+    test("should return 404 NOT FOUND when entity does not exist for get entity by id", async () => {
+      const response = await helper.executeGetRequest({
+        url: `/apps/${appName}/not-existing-environment/${entityName}/not-existing-id`,
+        token: jwtToken,
+      });
+      expect(response.status).toBe(404);
+    });
+
+    test("Should return 401 UNAUTHORIZED when no token is present", async () => {
+      const response = await helper.executeGetRequest({
+        url: `/apps/${appName}/${environmentName}/${entityName}`,
+      });
+      expect(response.status).toBe(401);
+    });
+
+    describe("Get by id endpoint", () => {
+      const requestedEntity = entities[0];
+      let requestedEntityId = "";
+
+      beforeAll(() => {
+        requestedEntityId = createdEntityIds[0]!;
+      });
+
+      test("Should return 200 OK and entity with expected data", async () => {
+        const response = await helper.executeGetRequest({
+          url: `/apps/${appName}/${environmentName}/${entityName}/${requestedEntityId}`,
+          token: jwtToken,
+        });
+        expect(response.status).toBe(200);
+        deepEqual(await response.json(), {
+          __meta: {
+            self: `/${appName}/${environmentName}/${entityName}/${requestedEntityId}`,
+            subtypes: {
+              [`${subEntityName}`]: `/${appName}/${environmentName}/${entityName}/${requestedEntityId}/${subEntityName}`,
+            },
+          },
+          id: requestedEntityId,
+          ...requestedEntity,
+        });
+      });
+
+      test("Should return 200 OK and subEntity with expected data", async () => {
+        const requestedSubEntityId = createdSubEntityIds[0];
+        const requestedSubEntity = subEntities[0];
+        const subSubEntityName = "sub-sub-entity";
+        const subSubEntities: { subSubEntityProp: number }[] = [
+          { subSubEntityProp: 1 },
+          { subSubEntityProp: 2 },
+          { subSubEntityProp: 3 },
+        ];
+
+        const subSubSubEntityName = "sub-sub-sub-entity";
+        const subSubSubEntities: { subSubSubEntityProp: number }[] = [
+          { subSubSubEntityProp: 1 },
+          { subSubSubEntityProp: 2 },
+          { subSubSubEntityProp: 3 },
+        ];
+
+        const subSubEntityResponse = await helper.executePostRequest({
+          url: `/apps/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${requestedSubEntityId}/${subSubEntityName}`,
+          token: jwtToken,
+          body: subSubEntities,
+        });
+        expect(subSubEntityResponse.status).toBe(201);
+
+        const {
+          ids: [subSubEntityId],
+        } = (await subSubEntityResponse.json()) as { ids: string[] };
+
+        const subSubSubEntityResponse = await helper.executePostRequest({
+          url: `/apps/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${requestedSubEntityId}/${subSubEntityName}/${subSubEntityId}/${subSubSubEntityName}`,
+          token: jwtToken,
+          body: subSubSubEntities,
+        });
+        expect(subSubSubEntityResponse.status).toBe(201);
+
+        const response = await helper.executeGetRequest({
+          url: `/apps/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${requestedSubEntityId}`,
+          token: jwtToken,
+        });
+        expect(response.status).toBe(200);
+
+        const body = await response.json();
+        deepEqual(body, {
+          __meta: {
+            self: `/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${requestedSubEntityId}`,
+            subtypes: {
+              // it should only return on subLevel of information
+              [`${subSubEntityName}`]: `/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${requestedSubEntityId}/${subSubEntityName}`,
+            },
+          },
+          id: requestedSubEntityId,
+          ...requestedSubEntity,
+        });
+      });
+
+      test("Should return 200 OK and should apply the __only filter from query params", async () => {});
+
+      test("Should return 200 OK and not return the meta filters when __hasMeta=false is added to the query params", async () => {});
     });
   });
 });
