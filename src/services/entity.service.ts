@@ -171,19 +171,18 @@ export const getEntities = async ({
     return { [entityName]: [] };
   }
 
-  const paginationMetadata = metaFilters.hasMeta
-    ? {
-        __meta: generatePaginationMetadata({
-          rawQuery,
-          paginationQuery,
-          appName,
-          envName,
-          xpathEntitySegments,
-          totalCount,
-          entityCount: entities.length,
-        }),
-      }
-    : undefined;
+  const paginationMetadata = {
+    __meta: generatePaginationMetadata({
+      rawQuery,
+      paginationQuery,
+      appName,
+      envName,
+      xpathEntitySegments,
+      totalCount,
+      entityCount: entities.length,
+    }),
+  };
+
   const result = entities.map((entity) => ({
     id: entity.id,
     ...R.pick(metaFilters?.only || R.keys(entity.model), entity.model),
