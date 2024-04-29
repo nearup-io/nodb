@@ -136,7 +136,7 @@ export const getEntities = async ({
   propFilters,
   metaFilters,
   rawQuery,
-  routeParams: { appName, entityName, envName },
+  routeParams: { appName, envName },
 }: {
   xpathEntitySegments: string[];
   propFilters: Record<string, unknown>;
@@ -161,6 +161,8 @@ export const getEntities = async ({
     // @ts-ignore TODO: using $sort raises "No overload matches this call"
     aggregateQuery,
   );
+
+  const entityName = getEntityTypes(xpathEntitySegments).at(-1)!;
   const { totalCount, entities } = fromDb.at(0) || {
     entities: [],
     totalCount: 0,
@@ -168,7 +170,7 @@ export const getEntities = async ({
   if (!entities || R.isEmpty(entities)) {
     return { [entityName]: [] };
   }
-  // TODO move this function to router utils
+
   const paginationMetadata = metaFilters.hasMeta
     ? {
         __meta: generatePaginationMetadata({
@@ -193,6 +195,7 @@ export const getEntities = async ({
       id: entity.id,
     }),
   }));
+
   return {
     [entityName]: result,
     ...paginationMetadata,
