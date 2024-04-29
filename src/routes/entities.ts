@@ -28,26 +28,48 @@ app.use(authMiddleware);
 
 app.get("/*", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
-  const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
-    c.req.path,
-    c.req.param(),
-  );
-  if (isEntitiesList(pathRestSegments)) {
-    const result = await getEntities({
-      xpathEntitySegments,
-      propFilters: q.props,
-      metaFilters: q.meta,
-      routeParams: c.req.param(),
-      rawQuery: c.req.query(),
-    });
-    return c.json(result);
-  } else {
-    const entity = await getSingleEntity({
-      xpath: c.req.param(),
-      metaFilters: q.meta,
-      entityId: R.last(pathRestSegments)!,
-    });
-    return c.json(entity);
+  const { xpath, pathRestSegments, xpathEntitySegments } =
+    getCommonEntityRouteProps(c.req.path, c.req.param());
+  try {
+    if (isEntitiesList(pathRestSegments)) {
+      const result = await getEntities({
+        xpathEntitySegments,
+        propFilters: q.props,
+        metaFilters: q.meta,
+        routeParams: c.req.param(),
+        rawQuery: c.req.query(),
+      });
+      return c.json(result);
+    } else {
+      const entity = await getSingleEntity({
+        xpath,
+        requestParams: c.req.param(),
+        metaFilters: q.meta,
+        entityId: R.last(pathRestSegments)!,
+        xpathEntitySegments,
+      });
+      return c.json(entity);
+    }
+  } catch (error) {
+    if (error instanceof ServiceError) {
+      if (
+        [httpError.ENV_DOESNT_EXIST, httpError.ENTITY_NOT_FOUND].includes(
+          error.explicitMessage,
+        )
+      ) {
+        throw new HTTPException(404, {
+          message: error.explicitMessage,
+        });
+      } else {
+        throw new HTTPException(400, {
+          message: error.explicitMessage,
+        });
+      }
+    } else {
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
+      });
+    }
   }
 });
 

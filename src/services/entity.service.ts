@@ -200,13 +200,17 @@ export const getEntities = async ({
 };
 
 export const getSingleEntity = async ({
-  xpath: { appName, envName, entityName },
+  requestParams: { appName, envName },
   metaFilters,
   entityId,
+  xpathEntitySegments,
+  xpath,
 }: {
-  xpath: EntityRouteParams;
+  xpath: string;
+  requestParams: EntityRouteParams;
   metaFilters: EntityQueryMeta;
   entityId: string;
+  xpathEntitySegments: string[];
 }) => {
   const environment = await findEnvironment({
     appName,
@@ -215,10 +219,15 @@ export const getSingleEntity = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
+
+  const entityTypes = getEntityTypes(xpathEntitySegments);
+
   const entity = await EntityModel.findOne({
     id: entityId,
     type: {
-      $regex: new RegExp(`\\b(${appName}/${envName}/${entityName})\\b`),
+      $regex: new RegExp(
+        `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`,
+      ),
     },
   });
   if (!entity) {
@@ -228,19 +237,27 @@ export const getSingleEntity = async ({
     metaFilters.only && Array.isArray(metaFilters.only)
       ? R.pick(metaFilters.only, entity.model)
       : entity.model;
-  const xpath = `/${appName}/${envName}/${entityName}/${entityId}`;
+
   return {
     id: entity.id,
     ...objProps,
     __meta: !metaFilters.hasMeta
       ? undefined
       : {
-          self: xpath,
+          self: `/${xpath}`,
           subtypes: environment.entities
-            ?.filter((x) => x !== entityName && x.includes(`${entityName}/`))
+            ?.filter((x) => x.includes(`${entityTypes.join("/")}/`))
             .reduce<Record<string, string>>((acc, curr) => {
-              const subEntityName = R.replace(`${entityName}/`, "", curr);
-              acc[subEntityName] = `${xpath}/${subEntityName}`;
+              const lastEntityType = entityTypes.at(-1)!;
+              const splitEntityType = curr.split("/");
+              const index = splitEntityType.findIndex(
+                (x) => x === lastEntityType,
+              );
+              // this is used to restrict the subTypes information to only 1 layer
+              if (splitEntityType.length - 2 !== index) return acc;
+
+              const subEntityName = splitEntityType.at(-1)!;
+              acc[subEntityName] = `/${xpath}/${subEntityName}`;
               return acc;
             }, {}),
         },
