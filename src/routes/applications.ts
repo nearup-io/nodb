@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import mongoose from "mongoose";
-import withAuth from "../middlewares/auth.middleware";
-import withDb from "../middlewares/db.middleware";
+import authMiddleware from "../middlewares/auth.middleware";
+import dbMiddleware from "../middlewares/db.middleware";
 import {
   createApplication,
   deleteApplication,
@@ -18,8 +18,10 @@ import envsRoute from "./environments";
 const app = new Hono<{
   Variables: { user: USER_TYPE; dbConnection: mongoose.Connection };
 }>();
+app.use(authMiddleware);
+app.use(dbMiddleware);
 
-app.get("/all", withAuth, withDb, async (c) => {
+app.get("/all", async (c) => {
   const user = c.get("user");
   const conn = c.get("dbConnection");
   const apps = await getUserApplications({
@@ -29,11 +31,13 @@ app.get("/all", withAuth, withDb, async (c) => {
   return c.json(apps);
 });
 
-app.get("/:appName", withAuth, async (c) => {
+app.get("/:appName", async (c) => {
   const appName = c.req.param("appName");
   const user = c.get("user");
+  const conn = c.get("dbConnection");
   try {
     const application = await getApplication({
+      conn,
       appName,
       userEmail: user.email,
     });
@@ -51,7 +55,7 @@ app.get("/:appName", withAuth, async (c) => {
   }
 });
 
-app.post("/:appName", withAuth, async (c) => {
+app.post("/:appName", async (c) => {
   const appName = c.req.param("appName");
   const body = await c.req.json();
   if (appName.length < APPNAME_MIN_LENGTH) {
@@ -65,8 +69,10 @@ app.post("/:appName", withAuth, async (c) => {
     });
   }
   const user = c.get("user");
+  const conn = c.get("dbConnection");
   try {
     await createApplication({
+      conn,
       appName,
       image: body.image || "",
       userEmail: user.email,
@@ -85,7 +91,7 @@ app.post("/:appName", withAuth, async (c) => {
   }
 });
 
-app.patch("/:appName", withAuth, async (c) => {
+app.patch("/:appName", async (c) => {
   const appName = c.req.param("appName");
   const body = (await c.req.json()) as {
     appName?: string;
@@ -111,8 +117,10 @@ app.patch("/:appName", withAuth, async (c) => {
     });
   }
   const user = c.get("user");
+  const conn = c.get("dbConnection");
   try {
     const doc = await updateApplication({
+      conn,
       oldAppName: appName,
       newAppName: body.appName,
       userEmail: user.email,
@@ -132,11 +140,13 @@ app.patch("/:appName", withAuth, async (c) => {
   }
 });
 
-app.delete("/:appName", withAuth, async (c) => {
+app.delete("/:appName", async (c) => {
   const user = c.get("user");
   const appName = c.req.param("appName");
   try {
+    const conn = c.get("dbConnection");
     const app = await deleteApplication({
+      conn,
       appName,
       userEmail: user.email,
     });

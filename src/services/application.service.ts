@@ -1,26 +1,28 @@
 import { ObjectId } from "mongodb";
 import mongoose from "mongoose";
 import * as R from "ramda";
-import ApplicationModel, {
-  type Application,
-} from "../models/application.model";
-import EntityModel from "../models/entity.model";
-import EnvironmentModel, {
-  type Environment,
-} from "../models/environment.model";
-import User from "../models/user.model";
+import {
+  getApplicationModel,
+  getEntityModel,
+  getEnvironmentModel,
+  getUserModel,
+} from "../connections/connect";
+import { type Application } from "../models/application.model";
+import { type Environment } from "../models/environment.model";
 import generateToken from "../utils/backend-token";
-import { defaultNodbEnv, httpError, Permissions } from "../utils/const";
+import { Permissions, defaultNodbEnv, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 
 export const getApplication = async ({
+  conn,
   appName,
   userEmail,
 }: {
+  conn: mongoose.Connection;
   appName: string;
   userEmail: string;
 }) => {
-  const userApplications = await User.aggregate([
+  const userApplications = await getUserModel(conn).aggregate([
     {
       $match: {
         $and: [
@@ -62,38 +64,39 @@ export const getApplication = async ({
       },
     },
   ]);
-
   if (!userApplications.length) {
     throw new ServiceError(httpError.APPNAME_NOT_FOUND);
   }
-
   return userApplications[0];
 };
 
-const getEnvironmentsByAppName = async (appName: string) => {
-  const applicationEnvironments = await ApplicationModel.aggregate<Environment>(
-    [
-      { $match: { name: appName } },
-      {
-        $lookup: {
-          from: "environments",
-          localField: "environments",
-          foreignField: "_id",
-          as: "environments",
-        },
+const getEnvironmentsByAppName = async (
+  conn: mongoose.Connection,
+  appName: string
+) => {
+  const applicationEnvironments = await getApplicationModel(
+    conn
+  ).aggregate<Environment>([
+    { $match: { name: appName } },
+    {
+      $lookup: {
+        from: "environments",
+        localField: "environments",
+        foreignField: "_id",
+        as: "environments",
       },
-      { $unwind: "$environments" },
-      {
-        $project: {
-          name: "$environments.name",
-          tokens: "$environments.tokens",
-          entities: "$environments.entities",
-          description: "$environments.description",
-          _id: "$environments._id",
-        },
+    },
+    { $unwind: "$environments" },
+    {
+      $project: {
+        name: "$environments.name",
+        tokens: "$environments.tokens",
+        entities: "$environments.entities",
+        description: "$environments.description",
+        _id: "$environments._id",
       },
-    ]
-  );
+    },
+  ]);
   return applicationEnvironments;
 };
 
@@ -104,8 +107,7 @@ export const getUserApplications = async ({
   conn: mongoose.Connection;
   userEmail: string;
 }) => {
-  const User = conn.model("User");
-  const userApplications = await User.aggregate([
+  const userApplications = await getUserModel(conn).aggregate([
     { $match: { email: userEmail } },
     { $limit: 1 },
     {
@@ -150,104 +152,142 @@ export const getUserApplications = async ({
 };
 
 export const createApplication = async ({
+  conn,
   appName,
   userEmail,
   image,
   appDescription,
 }: {
+  conn: mongoose.Connection;
   appName: string;
   userEmail: string;
   image: string;
   appDescription: string;
 }) => {
-  const environment = await EnvironmentModel.create({
-    name: defaultNodbEnv,
-    tokens: [
-      {
-        key: generateToken(),
-        permission: Permissions.ALL,
-      },
-    ],
-    entities: [],
-    description: "",
-  });
+  const session = await conn.startSession();
+  session.startTransaction();
   try {
-    await ApplicationModel.create({
-      name: appName,
-      image,
-      description: appDescription,
-      environments: [new ObjectId(environment._id)],
-    });
-  } catch (err: any) {
-    if (err.code === 11000) {
+    const environment = await getEnvironmentModel(conn).create(
+      [
+        {
+          name: defaultNodbEnv,
+          tokens: [
+            {
+              key: generateToken(),
+              permission: Permissions.ALL,
+            },
+          ],
+          entities: [],
+          description: "",
+        },
+      ],
+      { session }
+    );
+    await getApplicationModel(conn).create(
+      [
+        {
+          name: appName,
+          image,
+          description: appDescription,
+          environments: [new ObjectId(environment[0]._id)],
+        },
+      ],
+      { session }
+    );
+    await getUserModel(conn).findOneAndUpdate(
+      { email: userEmail },
+      { $addToSet: { applications: appName } },
+      { session }
+    );
+    await session.commitTransaction();
+  } catch (e: any) {
+    await session.abortTransaction();
+    if (e.code === 11000) {
       throw new ServiceError(httpError.APPNAME_EXISTS);
+    } else {
+      console.log("Error creating app", e);
+      throw new ServiceError(httpError.UNKNOWN);
     }
+  } finally {
+    await session.endSession();
   }
-  await User.findOneAndUpdate(
-    { email: userEmail },
-    { $addToSet: { applications: appName } }
-  );
 };
 
 export const updateApplication = async (props: {
+  conn: mongoose.Connection;
   oldAppName: string;
   newAppName?: string;
   userEmail: string;
   description?: string;
   image?: string;
 }) => {
+  const session = await props.conn.startSession();
+  session.startTransaction();
   const updateProps = R.pickBy(R.pipe(R.isNil, R.not), {
     name: props.newAppName,
     description: props.description,
     image: props.image,
   }) as { name?: string; description?: string; image?: string };
-  const doc = await ApplicationModel.findOneAndUpdate(
-    { name: props.oldAppName },
-    { ...updateProps }
-  );
-  if (
-    doc &&
-    props.oldAppName !== props.newAppName &&
-    R.is(String, props.newAppName)
-  ) {
-    await User.findOneAndUpdate(
-      { email: props.userEmail, applications: props.oldAppName },
-      { $set: { "applications.$": props.newAppName } }
+  try {
+    const doc = await getApplicationModel(props.conn).findOneAndUpdate(
+      { name: props.oldAppName },
+      { ...updateProps },
+      { session }
     );
+    if (
+      doc &&
+      props.oldAppName !== props.newAppName &&
+      R.is(String, props.newAppName)
+    ) {
+      await getUserModel(props.conn).findOneAndUpdate(
+        { email: props.userEmail, applications: props.oldAppName },
+        { $set: { "applications.$": props.newAppName } },
+        { session }
+      );
+    }
+    await session.commitTransaction();
+    return doc;
+  } catch (e) {
+    console.log("Error updating app", e);
+    await session.abortTransaction();
+    throw new ServiceError(httpError.UNKNOWN);
+  } finally {
+    await session.endSession();
   }
-  return doc;
 };
 
 export const deleteApplication = async ({
+  conn,
   appName,
   userEmail,
 }: {
+  conn: mongoose.Connection;
   appName: string;
   userEmail: string;
 }) => {
-  const envs = await getEnvironmentsByAppName(appName);
-  const session = await mongoose.startSession();
+  const envs = await getEnvironmentsByAppName(conn, appName);
+  const session = await conn.startSession();
   session.startTransaction();
   try {
-    const app = await ApplicationModel.findOneAndDelete<Application>(
+    const app = await getApplicationModel(conn).findOneAndDelete<Application>(
       { name: appName },
       { session }
     );
     if (app && app._id) {
-      await EnvironmentModel.deleteMany(
+      await getEnvironmentModel(conn).deleteMany(
         {
           _id: { $in: envs.map((e) => e._id) },
         },
         { session }
       );
-      await User.findOneAndUpdate(
+      await getUserModel(conn).findOneAndUpdate(
         { email: userEmail },
         {
           $pull: { applications: appName },
         },
         { session }
       );
-      await EntityModel.deleteMany(
+      await getEntityModel(conn).deleteMany(
         { type: { $regex: `^${appName}/` } },
         { session }
       );

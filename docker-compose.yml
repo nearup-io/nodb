@@ -25,9 +25,8 @@ services:
       MONGODB_ROOT_PASSWORD: 1234abcd
       MONGODB_USERNAME: nodb
       MONGODB_PASSWORD: 1234abcd
-      MONGODB_DATABASE: nodb-dev
-    volumes:
-      - 'mongodb_dev_data:/dbdata/mongodb'
+    # volumes:
+    #   - 'mongodb_dev_data:/dbdata/mongodb'
     networks:
       - nodb-network
 
@@ -42,15 +41,14 @@ services:
       MONGODB_ROOT_PASSWORD: 1234abcd
       MONGODB_USERNAME: nodb
       MONGODB_PASSWORD: 1234abcd
-      # MONGODB_DATABASE: nodb
-    volumes:
-      - 'mongodb_prod_data:/dbdata/mongodb'
+    # volumes:
+    #   - 'mongodb_prod_data:/dbdata/mongodb'
     networks:
       - nodb-network
 
-volumes:
-  mongodb_dev_data:
-  mongodb_prod_data:
+# volumes:
+#   mongodb_dev_data:
+#   mongodb_prod_data:
 
 networks:
   nodb-network:

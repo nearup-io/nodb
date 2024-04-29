@@ -2,8 +2,7 @@ import mongoose from "mongoose";
 import config from "../config";
 
 const connect = async (uri: string, options = {}) => {
-  // await mongoose.disconnect();
-  // console.log("Disconnected");
+  await mongoose.disconnect()
   const db = await mongoose
     .createConnection(
       uri,
