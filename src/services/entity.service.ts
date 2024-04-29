@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 import * as R from "ramda";
 import { getEntityModel, getEnvironmentModel } from "../connections/connect.ts";
-import EntityModel, { type Entity } from "../models/entity.model";
-import EnvironmentModel, { type Environment } from "../models/environment.model";
+import { type Entity } from "../models/entity.model";
+import { type Environment } from "../models/environment.model";
 import {
   getAnthropicMessage,
   getEmbedding,
@@ -38,16 +38,18 @@ type EntityAggregateResult = {
 const { NODB_VECTOR_INDEX: vectorIndex = "nodb_vector_index" } = Bun.env;
 
 export const searchEntities = async ({
+  conn,
   query,
   limit = 5,
   entityType,
 }: {
+  conn: mongoose.Connection;
   query: string;
   limit: number;
   entityType: string | null;
 }) => {
   const embedding = await getEmbedding(query);
-  const res = await EntityModel.aggregate([
+  const res = await getEntityModel(conn).aggregate([
     {
       $vectorSearch: {
         index: vectorIndex,
@@ -75,17 +77,19 @@ export const searchEntities = async ({
 };
 
 export const searchAiEntities = async ({
+  conn,
   query,
   limit = 5,
   entityType,
 }: {
+  conn: mongoose.Connection;
   query: string;
   limit: number;
   entityType: string | null;
 }) => {
   const embedding = await getEmbedding(query);
   try {
-    const res = await EntityModel.aggregate([
+    const res = await getEntityModel(conn).aggregate([
       {
         $vectorSearch: {
           index: vectorIndex,
@@ -140,12 +144,14 @@ export const searchAiEntities = async ({
 };
 
 export const getEntities = async ({
+  conn,
   xpathEntitySegments,
   propFilters,
   metaFilters,
   rawQuery,
   routeParams: { appName, entityName, envName },
 }: {
+  conn: mongoose.Connection;
   xpathEntitySegments: string[];
   propFilters: Record<string, unknown>;
   metaFilters: EntityQueryMeta;
@@ -165,7 +171,7 @@ export const getEntities = async ({
     envName,
     xpathEntitySegments,
   });
-  const fromDb = await EntityModel.aggregate<EntityAggregateResult>(
+  const fromDb = await getEntityModel(conn).aggregate<EntityAggregateResult>(
     // @ts-ignore TODO: using $sort raises "No overload matches this call"
     aggregateQuery
   );
@@ -314,7 +320,7 @@ export const createOrOverwriteEntities = async ({
   }
   const session = await conn.startSession();
   session.startTransaction();
-  const entityModel = getEntityModel(conn)
+  const entityModel = getEntityModel(conn);
   try {
     await entityModel.deleteMany(
       { id: { $in: entitiesIdsToBeReplaced } },
