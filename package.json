@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "NODE_ENV=development bun --hot src/app.ts",
     "start": "bun src/app.ts",
-    "e2e-tests": "bun test entity-crud --env-file=.env.test"
+    "e2e-tests": "bun test --env-file=.env.test"
   },
   "devDependencies": {
     "@types/bun": "latest",
