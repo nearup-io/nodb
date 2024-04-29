@@ -92,13 +92,20 @@ app.post("/*", async (c) => {
 
 app.delete("/*", async (c) => {
   const { appName, envName, entityName } = c.req.param();
-  const { pathRest, pathRestSegments, xpathEntitySegments } =
-    getCommonEntityRouteProps(c.req.path, c.req.param());
-  if (R.isEmpty(pathRestSegments)) {
-    const res = await deleteRootAndUpdateEnv({ appName, envName, entityName });
-    return c.json({ deleted: res.done });
-  } else {
-    if (pathRestSegments.length % 2 === 0) {
+  const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
+    c.req.path,
+    c.req.param(),
+  );
+
+  try {
+    if (R.isEmpty(pathRestSegments)) {
+      const res = await deleteRootAndUpdateEnv({
+        appName,
+        envName,
+        entityName,
+      });
+      return c.json({ deleted: res.done });
+    } else if (pathRestSegments.length % 2 === 0) {
       // delete sub entities
       const res = await deleteSubEntitiesAndUpdateEnv({
         appName,
@@ -106,7 +113,7 @@ app.delete("/*", async (c) => {
         xpathEntitySegments,
       });
       return c.json({ deleted: res.done });
-    } else if (pathRestSegments.length % 2 !== 0) {
+    } else {
       // delete single entity
       const res = await deleteSingleEntityAndUpdateEnv({
         appName,
@@ -116,8 +123,23 @@ app.delete("/*", async (c) => {
 
       return c.json({ deleted: !!res });
     }
+  } catch (error) {
+    if (error instanceof ServiceError) {
+      if (error.explicitMessage === httpError.ENV_DOESNT_EXIST) {
+        throw new HTTPException(404, {
+          message: error.explicitMessage,
+        });
+      } else {
+        throw new HTTPException(400, {
+          message: error.explicitMessage,
+        });
+      }
+    } else {
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
+      });
+    }
   }
-  return c.json({ pathRest, pathRestSegments });
 });
 
 app.put("/*", async (c) => {
