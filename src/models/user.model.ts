@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import type { ObjectId } from "mongodb";
 
 const { Schema } = mongoose;
 
@@ -16,4 +17,12 @@ const userSchema = new Schema({
 });
 
 const User = mongoose.model("User", userSchema);
+export type User = {
+  _id: ObjectId;
+  email: string;
+  providers: string[];
+  applications: string[];
+  lastProvider: string;
+  lastUse: Date;
+};
 export default User;

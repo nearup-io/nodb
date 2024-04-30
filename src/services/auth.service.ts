@@ -10,6 +10,8 @@ import generateAppName from "../utils/app-name";
 import { generateState } from "../utils/auth-utils";
 import generateToken from "../utils/backend-token";
 import { defaultNodbEnv, Permissions, PROVIDER_GOOGLE } from "../utils/const";
+import RedisClient from "../redis/connection.ts";
+import UserRepositoryRedis from "../repositories/UserRepository.redis.ts";
 
 export const getGithubLoginUrl = ({ redirectUrl }: { redirectUrl: string }) => {
   const { GITHUB_CLIENT_ID, GITHUB_AUTH_ENDPOINT } = Bun.env;
@@ -50,11 +52,10 @@ export const finalizeAuth = async ({
   email: string;
   provider: string;
 }) => {
-  const user = await User.findOneAndUpdate(
-    { email },
-    { $addToSet: { providers: provider }, $set: { lastProvider: provider } },
-    { returnNewDocument: true },
-  );
+  const redisConnection = new RedisClient();
+  await redisConnection.connect();
+  const userRepository = new UserRepositoryRedis(redisConnection.redis);
+  const user = await userRepository.findOneAndUpdate(email, provider);
   let newUser;
   if (!user) {
     const applicationName = generateAppName();
