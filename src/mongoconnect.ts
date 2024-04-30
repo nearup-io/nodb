@@ -24,7 +24,6 @@ const mongoconnect: () => Promise<void> = async () => {
       // create all indexes automatically
       autoIndex: true,
     });
-
     console.log("Connected to database!");
   } catch (e) {
     console.log(e);
