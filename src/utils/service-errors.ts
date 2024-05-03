@@ -17,3 +17,11 @@ export class RoutingError extends Error implements IServiceError {
     this.explicitMessage = message;
   }
 }
+
+export class ConnectionError extends Error implements IServiceError {
+  explicitMessage: string;
+  constructor(message: string) {
+    super(message);
+    this.explicitMessage = message;
+  }
+}

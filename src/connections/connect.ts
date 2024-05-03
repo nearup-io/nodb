@@ -11,6 +11,7 @@ import {
 } from "../models/environment.model";
 import { UserSchema, type User } from "../models/user.model";
 import mongodbConnection from "./mongodb";
+import { ConnectionError } from "../utils/service-errors";
 
 export const addDbConnection = async (db: string) => {
   const connectionString = Bun.env[`NODB_${db}`]!;
@@ -25,16 +26,16 @@ export const addDbConnection = async (db: string) => {
 export const getConnection = (dbParam: string): mongoose.Connection => {
   const dbConn = config.dbs[dbParam];
   if (!dbConn) {
-    throw new Error(`Database ${dbParam} is not defined`);
+    throw new ConnectionError(`Database "${dbParam}" is not defined`);
   }
   const host = new URL(dbConn).host;
   const dbPath = new URL(dbConn).pathname.slice(1);
   if (!dbPath) {
-    throw new Error(`Database name is missing for ${dbParam}`);
+    throw new ConnectionError(`Database name is missing for ${dbParam}`);
   }
   const withHost = mongoose.connections.find((conn) => conn.host === host);
   if (!withHost) {
-    throw new Error(`Database ${dbParam} is not found`);
+    throw new ConnectionError(`Database ${dbParam} is not found`);
   }
   const conn = withHost.useDb(dbPath, { useCache: true });
   const models = conn.modelNames();
