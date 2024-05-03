@@ -198,12 +198,9 @@ export const updateEnvironment = async ({
   if (R.isEmpty(updateProps)) {
     throw new ServiceError(httpError.NO_UPDATE_PROPS);
   }
-  const doc: Environment | null = await getEnvironmentModel(
-    conn
-  ).findByIdAndUpdate(
+  return getEnvironmentModel(conn).findByIdAndUpdate<Environment>(
     environment._id,
     { ...updateProps },
     { returnDocument: "after", new: true }
   );
-  return doc;
 };
