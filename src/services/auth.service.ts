@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import { decode as jwt_decode } from "hono/jwt";
 import { ObjectId } from "mongodb";
 import * as R from "ramda";
+import { getConnection } from "../connections/connect";
 import Application from "../models/application.model";
 import Environment from "../models/environment.model";
 import User from "../models/user.model";
@@ -44,21 +45,26 @@ export const getGoogleLoginUrl = ({ redirectUrl }: { redirectUrl: string }) => {
 };
 
 export const finalizeAuth = async ({
+  db,
   email,
   provider,
 }: {
+  db: string;
   email: string;
   provider: string;
 }) => {
-  const user = await User.findOneAndUpdate(
-    { email },
-    { $addToSet: { providers: provider }, $set: { lastProvider: provider } },
-    { returnNewDocument: true },
-  );
+  const conn = getConnection(db);
+  const user = await conn
+    .model("User")
+    .findOneAndUpdate(
+      { email },
+      { $addToSet: { providers: provider }, $set: { lastProvider: provider } },
+      { returnNewDocument: true }
+    );
   let newUser;
   if (!user) {
     const applicationName = generateAppName();
-    const environment = await Environment.create({
+    const environment = await conn.model('Environment').create({
       name: defaultNodbEnv,
       tokens: [
         {
@@ -68,7 +74,7 @@ export const finalizeAuth = async ({
       ],
       entities: [],
     });
-    await Application.create({
+    await conn.model('Application').create({
       name: applicationName,
       environments: [new ObjectId(environment._id)],
     });
@@ -78,7 +84,7 @@ export const finalizeAuth = async ({
       applications: [applicationName],
       lastProvider: provider,
     };
-    await User.create(newUser);
+    await conn.model('User').create(newUser);
   }
   const loggedInUser = user ?? newUser;
   if (!loggedInUser) {

@@ -58,6 +58,8 @@ export const embeddingProvider: EmbeddingProvider =
     : embeddingProviders.OPENAI;
 
 export const httpError = {
+  USER_CANT_CREATE: "Couldn't create user",
+  ENV_CANT_CREATE: "Couldn't create environment",
   APPNAME_LENGTH: `Application name length must be greater than ${APPNAME_MIN_LENGTH}`,
   APPNAME_NOT_ALLOWED:
     "Application name must follow hyphenated url pattern (my-app)",

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "NODE_ENV=development bun --hot src/app.ts",
     "start": "bun src/app.ts",
-    "e2e-tests": "bun test --env-file=.env.test"
+    "e2e-tests": "bun test entity-crud --env-file=.env.test"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -20,6 +20,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.6",
     "@langchain/openai": "^0.0.28",
+    "assert": "^2.1.0",
     "axios": "^1.6.8",
     "chalk": "^5.3.0",
     "hono": "^4.2.1",

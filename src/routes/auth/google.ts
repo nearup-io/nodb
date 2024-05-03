@@ -8,7 +8,7 @@ import {
 
 const app = new Hono();
 
-app.get("/", async (c) => {
+app.get("/:db", async (c) => {
   const redirectUrl = c.req.query("redirectUrl") || Bun.env.GOOGLE_REDIRECT_URI;
   if (!redirectUrl) {
     throw new HTTPException(400, {
@@ -19,7 +19,7 @@ app.get("/", async (c) => {
   return c.json({ loginUrl });
 });
 
-app.post("/", async (c) => {
+app.post("/:db", async (c) => {
   const { JWT_SECRET } = Bun.env;
   if (!JWT_SECRET) {
     throw new HTTPException(400, {

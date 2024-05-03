@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import auth from "../middlewares/auth.middleware";
+import mongoose from "mongoose";
+import authMiddleware from "../middlewares/auth.middleware";
+import dbMiddleware from "../middlewares/db.middleware";
 import {
   createApplication,
   deleteApplication,
@@ -13,21 +15,29 @@ import { APPNAME_MIN_LENGTH, APPNAME_REGEX, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 import envsRoute from "./environments";
 
-const app = new Hono<{ Variables: { user: USER_TYPE } }>();
+const app = new Hono<{
+  Variables: { user: USER_TYPE; dbConnection: mongoose.Connection };
+}>();
+app.use(authMiddleware);
+app.use(dbMiddleware);
 
-app.get("/all", auth, async (c) => {
+app.get("/all", async (c) => {
   const user = c.get("user");
+  const conn = c.get("dbConnection");
   const apps = await getUserApplications({
+    conn,
     userEmail: user.email,
   });
   return c.json(apps);
 });
 
-app.get("/:appName", auth, async (c) => {
+app.get("/:appName", async (c) => {
   const appName = c.req.param("appName");
   const user = c.get("user");
+  const conn = c.get("dbConnection");
   try {
     const application = await getApplication({
+      conn,
       appName,
       userEmail: user.email,
     });
@@ -45,7 +55,7 @@ app.get("/:appName", auth, async (c) => {
   }
 });
 
-app.post("/:appName", auth, async (c) => {
+app.post("/:appName", async (c) => {
   const appName = c.req.param("appName");
   const body = await c.req.json();
   if (appName.length < APPNAME_MIN_LENGTH) {
@@ -59,8 +69,10 @@ app.post("/:appName", auth, async (c) => {
     });
   }
   const user = c.get("user");
+  const conn = c.get("dbConnection");
   try {
     await createApplication({
+      conn,
       appName,
       image: body.image || "",
       userEmail: user.email,
@@ -79,7 +91,7 @@ app.post("/:appName", auth, async (c) => {
   }
 });
 
-app.patch("/:appName", auth, async (c) => {
+app.patch("/:appName", async (c) => {
   const appName = c.req.param("appName");
   const body = (await c.req.json()) as {
     appName?: string;
@@ -105,8 +117,10 @@ app.patch("/:appName", auth, async (c) => {
     });
   }
   const user = c.get("user");
+  const conn = c.get("dbConnection");
   try {
     const doc = await updateApplication({
+      conn,
       oldAppName: appName,
       newAppName: body.appName,
       userEmail: user.email,
@@ -126,11 +140,13 @@ app.patch("/:appName", auth, async (c) => {
   }
 });
 
-app.delete("/:appName", auth, async (c) => {
+app.delete("/:appName", async (c) => {
   const user = c.get("user");
   const appName = c.req.param("appName");
   try {
+    const conn = c.get("dbConnection");
     const app = await deleteApplication({
+      conn,
       appName,
       userEmail: user.email,
     });

@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
+import type { Application } from "./application.model";
 
 const { Schema } = mongoose;
 
-const userSchema = new Schema({
+export const UserSchema = new Schema({
   email: {
     type: String,
     required: true,
@@ -15,5 +16,13 @@ const userSchema = new Schema({
   lastUse: { type: Date, default: Date.now },
 });
 
-const User = mongoose.model("User", userSchema);
+export type User = {
+  email: string;
+  providers: string[];
+  applications: Application[];
+  lastProvider: string;
+  lastUse: Date;
+}
+
+const User = mongoose.model("User", UserSchema);
 export default User;

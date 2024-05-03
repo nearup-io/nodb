@@ -1,16 +1,23 @@
 import mongoose from "mongoose";
 import * as R from "ramda";
+import {
+  getApplicationModel,
+  getEntityModel,
+  getEnvironmentModel,
+} from "../connections/connect";
 import ApplicationModel from "../models/application.model";
-import EntityModel from "../models/entity.model";
 import EnvironmentModel, {
   type Environment,
 } from "../models/environment.model";
 import generateToken from "../utils/backend-token";
-import { httpError, Permissions } from "../utils/const";
+import { Permissions, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 
-export const getEnvironmentsByAppName = async (appName: string) => {
-  const applicationEnvironments = await ApplicationModel.aggregate([
+export const getEnvironmentsByAppName = async (
+  conn: mongoose.Connection,
+  appName: string
+) => {
+  const applicationEnvironments = await getApplicationModel(conn).aggregate([
     { $match: { name: appName } },
     {
       $lookup: {
@@ -35,53 +42,57 @@ export const getEnvironmentsByAppName = async (appName: string) => {
 };
 
 export const findEnvironment = async ({
+  conn,
   envName,
   appName,
 }: {
+  conn: mongoose.Connection;
   envName: string;
   appName: string;
 }): Promise<Environment | undefined> => {
-  const applicationEnvironments = await ApplicationModel.aggregate<Environment>(
-    [
-      {
-        $match: { name: appName },
+  const applicationEnvironments = await getApplicationModel(
+    conn
+  ).aggregate<Environment>([
+    {
+      $match: { name: appName },
+    },
+    {
+      $lookup: {
+        from: "environments",
+        localField: "environments",
+        foreignField: "_id",
+        as: "environments",
       },
-      {
-        $lookup: {
-          from: "environments",
-          localField: "environments",
-          foreignField: "_id",
-          as: "environments",
-        },
+    },
+    { $unwind: "$environments" },
+    {
+      $match: { "environments.name": envName },
+    },
+    {
+      $project: {
+        name: "$environments.name",
+        tokens: "$environments.tokens",
+        description: "$environments.description",
+        _id: "$environments._id",
+        entities: "$environments.entities",
       },
-      { $unwind: "$environments" },
-      {
-        $match: { "environments.name": envName },
-      },
-      {
-        $project: {
-          name: "$environments.name",
-          tokens: "$environments.tokens",
-          description: "$environments.description",
-          _id: "$environments._id",
-          entities: "$environments.entities",
-        },
-      },
-    ],
-  );
+    },
+  ]);
   return applicationEnvironments[0];
 };
 
 export const createEnvironment = async ({
+  conn,
   appName,
   envName,
   description = "",
 }: {
+  conn: mongoose.Connection;
   envName: string;
   appName: string;
   description: string;
 }) => {
-  const existingEnvironment = await findEnvironment({ appName, envName });
+  const existingEnvironment = await findEnvironment({ conn, appName, envName });
   if (existingEnvironment?.name) {
     throw new ServiceError(httpError.ENV_EXISTS);
   }
@@ -98,39 +109,44 @@ export const createEnvironment = async ({
   });
   await ApplicationModel.findOneAndUpdate(
     { name: appName },
-    { $addToSet: { environments: environment._id } },
+    { $addToSet: { environments: environment._id } }
   );
   return environment;
 };
 
 export const deleteEnvironment = async ({
+  conn,
   appName,
   envName,
 }: {
+  conn: mongoose.Connection;
   appName: string;
   envName: string;
 }) => {
   const environment = await findEnvironment({
+    conn,
     appName,
     envName,
   });
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const session = await mongoose.startSession();
+  const session = await conn.startSession();
   session.startTransaction();
   try {
-    await EntityModel.deleteMany(
+    await getEntityModel(conn).deleteMany(
       { type: { $regex: `${appName}/${envName}/` } },
-      { session },
+      { session }
     );
-    await EnvironmentModel.findByIdAndDelete(environment._id, { session });
-    await ApplicationModel.findOneAndUpdate(
+    await getEnvironmentModel(conn).findByIdAndDelete(environment._id, {
+      session,
+    });
+    await getApplicationModel(conn).findOneAndUpdate(
       { name: appName },
       {
         $pull: { environments: environment._id },
       },
-      { session },
+      { session }
     );
     await session.commitTransaction();
     return environment;
@@ -144,28 +160,35 @@ export const deleteEnvironment = async ({
 };
 
 export const updateEnvironment = async ({
+  conn,
   appName,
   newEnvName,
   oldEnvName,
   description,
 }: {
+  conn: mongoose.Connection;
   appName: string;
   newEnvName: string;
   oldEnvName: string;
   description: string;
-}): Promise<Environment | null> => {
+}) => {
+  if (oldEnvName === newEnvName) {
+    throw new ServiceError("Names cannot be the same");
+  }
   const environment = await findEnvironment({
+    conn,
     appName,
     envName: oldEnvName,
   });
-  if (!environment) {
+  if (!environment || !environment.name) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
   const newEnvironment = await findEnvironment({
+    conn,
     appName,
     envName: newEnvName,
   });
-  if (!!newEnvironment && newEnvName !== oldEnvName) {
+  if (newEnvironment && newEnvironment.name && newEnvName !== oldEnvName) {
     throw new ServiceError(httpError.NEW_ENV_EXISTS);
   }
   const updateProps = R.pickBy(R.pipe(R.isNil, R.not), {
@@ -175,9 +198,9 @@ export const updateEnvironment = async ({
   if (R.isEmpty(updateProps)) {
     throw new ServiceError(httpError.NO_UPDATE_PROPS);
   }
-  return EnvironmentModel.findByIdAndUpdate(
+  return getEnvironmentModel(conn).findByIdAndUpdate<Environment>(
     environment._id,
     { ...updateProps },
-    { returnDocument: "after", new: true },
+    { returnDocument: "after", new: true }
   );
 };
