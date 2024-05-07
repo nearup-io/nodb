@@ -3,13 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import mongoose from "mongoose";
 import authMiddleware from "../middlewares/auth.middleware";
 import dbMiddleware from "../middlewares/db.middleware";
-import {
-  createApplication,
-  deleteApplication,
-  getApplication,
-  getUserApplications,
-  updateApplication,
-} from "../services/application.service";
+import ApplicationService from "../services/application.service";
 import type { USER_TYPE } from "../utils/auth-utils";
 import { APPNAME_MIN_LENGTH, APPNAME_REGEX, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
@@ -24,7 +18,9 @@ app.use(dbMiddleware);
 app.get("/all", async (c) => {
   const user = c.get("user");
   const conn = c.get("dbConnection");
-  const apps = await getUserApplications({
+  const applicationService = new ApplicationService();
+
+  const apps = await applicationService.getUserApplications({
     conn,
     userEmail: user.email,
   });
@@ -35,8 +31,11 @@ app.get("/:appName", async (c) => {
   const appName = c.req.param("appName");
   const user = c.get("user");
   const conn = c.get("dbConnection");
+
+  const applicationService = new ApplicationService();
+
   try {
-    const application = await getApplication({
+    const application = await applicationService.getApplication({
       conn,
       appName,
       userEmail: user.email,
@@ -70,8 +69,9 @@ app.post("/:appName", async (c) => {
   }
   const user = c.get("user");
   const conn = c.get("dbConnection");
+  const applicationService = new ApplicationService();
   try {
-    await createApplication({
+    await applicationService.createApplication({
       conn,
       appName,
       image: body.image || "",
@@ -118,8 +118,9 @@ app.patch("/:appName", async (c) => {
   }
   const user = c.get("user");
   const conn = c.get("dbConnection");
+  const applicationService = new ApplicationService();
   try {
-    const doc = await updateApplication({
+    const doc = await applicationService.updateApplication({
       conn,
       oldAppName: appName,
       newAppName: body.appName,
@@ -143,9 +144,10 @@ app.patch("/:appName", async (c) => {
 app.delete("/:appName", async (c) => {
   const user = c.get("user");
   const appName = c.req.param("appName");
+  const conn = c.get("dbConnection");
+  const applicationService = new ApplicationService();
   try {
-    const conn = c.get("dbConnection");
-    const app = await deleteApplication({
+    const app = await applicationService.deleteApplication({
       conn,
       appName,
       userEmail: user.email,

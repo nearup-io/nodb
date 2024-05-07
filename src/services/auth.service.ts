@@ -4,9 +4,6 @@ import { decode as jwt_decode } from "hono/jwt";
 import { ObjectId } from "mongodb";
 import * as R from "ramda";
 import { getConnection } from "../connections/connect";
-import Application from "../models/application.model";
-import Environment from "../models/environment.model";
-import User from "../models/user.model";
 import generateAppName from "../utils/app-name";
 import { generateState } from "../utils/auth-utils";
 import generateToken from "../utils/backend-token";
@@ -59,12 +56,12 @@ export const finalizeAuth = async ({
     .findOneAndUpdate(
       { email },
       { $addToSet: { providers: provider }, $set: { lastProvider: provider } },
-      { returnNewDocument: true }
+      { returnNewDocument: true },
     );
   let newUser;
   if (!user) {
     const applicationName = generateAppName();
-    const environment = await conn.model('Environment').create({
+    const environment = await conn.model("Environment").create({
       name: defaultNodbEnv,
       tokens: [
         {
@@ -74,7 +71,7 @@ export const finalizeAuth = async ({
       ],
       entities: [],
     });
-    await conn.model('Application').create({
+    await conn.model("Application").create({
       name: applicationName,
       environments: [new ObjectId(environment._id)],
     });
@@ -84,7 +81,7 @@ export const finalizeAuth = async ({
       applications: [applicationName],
       lastProvider: provider,
     };
-    await conn.model('User').create(newUser);
+    await conn.model("User").create(newUser);
   }
   const loggedInUser = user ?? newUser;
   if (!loggedInUser) {
