@@ -3,7 +3,13 @@ import { HTTPException } from "hono/http-exception";
 import mongoose from "mongoose";
 import authMiddleware from "../middlewares/auth.middleware";
 import dbMiddleware from "../middlewares/db.middleware";
-import ApplicationService from "../services/application.service";
+import {
+  createApplication,
+  deleteApplication,
+  getApplication,
+  getUserApplications,
+  updateApplication,
+} from "../services/application.service";
 import type { USER_TYPE } from "../utils/auth-utils";
 import { APPNAME_MIN_LENGTH, APPNAME_REGEX, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
@@ -24,28 +30,22 @@ app.use(contextMiddleware);
 
 app.get("/all", async (c) => {
   const user = c.get("user");
-  const conn = c.get("dbConnection");
-  const applicationService = new ApplicationService();
 
-  const apps = await applicationService.getUserApplications({
-    conn,
+  const apps = await getUserApplications({
+    context: c.get("context"),
     userEmail: user.email,
   });
+
   return c.json(apps);
 });
 
 app.get("/:appName", async (c) => {
   const appName = c.req.param("appName");
   const user = c.get("user");
-  const conn = c.get("dbConnection");
-
-  const applicationService = c
-    .get("context")
-    .get<ApplicationService>("APPLICATION_SERVICE");
 
   try {
-    const application = await applicationService.getApplication({
-      conn,
+    const application = await getApplication({
+      context: c.get("context"),
       appName,
       userEmail: user.email,
     });
@@ -77,11 +77,10 @@ app.post("/:appName", async (c) => {
     });
   }
   const user = c.get("user");
-  const conn = c.get("dbConnection");
-  const applicationService = new ApplicationService();
+
   try {
-    await applicationService.createApplication({
-      conn,
+    await createApplication({
+      context: c.get("context"),
       appName,
       image: body.image || "",
       userEmail: user.email,
@@ -126,11 +125,9 @@ app.patch("/:appName", async (c) => {
     });
   }
   const user = c.get("user");
-  const conn = c.get("dbConnection");
-  const applicationService = new ApplicationService();
   try {
-    const doc = await applicationService.updateApplication({
-      conn,
+    const doc = await updateApplication({
+      context: c.get("context"),
       oldAppName: appName,
       newAppName: body.appName,
       userEmail: user.email,
@@ -153,11 +150,9 @@ app.patch("/:appName", async (c) => {
 app.delete("/:appName", async (c) => {
   const user = c.get("user");
   const appName = c.req.param("appName");
-  const conn = c.get("dbConnection");
-  const applicationService = new ApplicationService();
   try {
-    const app = await applicationService.deleteApplication({
-      conn,
+    const app = await deleteApplication({
+      context: c.get("context"),
       appName,
       userEmail: user.email,
     });

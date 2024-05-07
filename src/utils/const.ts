@@ -89,3 +89,6 @@ export const httpError = {
 };
 
 export const defaultNodbEnv = "dev";
+
+export const APPLICATION_MONGO_DB_REPOSITORY =
+  "APPLICATION_MONGO_DB_REPOSITORY";
