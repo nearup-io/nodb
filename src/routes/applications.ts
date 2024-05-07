@@ -8,12 +8,19 @@ import type { USER_TYPE } from "../utils/auth-utils";
 import { APPNAME_MIN_LENGTH, APPNAME_REGEX, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 import envsRoute from "./environments";
+import contextMiddleware from "../middlewares/context.middleware.ts";
+import type Context from "../middlewares/context.ts";
 
 const app = new Hono<{
-  Variables: { user: USER_TYPE; dbConnection: mongoose.Connection };
+  Variables: {
+    user: USER_TYPE;
+    dbConnection: mongoose.Connection;
+    context: Context;
+  };
 }>();
 app.use(authMiddleware);
 app.use(dbMiddleware);
+app.use(contextMiddleware);
 
 app.get("/all", async (c) => {
   const user = c.get("user");
@@ -32,7 +39,9 @@ app.get("/:appName", async (c) => {
   const user = c.get("user");
   const conn = c.get("dbConnection");
 
-  const applicationService = new ApplicationService();
+  const applicationService = c
+    .get("context")
+    .get<ApplicationService>("APPLICATION_SERVICE");
 
   try {
     const application = await applicationService.getApplication({
