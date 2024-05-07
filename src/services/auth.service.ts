@@ -98,9 +98,11 @@ export const finalizeAuth = async ({
 export const getGoogleUserData = async ({
   redirectUrl,
   code,
+  db,
 }: {
   redirectUrl: string;
   code: string;
+  db: string;
 }) => {
   const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = Bun.env;
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
@@ -128,7 +130,7 @@ export const getGoogleUserData = async ({
   }
   const { id_token } = response.data;
   const email = R.path(["payload", "email"], jwt_decode(id_token));
-  return finalizeAuth({ email, provider: PROVIDER_GOOGLE });
+  return finalizeAuth({ db, email, provider: PROVIDER_GOOGLE });
 };
 
 export const getGithubUserData = async ({

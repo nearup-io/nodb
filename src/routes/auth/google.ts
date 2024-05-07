@@ -5,6 +5,7 @@ import {
   getGoogleLoginUrl,
   getGoogleUserData,
 } from "../../services/auth.service";
+import { getConnection as switchConnection } from "../../connections/connect.ts";
 
 const app = new Hono();
 
@@ -32,10 +33,21 @@ app.post("/:db", async (c) => {
       message: "Authorization code or redirect URL is missing in the request",
     });
   }
+
+  const db = c.req.query("db");
+  if (!db) {
+    throw new HTTPException(400, {
+      message: "Database parameter is missing in the request",
+    });
+  }
+  switchConnection(db);
+  console.log(`Using ${db} database`);
+
   try {
     const userData = await getGoogleUserData({
       redirectUrl: body.redirectUrl,
       code: body.code,
+      db,
     });
     const jwtToken = await jwt_sign(userData, JWT_SECRET);
     c.res.headers.set("Authorization", `Bearer ${jwtToken}`);
