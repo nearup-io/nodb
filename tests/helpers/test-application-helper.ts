@@ -2,7 +2,6 @@ import type { Hono } from "hono";
 import { sign as jwt_sign } from "hono/jwt";
 import { MongoClient } from "mongodb";
 import app from "../../src/app";
-import User from "../../src/models/user.model.ts";
 import type { USER_TYPE } from "../../src/utils/auth-utils.ts";
 import Entity, {
   type Entity as EntityType,
@@ -11,20 +10,17 @@ import Environment, {
   type Environment as EnvironmentType,
 } from "../../src/models/environment.model.ts";
 import { expect } from "bun:test";
+import { getConnection, getUserModel } from "../../src/connections/connect.ts";
 
 export class TestApplicationHelper {
   private readonly application: Hono;
   private readonly mongoClient: MongoClient;
   private readonly databaseName: string;
 
-  constructor() {
+  constructor(readonly dbName = "db1") {
     this.application = app;
-    this.mongoClient = new MongoClient(Bun.env.MONGODB_URL!);
-    this.databaseName = Bun.env
-      .MONGODB_URL!.split("/")
-      .at(-1)!
-      .split("?")
-      .at(0)!;
+    this.mongoClient = new MongoClient(Bun.env.NODB_db1!);
+    this.databaseName = Bun.env.NODB_db1!.split("/").at(-1)!.split("?").at(0)!;
   }
 
   private async cleanup() {
@@ -55,7 +51,12 @@ export class TestApplicationHelper {
     userData: USER_TYPE,
     createUser: boolean = true,
   ): Promise<string> {
-    createUser && (await User.create({ email: userData.email }));
+    const connection = getConnection(this.dbName);
+    const userModel = getUserModel(connection);
+    createUser &&
+      (await userModel.create({
+        email: userData.email,
+      }));
     return jwt_sign(userData, Bun.env.JWT_SECRET!);
   }
 
@@ -72,7 +73,7 @@ export class TestApplicationHelper {
     token?: string;
     body?: any;
   }): Promise<Response> {
-    return this.app.request(url, {
+    return this.app.request(`${this.dbName}/${url}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -91,7 +92,7 @@ export class TestApplicationHelper {
     token?: string;
     body?: any;
   }): Promise<Response> {
-    return this.app.request(url, {
+    return this.app.request(`${this.dbName}/${url}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -110,7 +111,7 @@ export class TestApplicationHelper {
     token?: string;
     body?: any;
   }): Promise<Response> {
-    return this.app.request(url, {
+    return this.app.request(`${this.dbName}/${url}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -127,7 +128,7 @@ export class TestApplicationHelper {
     url: string;
     token?: string;
   }): Promise<Response> {
-    return this.app.request(url, {
+    return this.app.request(`${this.dbName}/${url}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -143,7 +144,7 @@ export class TestApplicationHelper {
     url: string;
     token?: string;
   }): Promise<Response> {
-    return this.app.request(url, {
+    return this.app.request(`${this.dbName}/${url}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
