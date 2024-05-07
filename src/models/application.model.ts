@@ -2,7 +2,7 @@ import type { ObjectId } from "mongodb";
 import mongoose, { Schema } from "mongoose";
 import type { Environment } from "./environment.model";
 
-const ApplicationSchema = new Schema({
+export const ApplicationSchema = new Schema({
   name: {
     type: String,
     required: true,
@@ -30,5 +30,5 @@ export type Application = {
   extras?: Record<string, unknown>;
 };
 
-const Application = mongoose.model("Application", ApplicationSchema);
+const Application = mongoose.connection.model("Application", ApplicationSchema);
 export default Application;

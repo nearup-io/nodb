@@ -9,7 +9,7 @@ const TokenSchema = new Schema(
   { _id: false },
 );
 
-const EnvironmentSchema = new Schema({
+export const EnvironmentSchema = new Schema({
   name: {
     type: String,
     required: true,
@@ -39,5 +39,5 @@ export type Environment = {
   entities?: string[]; // only names/slugs ["my-entity", "movies"]
   description: string;
 };
-const Environment = mongoose.model("Environment", EnvironmentSchema);
+const Environment = mongoose.connection.model("Environment", EnvironmentSchema);
 export default Environment;

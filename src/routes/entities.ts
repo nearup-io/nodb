@@ -1,7 +1,9 @@
-import { type Env, Hono } from "hono";
+import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { BlankSchema } from "hono/types";
+import type mongoose from "mongoose";
 import * as R from "ramda";
+import dbMiddleware from "../middlewares/db.middleware.ts";
 import {
   createOrOverwriteEntities,
   deleteRootAndUpdateEnv,
@@ -12,6 +14,7 @@ import {
   replaceEntities,
   updateEntities,
 } from "../services/entity.service";
+import type { USER_TYPE } from "../utils/auth-utils.ts";
 import { httpError } from "../utils/const";
 import {
   asyncTryJson,
@@ -21,55 +24,65 @@ import {
 import { entityQueryValidator } from "../utils/route-validators";
 import { RoutingError, ServiceError } from "../utils/service-errors";
 import type { EntityRequestDto, PostEntityRequestDto } from "../utils/types.ts";
-import authMiddleware from "../middlewares/auth.middleware.ts";
 
-const app = new Hono<Env, BlankSchema, "/:appName/:envName/:entityName">();
-app.use(authMiddleware);
+const app = new Hono<
+  { Variables: { user: USER_TYPE; dbConnection: mongoose.Connection } },
+  BlankSchema,
+  "/:appName/:envName/:entityName"
+>();
+app.use(dbMiddleware);
+
 
 app.get("/*", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
-  const { xpath, pathRestSegments, xpathEntitySegments } =
-    getCommonEntityRouteProps(c.req.path, c.req.param());
+  const { xpath, pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
+    c.req.path,
+    c.req.param()
+  );
   try {
-    if (isEntitiesList(pathRestSegments)) {
-      const result = await getEntities({
-        xpathEntitySegments,
-        propFilters: q.props,
-        metaFilters: q.meta,
-        routeParams: c.req.param(),
-        rawQuery: c.req.query(),
-      });
-      return c.json(result);
-    } else {
-      const entity = await getSingleEntity({
+  if (isEntitiesList(pathRestSegments)) {
+    const result = await getEntities({
+      conn: c.get('dbConnection'),
+      xpathEntitySegments,
+      propFilters: q.props,
+      metaFilters: q.meta,
+      routeParams: c.req.param(),
+      rawQuery: c.req.query(),
+    });
+    return c.json(result);
+  } else {
+    const entity = await getSingleEntity({
         xpath,
+      conn: c.get('dbConnection'),
         requestParams: c.req.param(),
-        metaFilters: q.meta,
-        entityId: R.last(pathRestSegments)!,
         xpathEntitySegments,
-      });
-      return c.json(entity);
+      metaFilters: q.meta,
+      entityId: R.last(pathRestSegments)!,
+    });
+    return c.json(entity);
     }
-  } catch (error) {
-    if (error instanceof ServiceError) {
-      if (
-        [httpError.ENV_DOESNT_EXIST, httpError.ENTITY_NOT_FOUND].includes(
-          error.explicitMessage,
-        )
-      ) {
-        throw new HTTPException(404, {
-          message: error.explicitMessage,
-        });
+
+  }
+  catch (error) {
+      if (error instanceof ServiceError) {
+          if (
+              [httpError.ENV_DOESNT_EXIST, httpError.ENTITY_NOT_FOUND].includes(
+                  error.explicitMessage,
+              )
+          ) {
+              throw new HTTPException(404, {
+                  message: error.explicitMessage,
+              });
+          } else {
+              throw new HTTPException(400, {
+                  message: error.explicitMessage,
+              });
+          }
       } else {
-        throw new HTTPException(400, {
-          message: error.explicitMessage,
-        });
+          throw new HTTPException(500, {
+              message: httpError.UNKNOWN,
+          });
       }
-    } else {
-      throw new HTTPException(500, {
-        message: httpError.UNKNOWN,
-      });
-    }
   }
 });
 
@@ -85,13 +98,15 @@ app.post("/*", async (c) => {
   try {
     const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
       c.req.path,
-      c.req.param(),
+      c.req.param()
     );
 
     if (!isEntitiesList(pathRestSegments)) {
       throw new RoutingError(httpError.ENTITY_PATH_CREATION);
     }
+    const conn = c.get("dbConnection");
     const ids = await createOrOverwriteEntities({
+      conn,
       appName,
       envName,
       xpathEntitySegments,
@@ -118,10 +133,11 @@ app.delete("/*", async (c) => {
     c.req.path,
     c.req.param(),
   );
-
+    const conn = c.get("dbConnection");
   try {
     if (R.isEmpty(pathRestSegments)) {
       const res = await deleteRootAndUpdateEnv({
+          conn,
         appName,
         envName,
         entityName,
@@ -130,6 +146,7 @@ app.delete("/*", async (c) => {
     } else if (pathRestSegments.length % 2 === 0) {
       // delete sub entities
       const res = await deleteSubEntitiesAndUpdateEnv({
+          conn,
         appName,
         envName,
         xpathEntitySegments,
@@ -138,6 +155,7 @@ app.delete("/*", async (c) => {
     } else {
       // delete single entity
       const res = await deleteSingleEntityAndUpdateEnv({
+          conn,
         appName,
         envName,
         xpathEntitySegments,
@@ -176,8 +194,10 @@ app.put("/*", async (c) => {
       message: httpError.BODY_IS_NOT_ARRAY,
     });
   }
+  const conn = c.get("dbConnection");
   try {
     const ids = await replaceEntities({
+      conn,
       appName,
       envName,
       xpathEntitySegments,
@@ -210,8 +230,10 @@ app.patch("/*", async (c) => {
       message: httpError.BODY_IS_NOT_ARRAY,
     });
   }
+  const conn = c.get("dbConnection");
   try {
     const ids = await updateEntities({
+      conn,
       appName,
       envName,
       xpathEntitySegments,
