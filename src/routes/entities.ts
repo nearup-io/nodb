@@ -32,57 +32,52 @@ const app = new Hono<
 >();
 app.use(dbMiddleware);
 
-
 app.get("/*", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
-  const { xpath, pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
-    c.req.path,
-    c.req.param()
-  );
+  const { xpath, pathRestSegments, xpathEntitySegments } =
+    getCommonEntityRouteProps(c.req.path, c.req.param());
   try {
-  if (isEntitiesList(pathRestSegments)) {
-    const result = await getEntities({
-      conn: c.get('dbConnection'),
-      xpathEntitySegments,
-      propFilters: q.props,
-      metaFilters: q.meta,
-      routeParams: c.req.param(),
-      rawQuery: c.req.query(),
-    });
-    return c.json(result);
-  } else {
-    const entity = await getSingleEntity({
+    if (isEntitiesList(pathRestSegments)) {
+      const result = await getEntities({
+        conn: c.get("dbConnection"),
+        xpathEntitySegments,
+        propFilters: q.props,
+        metaFilters: q.meta,
+        routeParams: c.req.param(),
+        rawQuery: c.req.query(),
+      });
+      return c.json(result);
+    } else {
+      const entity = await getSingleEntity({
         xpath,
-      conn: c.get('dbConnection'),
+        conn: c.get("dbConnection"),
         requestParams: c.req.param(),
         xpathEntitySegments,
-      metaFilters: q.meta,
-      entityId: R.last(pathRestSegments)!,
-    });
-    return c.json(entity);
+        metaFilters: q.meta,
+        entityId: R.last(pathRestSegments)!,
+      });
+      return c.json(entity);
     }
-
-  }
-  catch (error) {
-      if (error instanceof ServiceError) {
-          if (
-              [httpError.ENV_DOESNT_EXIST, httpError.ENTITY_NOT_FOUND].includes(
-                  error.explicitMessage,
-              )
-          ) {
-              throw new HTTPException(404, {
-                  message: error.explicitMessage,
-              });
-          } else {
-              throw new HTTPException(400, {
-                  message: error.explicitMessage,
-              });
-          }
+  } catch (error) {
+    if (error instanceof ServiceError) {
+      if (
+        [httpError.ENV_DOESNT_EXIST, httpError.ENTITY_NOT_FOUND].includes(
+          error.explicitMessage,
+        )
+      ) {
+        throw new HTTPException(404, {
+          message: error.explicitMessage,
+        });
       } else {
-          throw new HTTPException(500, {
-              message: httpError.UNKNOWN,
-          });
+        throw new HTTPException(400, {
+          message: error.explicitMessage,
+        });
       }
+    } else {
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
+      });
+    }
   }
 });
 
@@ -98,7 +93,7 @@ app.post("/*", async (c) => {
   try {
     const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
       c.req.path,
-      c.req.param()
+      c.req.param(),
     );
 
     if (!isEntitiesList(pathRestSegments)) {
@@ -133,11 +128,11 @@ app.delete("/*", async (c) => {
     c.req.path,
     c.req.param(),
   );
-    const conn = c.get("dbConnection");
+  const conn = c.get("dbConnection");
   try {
     if (R.isEmpty(pathRestSegments)) {
       const res = await deleteRootAndUpdateEnv({
-          conn,
+        conn,
         appName,
         envName,
         entityName,
@@ -146,7 +141,7 @@ app.delete("/*", async (c) => {
     } else if (pathRestSegments.length % 2 === 0) {
       // delete sub entities
       const res = await deleteSubEntitiesAndUpdateEnv({
-          conn,
+        conn,
         appName,
         envName,
         xpathEntitySegments,
@@ -155,7 +150,7 @@ app.delete("/*", async (c) => {
     } else {
       // delete single entity
       const res = await deleteSingleEntityAndUpdateEnv({
-          conn,
+        conn,
         appName,
         envName,
         xpathEntitySegments,
