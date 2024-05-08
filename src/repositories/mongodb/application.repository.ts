@@ -1,12 +1,6 @@
 import { ObjectId } from "mongodb";
 import mongoose from "mongoose";
 import * as R from "ramda";
-import {
-  getApplicationModel,
-  getEntityModel,
-  getEnvironmentModel,
-  getUserModel,
-} from "../../connections/connect.ts";
 import { type Application } from "../../models/application.model.ts";
 import { type Environment } from "../../models/environment.model.ts";
 import generateToken from "../../utils/backend-token.ts";
@@ -21,7 +15,7 @@ class ApplicationRepository extends BaseRepository {
   private async getEnvironmentsByAppName(
     appName: string,
   ): Promise<Environment[]> {
-    return getApplicationModel(this.conn).aggregate<Environment>([
+    return this.applicationModel.aggregate<Environment>([
       { $match: { name: appName } },
       {
         $lookup: {
@@ -51,7 +45,7 @@ class ApplicationRepository extends BaseRepository {
     appName: string;
     userEmail: string;
   }): Promise<Application | undefined> {
-    const userApplications = await getUserModel(this.conn).aggregate([
+    const userApplications = await this.userModel.aggregate([
       {
         $match: {
           $and: [
@@ -101,7 +95,7 @@ class ApplicationRepository extends BaseRepository {
   }: {
     userEmail: string;
   }): Promise<Application[]> {
-    return getUserModel(this.conn).aggregate<Application>([
+    return this.userModel.aggregate<Application>([
       { $match: { email: userEmail } },
       { $limit: 1 },
       {
@@ -156,7 +150,7 @@ class ApplicationRepository extends BaseRepository {
     appDescription: string;
   }): Promise<void> {
     await this.transaction<void>(async (session) => {
-      const environment = await getEnvironmentModel(this.conn).create(
+      const environment = await this.environmentModel.create(
         [
           {
             name: defaultNodbEnv,
@@ -172,7 +166,7 @@ class ApplicationRepository extends BaseRepository {
         ],
         { session },
       );
-      await getApplicationModel(this.conn).create(
+      await this.applicationModel.create(
         [
           {
             name: appName,
@@ -183,7 +177,7 @@ class ApplicationRepository extends BaseRepository {
         ],
         { session },
       );
-      await getUserModel(this.conn).findOneAndUpdate(
+      await this.userModel.findOneAndUpdate(
         { email: userEmail },
         { $addToSet: { applications: appName } },
         { session },
@@ -202,7 +196,7 @@ class ApplicationRepository extends BaseRepository {
   }): Promise<Application | null> {
     const result = await this.transaction<Application | null>(
       async (session) => {
-        const doc = await getApplicationModel(this.conn).findOneAndUpdate(
+        const doc = await this.applicationModel.findOneAndUpdate(
           { name: props.oldAppName },
           { ...props.updateProps },
           { session },
@@ -212,7 +206,7 @@ class ApplicationRepository extends BaseRepository {
           props.oldAppName !== props.updateProps.newAppName &&
           R.is(String, props.updateProps.newAppName)
         ) {
-          await getUserModel(this.conn).findOneAndUpdate(
+          await this.userModel.findOneAndUpdate(
             { email: props.userEmail, applications: props.oldAppName },
             { $set: { "applications.$": props.updateProps.newAppName } },
             { session },
@@ -234,24 +228,25 @@ class ApplicationRepository extends BaseRepository {
     const envs = await this.getEnvironmentsByAppName(appName);
 
     return this.transaction<Application | null>(async (session) => {
-      const app = await getApplicationModel(
-        this.conn,
-      ).findOneAndDelete<Application>({ name: appName }, { session });
+      const app = await this.applicationModel.findOneAndDelete<Application>(
+        { name: appName },
+        { session },
+      );
       if (app && app._id) {
-        await getEnvironmentModel(this.conn).deleteMany(
+        await this.environmentModel.deleteMany(
           {
             _id: { $in: envs.map((e) => e._id) },
           },
           { session },
         );
-        await getUserModel(this.conn).findOneAndUpdate(
+        await this.userModel.findOneAndUpdate(
           { email: userEmail },
           {
             $pull: { applications: appName },
           },
           { session },
         );
-        await getEntityModel(this.conn).deleteMany(
+        await this.entityModel.deleteMany(
           { type: { $regex: `^${appName}/` } },
           { session },
         );
