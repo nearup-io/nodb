@@ -24,18 +24,29 @@ import {
 import { entityQueryValidator } from "../utils/route-validators";
 import { RoutingError, ServiceError } from "../utils/service-errors";
 import type { EntityRequestDto, PostEntityRequestDto } from "../utils/types.ts";
+import type Context from "../middlewares/context.ts";
+import contextMiddleware from "../middlewares/context.middleware.ts";
 
 const app = new Hono<
-  { Variables: { user: USER_TYPE; dbConnection: mongoose.Connection } },
+  {
+    Variables: {
+      user: USER_TYPE;
+      dbConnection: mongoose.Connection;
+      context: Context;
+    };
+  },
   BlankSchema,
   "/:appName/:envName/:entityName"
 >();
 app.use(dbMiddleware);
+app.use(contextMiddleware);
 
 app.get("/*", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
   const { xpath, pathRestSegments, xpathEntitySegments } =
     getCommonEntityRouteProps(c.req.path, c.req.param());
+
+  const context = c.get("context");
   try {
     if (isEntitiesList(pathRestSegments)) {
       const result = await getEntities({
@@ -50,7 +61,7 @@ app.get("/*", entityQueryValidator(), async (c) => {
     } else {
       const entity = await getSingleEntity({
         xpath,
-        conn: c.get("dbConnection"),
+        context,
         requestParams: c.req.param(),
         xpathEntitySegments,
         metaFilters: q.meta,
@@ -99,9 +110,8 @@ app.post("/*", async (c) => {
     if (!isEntitiesList(pathRestSegments)) {
       throw new RoutingError(httpError.ENTITY_PATH_CREATION);
     }
-    const conn = c.get("dbConnection");
     const ids = await createOrOverwriteEntities({
-      conn,
+      context: c.get("context"),
       appName,
       envName,
       xpathEntitySegments,
@@ -128,11 +138,11 @@ app.delete("/*", async (c) => {
     c.req.path,
     c.req.param(),
   );
-  const conn = c.get("dbConnection");
+  const context = c.get("context");
   try {
     if (R.isEmpty(pathRestSegments)) {
       const res = await deleteRootAndUpdateEnv({
-        conn,
+        context,
         appName,
         envName,
         entityName,
@@ -141,7 +151,7 @@ app.delete("/*", async (c) => {
     } else if (pathRestSegments.length % 2 === 0) {
       // delete sub entities
       const res = await deleteSubEntitiesAndUpdateEnv({
-        conn,
+        context,
         appName,
         envName,
         xpathEntitySegments,
@@ -150,7 +160,7 @@ app.delete("/*", async (c) => {
     } else {
       // delete single entity
       const res = await deleteSingleEntityAndUpdateEnv({
-        conn,
+        context,
         appName,
         envName,
         xpathEntitySegments,
@@ -189,10 +199,9 @@ app.put("/*", async (c) => {
       message: httpError.BODY_IS_NOT_ARRAY,
     });
   }
-  const conn = c.get("dbConnection");
   try {
     const ids = await replaceEntities({
-      conn,
+      context: c.get("context"),
       appName,
       envName,
       xpathEntitySegments,
@@ -225,10 +234,9 @@ app.patch("/*", async (c) => {
       message: httpError.BODY_IS_NOT_ARRAY,
     });
   }
-  const conn = c.get("dbConnection");
   try {
     const ids = await updateEntities({
-      conn,
+      context: c.get("context"),
       appName,
       envName,
       xpathEntitySegments,

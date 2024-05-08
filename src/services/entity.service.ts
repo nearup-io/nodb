@@ -1,15 +1,14 @@
 import mongoose from "mongoose";
 import * as R from "ramda";
-import { getEntityModel, getEnvironmentModel } from "../connections/connect.ts";
+import { getEntityModel } from "../connections/connect.ts";
 import { type Entity } from "../models/entity.model";
-import { type Environment } from "../models/environment.model";
 import {
   getAnthropicMessage,
   getEmbedding,
   getOpenaiCompletion,
 } from "../utils/ai-utils.ts";
 import generateToken from "../utils/backend-token";
-import { httpError, llms } from "../utils/const";
+import { ENTITY_MONGO_DB_REPOSITORY, httpError, llms } from "../utils/const";
 import {
   entityMetaResponse,
   getAggregateQuery,
@@ -29,6 +28,8 @@ import type {
   PostEntityRequestDto,
 } from "../utils/types.ts";
 import { findEnvironment } from "./environment.service";
+import type Context from "../middlewares/context.ts";
+import { EntityRepository } from "../repositories/mongodb";
 
 type EntityAggregateResult = {
   totalCount: number;
@@ -173,7 +174,7 @@ export const getEntities = async ({
   });
   const fromDb = await getEntityModel(conn).aggregate<EntityAggregateResult>(
     // @ts-ignore TODO: using $sort raises "No overload matches this call"
-    aggregateQuery
+    aggregateQuery,
   );
 
   const entityName = getEntityTypes(xpathEntitySegments).at(-1)!;
@@ -215,39 +216,38 @@ export const getEntities = async ({
   };
 };
 
-export const getSingleEntity = async ({
-    conn,
+const getSingleEntity = async ({
+  context,
   requestParams: { appName, envName },
   metaFilters,
   entityId,
   xpathEntitySegments,
   xpath,
 }: {
-    conn: mongoose.Connection;
+  context: Context;
   xpath: string;
   requestParams: EntityRouteParams;
   metaFilters: EntityQueryMeta;
   entityId: string;
   xpathEntitySegments: string[];
 }) => {
-  const environment: Environment | undefined = await findEnvironment({
-    conn,
+  const environment = await findEnvironment({
     appName,
     envName,
+    context,
   });
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-
   const entityTypes = getEntityTypes(xpathEntitySegments);
-
-  const entity = await getEntityModel(conn).findOne({
-    id: entityId,
-    type: {
-      $regex: new RegExp(
-        `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`,
-      ),
-    },
+  const entityRepository = context.get<EntityRepository>(
+    ENTITY_MONGO_DB_REPOSITORY,
+  );
+  const entity = await entityRepository.getSingleEntity({
+    entityId,
+    appName,
+    envName,
+    entityTypes,
   });
   if (!entity) {
     throw new ServiceError(httpError.ENTITY_NOT_FOUND);
@@ -283,23 +283,23 @@ export const getSingleEntity = async ({
   };
 };
 
-export const createOrOverwriteEntities = async ({
-  conn,
+const createOrOverwriteEntities = async ({
+  context,
   appName,
   envName,
   xpathEntitySegments,
   bodyEntities,
 }: {
-  conn: mongoose.Connection;
+  context: Context;
   appName: string;
   envName: string;
   xpathEntitySegments: string[];
   bodyEntities: PostEntityRequestDto[];
-}) => {
+}): Promise<string[]> => {
   const environment = await findEnvironment({
-    conn,
     appName,
     envName,
+    context,
   });
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
@@ -337,92 +337,73 @@ export const createOrOverwriteEntities = async ({
       embedding,
     });
   }
-  const session = await conn.startSession();
-  session.startTransaction();
-  const entityModel = getEntityModel(conn);
+
+  const entityRepository = context.get<EntityRepository>(
+    ENTITY_MONGO_DB_REPOSITORY,
+  );
+
   try {
-    await entityModel.deleteMany(
-      { id: { $in: entitiesIdsToBeReplaced } },
-      { session }
-    );
-    await getEnvironmentModel(conn).findOneAndUpdate(
-      { _id: environment._id },
-      { $addToSet: { entities: entityTypes.join("/") } },
-      { session }
-    );
-    await entityModel.insertMany(insertEntities, { session });
-    await session.commitTransaction();
-    return insertEntities.map((e) => e.id);
+    return await entityRepository.createOrOverwriteEntities({
+      entitiesIdsToBeReplaced,
+      entityTypes,
+      dbEnvironmentId: environment._id.toString(),
+      insertEntities,
+    });
   } catch (e) {
     console.error("Error adding entities", e);
-    await session.abortTransaction();
     throw new ServiceError(httpError.ENTITIES_CANT_ADD);
-  } finally {
-    await session.endSession();
   }
 };
 
-export const deleteRootAndUpdateEnv = async ({
-  conn,
+const deleteRootAndUpdateEnv = async ({
+  context,
   appName,
   envName,
   entityName,
 }: {
-  conn: mongoose.Connection;
+  context: Context;
   appName: string;
   envName: string;
   entityName: string;
-}) => {
+}): Promise<{ done: number }> => {
   const environment = await findEnvironment({
-    conn,
+    context,
     appName,
     envName,
   });
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const session = await conn.startSession();
-  session.startTransaction();
+  const entityRepository = context.get<EntityRepository>(
+    ENTITY_MONGO_DB_REPOSITORY,
+  );
+
   try {
-    const entities = await getEntityModel(conn).deleteMany(
-      {
-        type: {
-          $regex: new RegExp(
-            `\\b(${`${appName}/${envName}/${entityName}`})\\b`,
-          ),
-        },
-      },
-      { session },
-    );
-    await getEnvironmentModel(conn).findOneAndUpdate(
-      { _id: environment._id },
-      { $pull: { entities: { $regex: new RegExp(`\\b(${entityName})\\b`) } } },
-      { session },
-    );
-    await session.commitTransaction();
-    return { done: entities.deletedCount };
+    return entityRepository.deleteRootAndUpdateEnv({
+      appName,
+      envName,
+      entityName,
+      dbEnvironmentId: environment._id.toString(),
+    });
   } catch (e) {
     console.error("Error deleting entities", e);
-    await session.abortTransaction();
     throw new ServiceError(httpError.ENTITIES_CANT_DELETE);
-  } finally {
-    await session.endSession();
   }
 };
 
-export const deleteSubEntitiesAndUpdateEnv = async ({
-  conn,
+const deleteSubEntitiesAndUpdateEnv = async ({
+  context,
   appName,
   envName,
   xpathEntitySegments,
 }: {
-  conn: mongoose.Connection;
+  context: Context;
   appName: string;
   envName: string;
   xpathEntitySegments: string[];
-}) => {
+}): Promise<{ done: number }> => {
   const environment = await findEnvironment({
-    conn,
+    context,
     appName,
     envName,
   });
@@ -435,49 +416,39 @@ export const deleteSubEntitiesAndUpdateEnv = async ({
   const ancestors = xpathEntitySegments.filter(
     (_: any, i: number) => i % 2 !== 0,
   );
-  const entityTypeRegex = `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`;
-  const envEntityTypeRegex = `\\b(${entityTypes.join("/")})\\b`;
-  const session = await conn.startSession();
-  session.startTransaction();
+
+  const entityRepository = context.get<EntityRepository>(
+    ENTITY_MONGO_DB_REPOSITORY,
+  );
+
   try {
-    const entities = await getEntityModel(conn).deleteMany(
-      {
-        ancestors: { $all: ancestors },
-        type: {
-          $regex: new RegExp(entityTypeRegex),
-        },
-      },
-      { session }
-    );
-    await getEnvironmentModel(conn).findOneAndUpdate(
-      { _id: environment._id },
-      { $pull: { entities: { $regex: envEntityTypeRegex } } },
-      { session }
-    );
-    await session.commitTransaction();
-    return { done: entities.deletedCount };
+    return entityRepository.deleteSubEntitiesAndUpdateEnv({
+      appName,
+      envName,
+      entityTypes,
+      dbEnvironmentId: environment._id.toString(),
+      ancestors,
+    });
   } catch (e) {
     console.error("Error deleting entities", e);
-    await session.abortTransaction();
     throw new ServiceError(httpError.ENTITIES_CANT_DELETE);
   } finally {
-    await session.endSession();
   }
 };
 
-export const deleteSingleEntityAndUpdateEnv = async ({
-  conn,
+const deleteSingleEntityAndUpdateEnv = async ({
+  context,
   appName,
   envName,
   xpathEntitySegments,
 }: {
-  conn: mongoose.Connection;
+  context: Context;
   appName: string;
   envName: string;
   xpathEntitySegments: string[];
-}) => {
+}): Promise<Entity | null> => {
   const environment = await findEnvironment({
-    conn,
+    context,
     appName,
     envName,
   });
@@ -485,58 +456,35 @@ export const deleteSingleEntityAndUpdateEnv = async ({
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
   const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0
+    (_: any, i: number) => i % 2 === 0,
   );
-  const entityId = R.last(xpathEntitySegments);
-  const entityModel = getEntityModel(conn);
-  const entity = await entityModel.findOne({ id: entityId });
-  if (entity && entity.id) {
-    const session = await conn.startSession();
-    session.startTransaction();
-    try {
-      await entityModel.deleteOne({ id: entityId }, { session });
-      await entityModel.deleteMany(
-        {
-          ancestors: { $elemMatch: { $eq: entityId } },
-        },
-        { session }
-      );
-      // if deleted the last one of its type
-      const entityCheck = await entityModel.find({
-        type: { $regex: `${appName}/${envName}/${entityTypes.join("/")}` },
-      });
-      if (entityCheck.length < 1) {
-        await getEnvironmentModel(conn).findOneAndUpdate(
-          { _id: environment._id },
-          {
-            $pull: {
-              entities: {
-                $regex: new RegExp(`\\b(${entityTypes.join("/")})\\b`),
-              },
-            },
-          },
-          { session }
-        );
-      }
-    } catch (e) {
-      console.log("Error deleting entity", e);
-      await session.abortTransaction();
-      throw new ServiceError(httpError.ENTITIES_CANT_DELETE);
-    } finally {
-      await session.endSession();
-    }
+  const entityId = R.last(xpathEntitySegments)!;
+
+  const entityRepository = context.get<EntityRepository>(
+    ENTITY_MONGO_DB_REPOSITORY,
+  );
+  try {
+    return entityRepository.deleteSingleEntityAndUpdateEnv({
+      appName,
+      envName,
+      entityTypes,
+      entityId,
+      dbEnvironmentId: environment._id.toString(),
+    });
+  } catch (e) {
+    console.log("Error deleting entity", e);
+    throw new ServiceError(httpError.ENTITIES_CANT_DELETE);
   }
-  return entity;
 };
 
-export const replaceEntities = async ({
-  conn,
+const replaceEntities = async ({
+  context,
   appName,
   envName,
   xpathEntitySegments,
   bodyEntities,
 }: {
-  conn: mongoose.Connection;
+  context: Context;
   appName: string;
   envName: string;
   xpathEntitySegments: string[];
@@ -545,20 +493,25 @@ export const replaceEntities = async ({
   const environment = await findEnvironment({
     appName,
     envName,
-      conn
+    context,
   });
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
+  const entityRepository = context.get<EntityRepository>(
+    ENTITY_MONGO_DB_REPOSITORY,
+  );
+
   const entityTypes = getEntityTypes(xpathEntitySegments);
   const ancestors = getAncestors(xpathEntitySegments);
   const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
-  const entityModel = getEntityModel(conn);
-  const dbExistingDocuments = await entityModel.find({
-    id: { $in: documentIds },
-    type: `${appName}/${envName}/${entityTypes.join("/")}`,
-    ancestors,
-  });
+
+  const dbExistingDocuments =
+    await entityRepository.findEntitiesByIdsTypeAndAncestors({
+      ids: documentIds,
+      type: `${appName}/${envName}/${entityTypes.join("/")}`,
+      ancestors,
+    });
 
   if (
     R.isEmpty(dbExistingDocuments) &&
@@ -586,30 +539,25 @@ export const replaceEntities = async ({
     });
   }
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
-    await entityModel.deleteMany({ id: { $in: documentIds } }, { session });
-    await entityModel.insertMany(entitiesToBeInserted, { session });
-    await session.commitTransaction();
-    return entitiesToBeInserted.map((e) => e.id);
+    return entityRepository.replaceEntities({
+      entitiesToBeInserted,
+      ids: documentIds,
+    });
   } catch (e) {
     console.error("Error updating entities", e);
-    await session.abortTransaction();
     throw new ServiceError(httpError.ENTITIES_CANT_UPDATE);
-  } finally {
-    await session.endSession();
   }
 };
 
-export const updateEntities = async ({
-  conn,
+const updateEntities = async ({
+  context,
   appName,
   envName,
   xpathEntitySegments,
   bodyEntities,
 }: {
-  conn: mongoose.Connection;
+  context: Context;
   appName: string;
   envName: string;
   xpathEntitySegments: string[];
@@ -618,20 +566,24 @@ export const updateEntities = async ({
   const environment = await findEnvironment({
     appName,
     envName,
-      conn,
+    context,
   });
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
+
+  const entityRepository = context.get<EntityRepository>(
+    ENTITY_MONGO_DB_REPOSITORY,
+  );
   const entityTypes = getEntityTypes(xpathEntitySegments);
   const ancestors = getAncestors(xpathEntitySegments);
   const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
-  const entityModel = getEntityModel(conn);
-  const dbExistingDocuments = await entityModel.find({
-    id: { $in: documentIds },
-    type: `${appName}/${envName}/${entityTypes.join("/")}`,
-    ancestors,
-  });
+  const dbExistingDocuments =
+    await entityRepository.findEntitiesByIdsTypeAndAncestors({
+      ids: documentIds,
+      type: `${appName}/${envName}/${entityTypes.join("/")}`,
+      ancestors,
+    });
   if (R.isEmpty(dbExistingDocuments)) {
     throw new ServiceError(httpError.ENTITY_NOT_FOUND);
   }
@@ -658,19 +610,14 @@ export const updateEntities = async ({
     });
   }
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
-    await entityModel.deleteMany({ id: { $in: documentIds } }, { session });
-    await entityModel.insertMany(entitiesToBeInserted, { session });
-    await session.commitTransaction();
-    return entitiesToBeInserted.map((e) => e.id);
+    return entityRepository.replaceEntities({
+      entitiesToBeInserted,
+      ids: documentIds,
+    });
   } catch (e) {
     console.error("Error updating entities", e);
-    await session.abortTransaction();
     throw new ServiceError(httpError.ENTITIES_CANT_UPDATE);
-  } finally {
-    await session.endSession();
   }
 };
 
@@ -727,4 +674,14 @@ const generatePaginationMetadata = ({
         : `${baseUrl}?__page=${previousPage}&__per_page=${limit}${addQueries}`,
     current_page: `${baseUrl}?__page=${currentPage}&__per_page=${limit}${addQueries}`,
   };
+};
+
+export {
+  getSingleEntity,
+  createOrOverwriteEntities,
+  replaceEntities,
+  updateEntities,
+  deleteRootAndUpdateEnv,
+  deleteSubEntitiesAndUpdateEnv,
+  deleteSingleEntityAndUpdateEnv,
 };
