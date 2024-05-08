@@ -50,7 +50,7 @@ app.get("/*", entityQueryValidator(), async (c) => {
   try {
     if (isEntitiesList(pathRestSegments)) {
       const result = await getEntities({
-        conn: c.get("dbConnection"),
+        context,
         xpathEntitySegments,
         propFilters: q.props,
         metaFilters: q.meta,

@@ -60,7 +60,7 @@ export const getAnthropicMessage = async ({
   }
 };
 
-export const getEmbedding = async (input: string) => {
+export const getEmbedding = async (input: string): Promise<number[]> => {
   const { OPENAI_API_KEY, EMBEDDING_MODEL, VOYAGE_API_KEY } = Bun.env;
   if (EMBEDDING_MODEL && VOYAGE_API_KEY) {
     // Voyage AI doesn't provide TS package
@@ -70,7 +70,7 @@ export const getEmbedding = async (input: string) => {
         apiKey: VOYAGE_API_KEY,
         input,
         model: EMBEDDING_MODEL,
-      })
+      }),
     );
     const embeddingRequestJson = await embeddingRequest.json();
     return embeddingRequestJson.data[0].embedding;
@@ -82,6 +82,7 @@ export const getEmbedding = async (input: string) => {
     });
     return embedding.data[0].embedding;
   }
+  return [];
 };
 
 const voyageaiFetch = {

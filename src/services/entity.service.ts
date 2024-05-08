@@ -1,6 +1,4 @@
-import mongoose from "mongoose";
 import * as R from "ramda";
-import { getEntityModel } from "../connections/connect.ts";
 import { type Entity } from "../models/entity.model";
 import {
   getAnthropicMessage,
@@ -11,13 +9,11 @@ import generateToken from "../utils/backend-token";
 import { ENTITY_MONGO_DB_REPOSITORY, httpError, llms } from "../utils/const";
 import {
   entityMetaResponse,
-  getAggregateQuery,
   getAncestors,
   getEntityTypes,
   getPaginationNumbers,
   isTypePathCorrect,
   throwIfNoParent,
-  toModelFilters,
 } from "../utils/entity-utils";
 import { ServiceError } from "../utils/service-errors";
 import type {
@@ -31,89 +27,61 @@ import { findEnvironment } from "./environment.service";
 import type Context from "../middlewares/context.ts";
 import { EntityRepository } from "../repositories/mongodb";
 
-type EntityAggregateResult = {
+export type EntityAggregateResult = {
   totalCount: number;
   entities: Entity[];
 };
 
 const { NODB_VECTOR_INDEX: vectorIndex = "nodb_vector_index" } = Bun.env;
 
-export const searchEntities = async ({
-  conn,
+const searchEntities = async ({
+  context,
   query,
   limit = 5,
   entityType,
 }: {
-  conn: mongoose.Connection;
+  context: Context;
   query: string;
-  limit: number;
-  entityType: string | null;
+  limit?: number;
+  entityType?: string;
 }) => {
+  const entityRepository = context.get<EntityRepository>(
+    ENTITY_MONGO_DB_REPOSITORY,
+  );
   const embedding = await getEmbedding(query);
-  const res = await getEntityModel(conn).aggregate([
-    {
-      $vectorSearch: {
-        index: vectorIndex,
-        path: "embedding",
-        queryVector: embedding,
-        numCandidates: limit * 15,
-        limit,
-        filter: entityType ? { type: entityType } : {},
-      },
-    },
-    {
-      $replaceRoot: {
-        newRoot: {
-          $mergeObjects: [
-            "$$ROOT",
-            "$model",
-            { __meta: { score: { $meta: "vectorSearchScore" } } },
-          ],
-        },
-      },
-    },
-    { $unset: ["_id", "ancestors", "model", "type", "embedding", "__v"] },
-  ]);
-  return res;
+
+  return entityRepository.searchEntities({
+    embedding,
+    entityType,
+    limit,
+    vectorIndex,
+  });
 };
 
-export const searchAiEntities = async ({
-  conn,
+const searchAiEntities = async ({
+  context,
   query,
   limit = 5,
   entityType,
 }: {
-  conn: mongoose.Connection;
+  context: Context;
   query: string;
-  limit: number;
-  entityType: string | null;
+  limit?: number;
+  entityType?: string;
 }) => {
+  const entityRepository = context.get<EntityRepository>(
+    ENTITY_MONGO_DB_REPOSITORY,
+  );
+
   const embedding = await getEmbedding(query);
   try {
-    const res = await getEntityModel(conn).aggregate([
-      {
-        $vectorSearch: {
-          index: vectorIndex,
-          path: "embedding",
-          queryVector: embedding,
-          numCandidates: limit * 15,
-          limit,
-          filter: entityType ? { type: entityType } : {},
-        },
-      },
-      {
-        $replaceRoot: {
-          newRoot: {
-            $mergeObjects: [
-              "$$ROOT",
-              "$model",
-              { meta: { score: { $meta: "vectorSearchScore" } } },
-            ],
-          },
-        },
-      },
-      { $unset: ["_id", "ancestors", "model", "type", "embedding", "__v"] },
-    ]);
+    const res = await entityRepository.searchEntities({
+      embedding,
+      limit,
+      vectorIndex,
+      entityType,
+    });
+
     const context = res.map((obj) => JSON.stringify(obj)).join(" ");
     let completion = null;
     try {
@@ -145,39 +113,45 @@ export const searchAiEntities = async ({
 };
 
 export const getEntities = async ({
-  conn,
+  context,
   xpathEntitySegments,
   propFilters,
   metaFilters,
   rawQuery,
   routeParams: { appName, envName },
 }: {
-  conn: mongoose.Connection;
+  context: Context;
   xpathEntitySegments: string[];
   propFilters: Record<string, unknown>;
   metaFilters: EntityQueryMeta;
   rawQuery: Record<string, string>;
   routeParams: EntityRouteParams;
 }): Promise<Record<string, any>> => {
-  const modelFilters = toModelFilters(propFilters);
   const paginationQuery = getPaginationNumbers({
     page: metaFilters?.page,
     perPage: metaFilters?.perPage,
   });
-  const aggregateQuery = getAggregateQuery({
-    modelFilters,
-    metaFilters,
-    paginationQuery,
-    appName,
-    envName,
-    xpathEntitySegments,
-  });
-  const fromDb = await getEntityModel(conn).aggregate<EntityAggregateResult>(
-    // @ts-ignore TODO: using $sort raises "No overload matches this call"
-    aggregateQuery,
+  const parentId =
+    xpathEntitySegments.length > 1 ? R.nth(-2, xpathEntitySegments) : undefined;
+  const ancestors = getAncestors(xpathEntitySegments);
+  const entityTypes = getEntityTypes(xpathEntitySegments);
+
+  const entityRepository = context.get<EntityRepository>(
+    ENTITY_MONGO_DB_REPOSITORY,
   );
 
-  const entityName = getEntityTypes(xpathEntitySegments).at(-1)!;
+  const fromDb = await entityRepository.getEntities({
+    propFilters,
+    metaFilters,
+    entityTypes,
+    appName,
+    envName,
+    parentId,
+    ancestors,
+    paginationQuery,
+  });
+
+  const entityName = entityTypes.at(-1)!;
   const { totalCount, entities } = fromDb.at(0) || {
     entities: [],
     totalCount: 0,
@@ -684,4 +658,6 @@ export {
   deleteRootAndUpdateEnv,
   deleteSubEntitiesAndUpdateEnv,
   deleteSingleEntityAndUpdateEnv,
+  searchEntities,
+  searchAiEntities,
 };

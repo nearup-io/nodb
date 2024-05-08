@@ -1,12 +1,102 @@
-import mongoose from "mongoose";
+import mongoose, { type PipelineStage } from "mongoose";
 import BaseRepository from "./base-repository.ts";
 import { type Entity } from "../../models/entity.model.ts";
 import { ObjectId } from "mongodb";
+import type { EntityQueryMeta, SortBy } from "../../utils/types.ts";
+import * as R from "ramda";
+import type { EntityAggregateResult } from "../../services/entity.service.ts";
 
 class EntityRepository extends BaseRepository {
   constructor(readonly conn: mongoose.Connection) {
     super(conn);
   }
+
+  private getSortDbQuery = (
+    sortBy: SortBy[] | undefined,
+  ): PipelineStage.Sort | undefined => {
+    if (!sortBy || R.isEmpty(sortBy)) {
+      return;
+    }
+    const initObj: Record<string, 1 | -1> = {};
+    const sort = sortBy.reduce((acc, cur) => {
+      if (!acc[`model.${cur.name}`]) {
+        acc[`model.${cur.name}`] = cur.order === "asc" ? 1 : -1;
+      }
+      return acc;
+    }, initObj);
+    return { $sort: sort };
+  };
+
+  private toModelFilters(
+    filters: Record<string, unknown>,
+  ): Record<string, unknown> {
+    // {
+    //   "foo": "bar" -> "model.foo": "bar"
+    //   "baz": "bux" -> "model.baz": "bux"
+    // }
+    const filtersKeys = R.keys(filters);
+    return filtersKeys
+      .map((k: string) => {
+        return { [`model.${k}`]: filters[k] };
+      })
+      .reduce((acc, cur) => {
+        acc[R.keys(cur)[0]] = R.values(cur)[0];
+        return acc;
+      }, {});
+  }
+
+  private getAggregateQuery = ({
+    modelFilters,
+    metaFilters,
+    paginationQuery: { skip, limit },
+    appName,
+    envName,
+    parentId,
+    ancestors,
+    entityTypes,
+  }: {
+    modelFilters: Record<string, unknown>;
+    metaFilters?: EntityQueryMeta;
+    paginationQuery: { skip: number; limit: number };
+    appName: string;
+    envName: string;
+    parentId?: string;
+    ancestors: string[];
+    entityTypes: string[];
+  }): PipelineStage[] => {
+    const paginationQuery = [{ $skip: skip }, { $limit: limit }];
+    const sortQuery = this.getSortDbQuery(metaFilters?.sortBy);
+    const stage2 = !!sortQuery
+      ? [sortQuery, ...paginationQuery]
+      : [...paginationQuery];
+    return [
+      {
+        $match: {
+          ancestors: parentId === undefined ? [] : ancestors,
+          type: {
+            $regex: new RegExp(
+              `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`,
+            ),
+          },
+          ...modelFilters,
+        },
+      },
+      {
+        $facet: {
+          stage1: [{ $group: { _id: 0, count: { $sum: 1 } } }],
+          stage2,
+        },
+      },
+      { $unwind: "$stage1" },
+      {
+        $project: {
+          _id: 0,
+          totalCount: "$stage1.count",
+          entities: "$stage2",
+        },
+      },
+    ];
+  };
 
   public async getSingleEntity({
     entityId,
@@ -27,6 +117,77 @@ class EntityRepository extends BaseRepository {
         ),
       },
     });
+  }
+
+  public async getEntities({
+    propFilters,
+    metaFilters,
+    paginationQuery,
+    appName,
+    envName,
+    parentId,
+    ancestors,
+    entityTypes,
+  }: {
+    propFilters: Record<string, unknown>;
+    metaFilters?: EntityQueryMeta;
+    paginationQuery: { skip: number; limit: number };
+    appName: string;
+    envName: string;
+    parentId?: string;
+    ancestors: string[];
+    entityTypes: string[];
+  }): Promise<EntityAggregateResult[]> {
+    const modelFilters = this.toModelFilters(propFilters);
+    const aggregateQuery = this.getAggregateQuery({
+      modelFilters,
+      metaFilters,
+      entityTypes,
+      paginationQuery,
+      appName,
+      envName,
+      parentId,
+      ancestors,
+    });
+
+    return this.entityModel.aggregate<EntityAggregateResult>(aggregateQuery);
+  }
+
+  public async searchEntities({
+    embedding,
+    vectorIndex,
+    limit,
+    entityType,
+  }: {
+    embedding: number[];
+    vectorIndex: string;
+    limit: number;
+    entityType?: string;
+  }): Promise<any[]> {
+    return this.entityModel.aggregate([
+      {
+        $vectorSearch: {
+          index: vectorIndex,
+          path: "embedding",
+          queryVector: embedding,
+          numCandidates: limit * 15,
+          limit,
+          filter: entityType ? { type: entityType } : {},
+        },
+      },
+      {
+        $replaceRoot: {
+          newRoot: {
+            $mergeObjects: [
+              "$$ROOT",
+              "$model",
+              { __meta: { score: { $meta: "vectorSearchScore" } } },
+            ],
+          },
+        },
+      },
+      { $unset: ["_id", "ancestors", "model", "type", "embedding", "__v"] },
+    ]);
   }
 
   public async findEntitiesByIdsTypeAndAncestors({
@@ -102,9 +263,7 @@ class EntityRepository extends BaseRepository {
       const entities = await this.entityModel.deleteMany(
         {
           type: {
-            $regex: new RegExp(
-              `\\b(${`${appName}/${envName}/${entityName}`})\\b`,
-            ),
+            $regex: new RegExp(`\\b(${appName}/${envName}/${entityName})\\b`),
           },
         },
         { session },
