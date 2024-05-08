@@ -3,28 +3,30 @@ import { sign as jwt_sign } from "hono/jwt";
 import { MongoClient } from "mongodb";
 import app from "../../src/app";
 import type { USER_TYPE } from "../../src/utils/auth-utils.ts";
-import Entity, {
-  type Entity as EntityType,
-} from "../../src/models/entity.model.ts";
-import Environment, {
-  type Environment as EnvironmentType,
-} from "../../src/models/environment.model.ts";
+import { type Entity as EntityType } from "../../src/models/entity.model.ts";
+import { type Environment as EnvironmentType } from "../../src/models/environment.model.ts";
 import { expect } from "bun:test";
-import { getConnection, getUserModel } from "../../src/connections/connect.ts";
-import Application, {
-  type Application as AppType,
-} from "../../src/models/application.model.ts";
-import User from "../../src/models/user.model.ts";
+import {
+  getApplicationModel,
+  getConnection,
+  getEntityModel,
+  getEnvironmentModel,
+  getUserModel,
+} from "../../src/connections/connect.ts";
+import { type Application as AppType } from "../../src/models/application.model.ts";
+import type { Connection } from "mongoose";
 
 export class TestApplicationHelper {
   private readonly application: Hono;
   private readonly mongoClient: MongoClient;
   private readonly databaseName: string;
+  private readonly connection: Connection;
 
   constructor(readonly dbName = "db1") {
     this.application = app;
     this.mongoClient = new MongoClient(Bun.env.NODB_db1!);
     this.databaseName = Bun.env.NODB_db1!.split("/").at(-1)!.split("?").at(0)!;
+    this.connection = getConnection(this.dbName);
   }
 
   private getUrl(url: string): string {
@@ -59,8 +61,7 @@ export class TestApplicationHelper {
     userData: USER_TYPE,
     createUser: boolean = true,
   ): Promise<string> {
-    const connection = getConnection(this.dbName);
-    const userModel = getUserModel(connection);
+    const userModel = getUserModel(this.connection);
     if (createUser) {
       await userModel.create({
         email: userData.email,
@@ -166,7 +167,8 @@ export class TestApplicationHelper {
     ids: string[],
     sortByProp: string = "model.prop",
   ): Promise<EntityType[]> {
-    return Entity.find({ id: { $in: ids } })
+    return getEntityModel(this.connection)
+      .find({ id: { $in: ids } })
       .select(["-__v", "-_id"])
       .sort(sortByProp)
       .lean();
@@ -175,38 +177,65 @@ export class TestApplicationHelper {
   public async getEnvironmentFromDbByName(
     name: string,
   ): Promise<EnvironmentType | null> {
-    return Environment.findOne({ name }).select("-__v").lean();
+    return getEnvironmentModel(this.connection)
+      .findOne({ name })
+      .select("-__v")
+      .lean();
   }
 
   public async getEnvironmentsFromDbByAppName(
     appName: string,
   ): Promise<EnvironmentType[]> {
-    return Environment.find({ app: appName }).select("-__v").lean();
+    return getEnvironmentModel(this.connection)
+      .find({ app: appName })
+      .select("-__v")
+      .lean();
   }
 
   public async getAppFromDbByName(appName: string): Promise<AppType | null> {
-    return Application.findOne<AppType>({
-      name: appName,
-    })
+    return getApplicationModel(this.connection)
+      .findOne<AppType>({
+        name: appName,
+      })
       .select("-__v")
       .lean();
   }
 
   public async getEntityFromDbById(id: string): Promise<EntityType | null> {
-    return Entity.findById(id).select("-__v").lean();
+    return getEntityModel(this.connection).findById(id).select("-__v").lean();
   }
 
   public async getUserAppsFromDbByEmail(email: string): Promise<string[]> {
-    const user = await User.findOne({ email }).select("applications").lean();
+    const user = await getUserModel(this.connection)
+      .findOne({ email })
+      .select<{ applications: string[] }>("applications")
+      .lean();
+
     return user?.applications || [];
   }
 
+  public async getEnvironmentsFromAppName(name: string): Promise<string[]> {
+    const app = await getApplicationModel(this.connection)
+      .findOne({ name })
+      .select("-__v")
+      .lean();
+    if (!app) return [];
+
+    const environments = await getEnvironmentModel(this.connection).find({
+      _id: { $in: app.environments.map((x) => x._id.toString()) },
+    });
+
+    return environments.map((x) => x.name);
+  }
+
   public async deleteAppByName(name: string): Promise<void> {
-    await Application.findOneAndDelete({ name });
+    await getApplicationModel(this.connection).findOneAndDelete({ name });
   }
 
   public async deleteAppsByNames(names: string[]): Promise<void> {
-    await Application.deleteMany({ name: { $in: names } });
+    await getApplicationModel(this.connection).deleteMany({
+      name: { $in: names },
+    });
   }
 
   public async createAppWithEnvironmentEntitiesAndSubEntities({
