@@ -11,6 +11,10 @@ import Environment, {
 } from "../../src/models/environment.model.ts";
 import { expect } from "bun:test";
 import { getConnection, getUserModel } from "../../src/connections/connect.ts";
+import Application, {
+  type Application as AppType,
+} from "../../src/models/application.model.ts";
+import User from "../../src/models/user.model.ts";
 
 export class TestApplicationHelper {
   private readonly application: Hono;
@@ -21,6 +25,10 @@ export class TestApplicationHelper {
     this.application = app;
     this.mongoClient = new MongoClient(Bun.env.NODB_db1!);
     this.databaseName = Bun.env.NODB_db1!.split("/").at(-1)!.split("?").at(0)!;
+  }
+
+  private getUrl(url: string): string {
+    return `/${this.dbName}${url}`;
   }
 
   private async cleanup() {
@@ -74,7 +82,7 @@ export class TestApplicationHelper {
     token?: string;
     body?: any;
   }): Promise<Response> {
-    return this.app.request(`${this.dbName}/${url}`, {
+    return this.app.request(this.getUrl(url), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -93,7 +101,7 @@ export class TestApplicationHelper {
     token?: string;
     body?: any;
   }): Promise<Response> {
-    return this.app.request(`${this.dbName}/${url}`, {
+    return this.app.request(this.getUrl(url), {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -112,7 +120,7 @@ export class TestApplicationHelper {
     token?: string;
     body?: any;
   }): Promise<Response> {
-    return this.app.request(`${this.dbName}/${url}`, {
+    return this.app.request(this.getUrl(url), {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -129,7 +137,7 @@ export class TestApplicationHelper {
     url: string;
     token?: string;
   }): Promise<Response> {
-    return this.app.request(`${this.dbName}/${url}`, {
+    return this.app.request(this.getUrl(url), {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -145,7 +153,7 @@ export class TestApplicationHelper {
     url: string;
     token?: string;
   }): Promise<Response> {
-    return this.app.request(`${this.dbName}/${url}`, {
+    return this.app.request(this.getUrl(url), {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -168,6 +176,37 @@ export class TestApplicationHelper {
     name: string,
   ): Promise<EnvironmentType | null> {
     return Environment.findOne({ name }).select("-__v").lean();
+  }
+
+  public async getEnvironmentsFromDbByAppName(
+    appName: string,
+  ): Promise<EnvironmentType[]> {
+    return Environment.find({ app: appName }).select("-__v").lean();
+  }
+
+  public async getAppFromDbByName(appName: string): Promise<AppType | null> {
+    return Application.findOne<AppType>({
+      name: appName,
+    })
+      .select("-__v")
+      .lean();
+  }
+
+  public async getEntityFromDbById(id: string): Promise<EntityType | null> {
+    return Entity.findById(id).select("-__v").lean();
+  }
+
+  public async getUserAppsFromDbByEmail(email: string): Promise<string[]> {
+    const user = await User.findOne({ email }).select("applications").lean();
+    return user?.applications || [];
+  }
+
+  public async deleteAppByName(name: string): Promise<void> {
+    await Application.findOneAndDelete({ name });
+  }
+
+  public async deleteAppsByNames(names: string[]): Promise<void> {
+    await Application.deleteMany({ name: { $in: names } });
   }
 
   public async createAppWithEnvironmentEntitiesAndSubEntities({
