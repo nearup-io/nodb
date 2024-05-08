@@ -1,17 +1,18 @@
 import mongoose from "mongoose";
 import config from "../config";
 import {
-  ApplicationSchema,
   type Application,
+  ApplicationSchema,
 } from "../models/application.model";
-import { EntitySchema, type Entity } from "../models/entity.model";
+import { type Entity, EntitySchema } from "../models/entity.model";
 import {
-  EnvironmentSchema,
   type Environment,
+  EnvironmentSchema,
 } from "../models/environment.model";
-import { UserSchema, type User } from "../models/user.model";
+import { type User, UserSchema } from "../models/user.model";
 import mongodbConnection from "./mongodb";
 import { ConnectionError } from "../utils/service-errors";
+import * as R from "ramda";
 
 export const addDbConnection = async (db: string) => {
   const connectionString = Bun.env[`NODB_${db}`]!;
@@ -28,12 +29,14 @@ export const getConnection = (dbParam: string): mongoose.Connection => {
   if (!dbConn) {
     throw new ConnectionError(`Database "${dbParam}" is not defined`);
   }
-  const host = new URL(dbConn).host;
+  const host = R.drop(1, new URL(dbConn).host.split(".")).join(".");
   const dbPath = new URL(dbConn).pathname.slice(1);
   if (!dbPath) {
     throw new ConnectionError(`Database name is missing for ${dbParam}`);
   }
-  const withHost = mongoose.connections.find((conn) => conn.host === host);
+  const withHost = mongoose.connections.find((conn) =>
+    conn.host?.includes(host),
+  );
   if (!withHost) {
     throw new ConnectionError(`Database ${dbParam} is not found`);
   }

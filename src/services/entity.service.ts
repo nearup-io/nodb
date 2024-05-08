@@ -149,7 +149,7 @@ export const getEntities = async ({
   propFilters,
   metaFilters,
   rawQuery,
-  routeParams: { appName, entityName, envName },
+  routeParams: { appName, envName },
 }: {
   conn: mongoose.Connection;
   xpathEntitySegments: string[];
@@ -175,6 +175,8 @@ export const getEntities = async ({
     // @ts-ignore TODO: using $sort raises "No overload matches this call"
     aggregateQuery
   );
+
+  const entityName = getEntityTypes(xpathEntitySegments).at(-1)!;
   const { totalCount, entities } = fromDb.at(0) || {
     entities: [],
     totalCount: 0,
@@ -182,20 +184,19 @@ export const getEntities = async ({
   if (!entities || R.isEmpty(entities)) {
     return { [entityName]: [] };
   }
-  // TODO move this function to router utils
-  const paginationMetadata = metaFilters.hasMeta
-    ? {
-        __meta: generatePaginationMetadata({
-          rawQuery,
-          paginationQuery,
-          appName,
-          envName,
-          xpathEntitySegments,
-          totalCount,
-          entityCount: entities.length,
-        }),
-      }
-    : undefined;
+
+  const paginationMetadata = {
+    __meta: generatePaginationMetadata({
+      rawQuery,
+      paginationQuery,
+      appName,
+      envName,
+      xpathEntitySegments,
+      totalCount,
+      entityCount: entities.length,
+    }),
+  };
+
   const result = entities.map((entity) => ({
     id: entity.id,
     ...R.pick(metaFilters?.only || R.keys(entity.model), entity.model),
@@ -207,6 +208,7 @@ export const getEntities = async ({
       id: entity.id,
     }),
   }));
+
   return {
     [entityName]: result,
     ...paginationMetadata,
@@ -214,15 +216,19 @@ export const getEntities = async ({
 };
 
 export const getSingleEntity = async ({
-  conn,
-  xpath: { appName, envName, entityName },
+    conn,
+  requestParams: { appName, envName },
   metaFilters,
   entityId,
+  xpathEntitySegments,
+  xpath,
 }: {
-  conn: mongoose.Connection;
-  xpath: EntityRouteParams;
+    conn: mongoose.Connection;
+  xpath: string;
+  requestParams: EntityRouteParams;
   metaFilters: EntityQueryMeta;
   entityId: string;
+  xpathEntitySegments: string[];
 }) => {
   const environment: Environment | undefined = await findEnvironment({
     conn,
@@ -232,10 +238,15 @@ export const getSingleEntity = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
+
+  const entityTypes = getEntityTypes(xpathEntitySegments);
+
   const entity = await getEntityModel(conn).findOne({
     id: entityId,
     type: {
-      $regex: new RegExp(`\\b(${appName}/${envName}/${entityName})\\b`),
+      $regex: new RegExp(
+        `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`,
+      ),
     },
   });
   if (!entity) {
@@ -245,19 +256,27 @@ export const getSingleEntity = async ({
     metaFilters.only && Array.isArray(metaFilters.only)
       ? R.pick(metaFilters.only, entity.model)
       : entity.model;
-  const xpath = `/${appName}/${envName}/${entityName}/${entityId}`;
+
   return {
     id: entity.id,
     ...objProps,
     __meta: !metaFilters.hasMeta
       ? undefined
       : {
-          self: xpath,
+          self: `/${xpath}`,
           subtypes: environment.entities
-            ?.filter((x) => x !== entityName && x.includes(`${entityName}/`))
+            ?.filter((x) => x.includes(`${entityTypes.join("/")}/`))
             .reduce<Record<string, string>>((acc, curr) => {
-              const subEntityName = R.replace(`${entityName}/`, "", curr);
-              acc[subEntityName] = `${xpath}/${subEntityName}`;
+              const lastEntityType = entityTypes.at(-1)!;
+              const splitEntityType = curr.split("/");
+              const index = splitEntityType.findIndex(
+                (x) => x === lastEntityType,
+              );
+              // this is used to restrict the subTypes information to only 1 layer
+              if (splitEntityType.length - 2 !== index) return acc;
+
+              const subEntityName = splitEntityType.at(-1)!;
+              acc[subEntityName] = `/${xpath}/${subEntityName}`;
               return acc;
             }, {}),
         },
@@ -369,16 +388,16 @@ export const deleteRootAndUpdateEnv = async ({
       {
         type: {
           $regex: new RegExp(
-            `\\b(${`${appName}/${envName}/${entityName}`})\\b`
+            `\\b(${`${appName}/${envName}/${entityName}`})\\b`,
           ),
         },
       },
-      { session }
+      { session },
     );
     await getEnvironmentModel(conn).findOneAndUpdate(
       { _id: environment._id },
       { $pull: { entities: { $regex: new RegExp(`\\b(${entityName})\\b`) } } },
-      { session }
+      { session },
     );
     await session.commitTransaction();
     return { done: entities.deletedCount };
@@ -411,10 +430,10 @@ export const deleteSubEntitiesAndUpdateEnv = async ({
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
   const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0
+    (_: any, i: number) => i % 2 === 0,
   );
   const ancestors = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 !== 0
+    (_: any, i: number) => i % 2 !== 0,
   );
   const entityTypeRegex = `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`;
   const envEntityTypeRegex = `\\b(${entityTypes.join("/")})\\b`;
@@ -523,6 +542,14 @@ export const replaceEntities = async ({
   xpathEntitySegments: string[];
   bodyEntities: EntityRequestDto[];
 }) => {
+  const environment = await findEnvironment({
+    appName,
+    envName,
+      conn
+  });
+  if (!environment) {
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
+  }
   const entityTypes = getEntityTypes(xpathEntitySegments);
   const ancestors = getAncestors(xpathEntitySegments);
   const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
@@ -532,27 +559,40 @@ export const replaceEntities = async ({
     type: `${appName}/${envName}/${entityTypes.join("/")}`,
     ancestors,
   });
-  if (R.isEmpty(dbExistingDocuments)) {
+
+  if (
+    R.isEmpty(dbExistingDocuments) &&
+    bodyEntities.filter((x) => !x.id).length === 0
+  ) {
     throw new ServiceError(httpError.ENTITY_NOT_FOUND);
   }
-  const updatedDocs: Entity[] = dbExistingDocuments.map((entity) => {
-    const { id, ...propsToBeReplaced } = bodyEntities.find(
-      (x) => x.id === entity.id
-    )!;
-    return {
-      id: entity.id,
-      model: { ...propsToBeReplaced },
-      type: entity.type,
-      ancestors: entity.ancestors,
+
+  const entitiesToBeInserted: Entity[] = [];
+  for (let bodyEntity of bodyEntities) {
+    const embeddingInput = {
+      ...R.omit(["id"], bodyEntity),
+      __vector_title: R.last(entityTypes),
     };
-  });
-  const session = await conn.startSession();
+    const input = JSON.stringify(embeddingInput);
+    const embedding = await getEmbedding(input);
+    const id = bodyEntity.id ?? generateToken(8);
+    const entityWithoutId = R.omit(["id"], bodyEntity);
+    entitiesToBeInserted.push({
+      id,
+      model: { ...entityWithoutId },
+      type: `${appName}/${envName}/${entityTypes.join("/")}`,
+      ancestors,
+      embedding,
+    });
+  }
+
+  const session = await mongoose.startSession();
   session.startTransaction();
   try {
     await entityModel.deleteMany({ id: { $in: documentIds } }, { session });
-    await entityModel.insertMany(updatedDocs, { session });
+    await entityModel.insertMany(entitiesToBeInserted, { session });
     await session.commitTransaction();
-    return updatedDocs.map((e) => e.id);
+    return entitiesToBeInserted.map((e) => e.id);
   } catch (e) {
     console.error("Error updating entities", e);
     await session.abortTransaction();
@@ -575,6 +615,14 @@ export const updateEntities = async ({
   xpathEntitySegments: string[];
   bodyEntities: EntityRequestDto[];
 }) => {
+  const environment = await findEnvironment({
+    appName,
+    envName,
+      conn,
+  });
+  if (!environment) {
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
+  }
   const entityTypes = getEntityTypes(xpathEntitySegments);
   const ancestors = getAncestors(xpathEntitySegments);
   const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
@@ -587,24 +635,36 @@ export const updateEntities = async ({
   if (R.isEmpty(dbExistingDocuments)) {
     throw new ServiceError(httpError.ENTITY_NOT_FOUND);
   }
-  const documentsToBeUpdated: Entity[] = dbExistingDocuments.map((entity) => {
+
+  const entitiesToBeInserted: Entity[] = [];
+
+  for (let entity of dbExistingDocuments) {
     const { id, ...propsToBeReplaced } = bodyEntities.find(
-      (x) => x.id === entity.id
+      (x) => x.id === entity.id,
     )!;
-    return {
+    const embeddingInput = {
+      ...{ ...entity.model, ...propsToBeReplaced },
+      __vector_title: R.last(entityTypes),
+    };
+    const input = JSON.stringify(embeddingInput);
+    const embedding = await getEmbedding(input);
+
+    entitiesToBeInserted.push({
       id: entity.id,
       model: { ...entity.model, ...propsToBeReplaced },
       type: entity.type,
       ancestors: entity.ancestors,
-    };
-  });
-  const session = await conn.startSession();
+      embedding,
+    });
+  }
+
+  const session = await mongoose.startSession();
   session.startTransaction();
   try {
     await entityModel.deleteMany({ id: { $in: documentIds } }, { session });
-    await entityModel.insertMany(documentsToBeUpdated, { session });
+    await entityModel.insertMany(entitiesToBeInserted, { session });
     await session.commitTransaction();
-    return documentsToBeUpdated.map((e) => e.id);
+    return entitiesToBeInserted.map((e) => e.id);
   } catch (e) {
     console.error("Error updating entities", e);
     await session.abortTransaction();
@@ -632,13 +692,16 @@ const generatePaginationMetadata = ({
   entityCount: number;
 }): Pagination => {
   const queries = R.omit(["__per_page", "__page"], rawQuery);
+
   const addQueries = !R.isEmpty(queries)
     ? `&${new URLSearchParams(queries).toString()}`
     : "";
+
   const totalPages = Math.ceil(totalCount / limit);
   const currentPage = skip / limit + 1;
   const nextPage = currentPage + 1 > totalPages ? undefined : currentPage + 1;
   const previousPage = currentPage - 1 < 1 ? undefined : currentPage - 1;
+
   const baseUrl = `/${appName}/${envName}/${xpathEntitySegments.join("/")}`;
   return {
     totalCount,

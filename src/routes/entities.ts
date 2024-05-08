@@ -3,7 +3,6 @@ import { HTTPException } from "hono/http-exception";
 import type { BlankSchema } from "hono/types";
 import type mongoose from "mongoose";
 import * as R from "ramda";
-import authMiddleware from "../middlewares/auth.middleware.ts";
 import dbMiddleware from "../middlewares/db.middleware.ts";
 import {
   createOrOverwriteEntities,
@@ -31,38 +30,60 @@ const app = new Hono<
   BlankSchema,
   "/:appName/:envName/:entityName"
 >();
-app.use(authMiddleware);
 app.use(dbMiddleware);
 
 app.get("/*", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
-  const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
-    c.req.path,
-    c.req.param()
-  );
-  if (isEntitiesList(pathRestSegments)) {
-    const result = await getEntities({
-      conn: c.get('dbConnection'),
-      xpathEntitySegments,
-      propFilters: q.props,
-      metaFilters: q.meta,
-      routeParams: c.req.param(),
-      rawQuery: c.req.query(),
-    });
-    return c.json(result);
-  } else {
-    const entity = await getSingleEntity({
-      conn: c.get('dbConnection'),
-      xpath: c.req.param(),
-      metaFilters: q.meta,
-      entityId: R.last(pathRestSegments)!,
-    });
-    return c.json(entity);
+  const { xpath, pathRestSegments, xpathEntitySegments } =
+    getCommonEntityRouteProps(c.req.path, c.req.param());
+  try {
+    if (isEntitiesList(pathRestSegments)) {
+      const result = await getEntities({
+        conn: c.get("dbConnection"),
+        xpathEntitySegments,
+        propFilters: q.props,
+        metaFilters: q.meta,
+        routeParams: c.req.param(),
+        rawQuery: c.req.query(),
+      });
+      return c.json(result);
+    } else {
+      const entity = await getSingleEntity({
+        xpath,
+        conn: c.get("dbConnection"),
+        requestParams: c.req.param(),
+        xpathEntitySegments,
+        metaFilters: q.meta,
+        entityId: R.last(pathRestSegments)!,
+      });
+      return c.json(entity);
+    }
+  } catch (error) {
+    if (error instanceof ServiceError) {
+      if (
+        [httpError.ENV_DOESNT_EXIST, httpError.ENTITY_NOT_FOUND].includes(
+          error.explicitMessage,
+        )
+      ) {
+        throw new HTTPException(404, {
+          message: error.explicitMessage,
+        });
+      } else {
+        throw new HTTPException(400, {
+          message: error.explicitMessage,
+        });
+      }
+    } else {
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
+      });
+    }
   }
 });
 
 app.post("/*", async (c) => {
   const { appName, envName } = c.req.param();
+
   const body = (await asyncTryJson(c.req.json())) as PostEntityRequestDto[];
   if (!Array.isArray(body)) {
     throw new HTTPException(400, {
@@ -72,8 +93,9 @@ app.post("/*", async (c) => {
   try {
     const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
       c.req.path,
-      c.req.param()
+      c.req.param(),
     );
+
     if (!isEntitiesList(pathRestSegments)) {
       throw new RoutingError(httpError.ENTITY_PATH_CREATION);
     }
@@ -102,19 +124,21 @@ app.post("/*", async (c) => {
 
 app.delete("/*", async (c) => {
   const { appName, envName, entityName } = c.req.param();
-  const { pathRest, pathRestSegments, xpathEntitySegments } =
-    getCommonEntityRouteProps(c.req.path, c.req.param());
+  const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
+    c.req.path,
+    c.req.param(),
+  );
   const conn = c.get("dbConnection");
-  if (R.isEmpty(pathRestSegments)) {
-    const res = await deleteRootAndUpdateEnv({
-      conn,
-      appName,
-      envName,
-      entityName,
-    });
-    return c.json({ deleted: res.done });
-  } else {
-    if (pathRestSegments.length % 2 === 0) {
+  try {
+    if (R.isEmpty(pathRestSegments)) {
+      const res = await deleteRootAndUpdateEnv({
+        conn,
+        appName,
+        envName,
+        entityName,
+      });
+      return c.json({ deleted: res.done });
+    } else if (pathRestSegments.length % 2 === 0) {
       // delete sub entities
       const res = await deleteSubEntitiesAndUpdateEnv({
         conn,
@@ -123,7 +147,7 @@ app.delete("/*", async (c) => {
         xpathEntitySegments,
       });
       return c.json({ deleted: res.done });
-    } else if (pathRestSegments.length % 2 !== 0) {
+    } else {
       // delete single entity
       const res = await deleteSingleEntityAndUpdateEnv({
         conn,
@@ -134,15 +158,30 @@ app.delete("/*", async (c) => {
 
       return c.json({ deleted: !!res });
     }
+  } catch (error) {
+    if (error instanceof ServiceError) {
+      if (error.explicitMessage === httpError.ENV_DOESNT_EXIST) {
+        throw new HTTPException(404, {
+          message: error.explicitMessage,
+        });
+      } else {
+        throw new HTTPException(400, {
+          message: error.explicitMessage,
+        });
+      }
+    } else {
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
+      });
+    }
   }
-  return c.json({ pathRest, pathRestSegments });
 });
 
 app.put("/*", async (c) => {
   const { appName, envName } = c.req.param();
   const { xpathEntitySegments } = getCommonEntityRouteProps(
     c.req.path,
-    c.req.param()
+    c.req.param(),
   );
   const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
   if (!Array.isArray(bodyEntities)) {
@@ -178,7 +217,7 @@ app.patch("/*", async (c) => {
   const { appName, envName } = c.req.param();
   const { xpathEntitySegments } = getCommonEntityRouteProps(
     c.req.path,
-    c.req.param()
+    c.req.param(),
   );
   const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
   if (!Array.isArray(bodyEntities)) {
