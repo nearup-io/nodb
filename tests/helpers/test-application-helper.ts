@@ -53,10 +53,11 @@ export class TestApplicationHelper {
   ): Promise<string> {
     const connection = getConnection(this.dbName);
     const userModel = getUserModel(connection);
-    createUser &&
-      (await userModel.create({
+    if (createUser) {
+      await userModel.create({
         email: userData.email,
-      }));
+      });
+    }
     return jwt_sign(userData, Bun.env.JWT_SECRET!);
   }
 
