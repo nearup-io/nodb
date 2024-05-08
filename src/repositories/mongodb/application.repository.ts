@@ -19,10 +19,9 @@ class ApplicationRepository extends BaseRepository {
   }
 
   private async getEnvironmentsByAppName(
-    conn: mongoose.Connection,
     appName: string,
   ): Promise<Environment[]> {
-    return getApplicationModel(conn).aggregate<Environment>([
+    return getApplicationModel(this.conn).aggregate<Environment>([
       { $match: { name: appName } },
       {
         $lookup: {
@@ -232,7 +231,7 @@ class ApplicationRepository extends BaseRepository {
     appName: string;
     userEmail: string;
   }): Promise<Application | null> {
-    const envs = await this.getEnvironmentsByAppName(this.conn, appName);
+    const envs = await this.getEnvironmentsByAppName(appName);
 
     return this.transaction<Application | null>(async (session) => {
       const app = await getApplicationModel(
