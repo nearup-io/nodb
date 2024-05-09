@@ -1,9 +1,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { BlankSchema } from "hono/types";
-import type mongoose from "mongoose";
 import * as R from "ramda";
-import dbMiddleware from "../middlewares/db.middleware.ts";
 import {
   createOrOverwriteEntities,
   deleteRootAndUpdateEnv,
@@ -31,14 +29,12 @@ const app = new Hono<
   {
     Variables: {
       user: USER_TYPE;
-      dbConnection: mongoose.Connection;
       context: Context;
     };
   },
   BlankSchema,
   "/:appName/:envName/:entityName"
 >();
-app.use(dbMiddleware);
 app.use(contextMiddleware);
 
 app.get("/*", entityQueryValidator(), async (c) => {

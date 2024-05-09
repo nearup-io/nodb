@@ -1,34 +1,32 @@
 import mongoose from "mongoose";
-import {
-  getApplicationModel,
-  getEntityModel,
-  getEnvironmentModel,
-  getUserModel,
-} from "../../connections/connect.ts";
+import Application from "../../models/application.model.ts";
+import Environment from "../../models/environment.model.ts";
+import Entity from "../../models/entity.model.ts";
+import User from "../../models/user.model.ts";
 
 abstract class BaseRepository {
-  protected constructor(readonly conn: mongoose.Connection) {}
+  protected constructor() {}
 
   protected get applicationModel() {
-    return getApplicationModel(this.conn);
+    return Application;
   }
 
   protected get environmentModel() {
-    return getEnvironmentModel(this.conn);
+    return Environment;
   }
 
   protected get entityModel() {
-    return getEntityModel(this.conn);
+    return Entity;
   }
 
   protected get userModel() {
-    return getUserModel(this.conn);
+    return User;
   }
 
   protected async transaction<T>(
     callback: (session: mongoose.mongo.ClientSession) => Promise<T>,
   ): Promise<T> {
-    const session = await this.conn.startSession();
+    const session = await mongoose.startSession();
     session.startTransaction();
 
     try {

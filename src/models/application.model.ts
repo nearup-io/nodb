@@ -25,10 +25,10 @@ export type Application = {
   _id: ObjectId;
   name: string;
   environments: Environment[];
-  image?: string;
-  description?: string;
+  image?: string | null;
+  description?: string | null;
   extras?: Record<string, unknown>;
 };
 
-const Application = mongoose.connection.model("Application", ApplicationSchema);
+const Application = mongoose.model("Application", ApplicationSchema);
 export default Application;

@@ -5,18 +5,14 @@ import {
   getGoogleLoginUrl,
   getGoogleUserData,
 } from "../../services/auth.service";
-import mongoose from "mongoose";
 import type Context from "../../middlewares/context.ts";
-import dbMiddleware from "../../middlewares/db.middleware.ts";
 import contextMiddleware from "../../middlewares/context.middleware.ts";
 
 const app = new Hono<{
   Variables: {
-    dbConnection: mongoose.Connection;
     context: Context;
   };
 }>();
-app.use(dbMiddleware);
 app.use(contextMiddleware);
 
 app.get("/:db", async (c) => {

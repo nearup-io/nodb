@@ -6,7 +6,6 @@ import { Layout } from "./components/Layout";
 const app = new Hono();
 
 app.get("/", (c) => {
-  const { db } = c.req.query();
   const githubRedirectUrl = Bun.env.GITHUB_CALLBACK_URL;
   if (!githubRedirectUrl) {
     throw new HTTPException(400, {
@@ -14,7 +13,7 @@ app.get("/", (c) => {
     });
   }
   const githubLoginUrl = getGithubLoginUrl({
-    redirectUrl: githubRedirectUrl + `?db=${db}`,
+    redirectUrl: githubRedirectUrl,
   });
   return c.html(Layout({ githubLoginUrl, googleLoginUrl: "" }));
 });

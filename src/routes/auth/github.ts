@@ -5,18 +5,14 @@ import { finalizeAuth, getGithubUserData } from "../../services/auth.service";
 import type { USER_TYPE } from "../../utils/auth-utils";
 import { PROVIDER_GITHUB } from "../../utils/const";
 import contextMiddleware from "../../middlewares/context.middleware.ts";
-import dbMiddleware from "../../middlewares/db.middleware.ts";
-import mongoose from "mongoose";
 import type Context from "../../middlewares/context.ts";
 
 const app = new Hono<{
   Variables: {
-    dbConnection: mongoose.Connection;
     context: Context;
   };
 }>();
 
-app.use(dbMiddleware);
 app.use(contextMiddleware);
 
 app.get("/", async (c) => {

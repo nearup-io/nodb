@@ -429,9 +429,7 @@ const deleteSingleEntityAndUpdateEnv = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0,
-  );
+  const entityTypes = getEntityTypes(xpathEntitySegments);
   const entityId = R.last(xpathEntitySegments)!;
 
   const entityRepository = context.get<IEntityRepository>(
