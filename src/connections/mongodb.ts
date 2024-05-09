@@ -1,54 +1,47 @@
-import mongoose from "mongoose";
-import config from "../config";
+import mongoose, { type Mongoose } from "mongoose";
 
-const connect = async (uri: string, options = {}) => {
-  await mongoose.disconnect()
-  const db = await mongoose
-    .createConnection(
-      uri,
-      Object.assign({}, options, {
-        maxPoolSize: config.mongodb.maxPoolSize,
-        autoIndex: config.mongodb.autoIndex,
-      })
-    )
-    .asPromise();
-  if (Bun.env.NODE_ENV === "development") {
-    mongoose.set("debug", true);
-  }
-  db.set("strictQuery", true);
-  console.info("MongoDB connection succeeded!");
+const mongodbUrl = Bun.env.MONGODB_URL;
+if (!mongodbUrl) {
+  console.error("Invalid mongodb url");
+  process.exit(1);
+}
 
-  // Graceful exit
-  process.on("SIGINT", () => {
-    db.close().then(() => {
-      console.info("Mongoose connection disconnected through app termination!");
-      process.exit(0);
-    });
-  });
-  return db;
-};
+declare global {
+  var dbconn: Mongoose | null;
+}
 
-const dbConnection = async (
-  uri: string,
-  options = {}
-): Promise<mongoose.Connection> => {
+const mongoconnect: () => Promise<void> = async () => {
+  const { MAX_POOL_SIZE } = Bun.env;
   try {
-    const db = await connect(uri, options);
-    return db;
-  } catch (e) {
-    const error = e as Error;
-    if (Bun.env.NODE_ENV === "development") {
-      console.error(`Error connecting to ${uri}:`, error.message);
-    } else {
-      console.error(
-        `Error connecting to ${new URL(uri).hostname}:`,
-        error.message
-      );
+    if (globalThis.dbconn) {
+      // close on "hot reload": bun --hot, or bun --watch
+      console.log("Closing mongoose...");
+      await globalThis.dbconn.connection.close();
     }
+
+    globalThis.dbconn = await mongoose.connect(mongodbUrl, {
+      maxPoolSize: MAX_POOL_SIZE ? parseInt(MAX_POOL_SIZE, 10) : 2,
+      // create all indexes automatically
+      autoIndex: true,
+    });
+    console.log("Connected to database!");
+  } catch (e) {
+    console.log(e);
     await Bun.sleep(3000);
-    const db = await dbConnection(uri, options);
-    return db;
+    return await mongoconnect();
   }
 };
 
-export default dbConnection;
+process.on("SIGINT", async () => {
+  if (globalThis.dbconn) {
+    try {
+      await globalThis.dbconn.connection.close();
+      console.log("Database connection closed.");
+    } catch (e) {
+      console.error("Failed closing connection.", e);
+    }
+  }
+  process.exit(0);
+});
+
+export default mongoconnect;

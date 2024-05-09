@@ -1,4 +1,4 @@
-import mongoose, { type PipelineStage } from "mongoose";
+import { type PipelineStage } from "mongoose";
 import BaseRepository from "./base-repository.ts";
 import { type Entity } from "../../models/entity.model.ts";
 import { ObjectId } from "mongodb";
@@ -8,8 +8,8 @@ import type { EntityAggregateResult } from "../../services/entity.service.ts";
 import type { IEntityRepository } from "../interfaces.ts";
 
 class EntityRepository extends BaseRepository implements IEntityRepository {
-  constructor(readonly conn: mongoose.Connection) {
-    super(conn);
+  constructor() {
+    super();
   }
 
   private getSortDbQuery = (
@@ -345,9 +345,13 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
         { session },
       );
       // if deleted the last one of its type
-      const entityCheck = await this.entityModel.find({
-        type: { $regex: `${appName}/${envName}/${entityTypes.join("/")}` },
-      });
+      const entityCheck = await this.entityModel.find(
+        {
+          type: { $regex: `${appName}/${envName}/${entityTypes.join("/")}` },
+        },
+        null,
+        { session },
+      );
       if (entityCheck.length < 1) {
         await this.environmentModel.findOneAndUpdate(
           { _id: new ObjectId(dbEnvironmentId) },

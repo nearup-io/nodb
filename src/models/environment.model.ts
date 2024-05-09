@@ -3,11 +3,16 @@ import mongoose, { Schema } from "mongoose";
 
 const TokenSchema = new Schema(
   {
-    key: { type: String },
-    permission: { type: String, enum: ["ALL", "READ-ONLY"] },
+    key: { type: String, required: true },
+    permission: { type: String, enum: ["ALL", "READ-ONLY"], required: true },
   },
   { _id: false },
 );
+
+type Token = {
+  key: string;
+  permission: "ALL" | "READ-ONLY";
+};
 
 export const EnvironmentSchema = new Schema({
   name: {
@@ -19,25 +24,27 @@ export const EnvironmentSchema = new Schema({
   },
   app: {
     type: String,
+    required: false,
   },
-  tokens: { type: [TokenSchema], default: [] },
+  tokens: { type: [TokenSchema], default: [], required: true },
   entities: {
     type: [{ type: String }],
-    required: false,
+    required: true,
   },
   description: {
     type: String,
+    required: false,
   },
 });
 
 export type Environment = {
   _id: ObjectId;
   name: string;
-  app: string;
+  app?: string | null;
   extras?: Record<string, unknown>;
-  tokens: Record<string, unknown>[];
-  entities?: string[]; // only names/slugs ["my-entity", "movies"]
-  description: string;
+  tokens: Token[];
+  entities: string[]; // only names/slugs ["my-entity", "movies"]
+  description?: string | null;
 };
-const Environment = mongoose.connection.model("Environment", EnvironmentSchema);
+const Environment = mongoose.model("Environment", EnvironmentSchema);
 export default Environment;

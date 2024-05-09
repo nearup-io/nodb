@@ -19,20 +19,14 @@ const middleware = factory.createMiddleware(async (c, next) => {
   const context = new Context();
   context.register(
     APPLICATION_MONGO_DB_REPOSITORY,
-    new ApplicationRepository(c.get("dbConnection")),
+    new ApplicationRepository(),
   );
   context.register(
     ENVIRONMENT_MONGO_DB_REPOSITORY,
-    new EnvironmentRepository(c.get("dbConnection")),
+    new EnvironmentRepository(),
   );
-  context.register(
-    ENTITY_MONGO_DB_REPOSITORY,
-    new EntityRepository(c.get("dbConnection")),
-  );
-  context.register(
-    USER_MONGO_DB_REPOSITORY,
-    new UserRepository(c.get("dbConnection")),
-  );
+  context.register(ENTITY_MONGO_DB_REPOSITORY, new EntityRepository());
+  context.register(USER_MONGO_DB_REPOSITORY, new UserRepository());
   c.set("context", context);
   await next();
 });

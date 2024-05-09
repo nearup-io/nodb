@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import { type Environment } from "../../models/environment.model.ts";
 import BaseRepository from "./base-repository.ts";
 import { httpError, Permissions } from "../../utils/const.ts";
@@ -11,8 +10,8 @@ class EnvironmentRepository
   extends BaseRepository
   implements IEnvironmentRepository
 {
-  constructor(readonly conn: mongoose.Connection) {
-    super(conn);
+  constructor() {
+    super();
   }
 
   public async findEnvironment({

@@ -26,11 +26,11 @@ export const EntitySchema = new Schema(
       required: false,
     },
     embedding: {
-      type: Array<number>,
+      type: [{ type: Number }],
       required: false,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 export type Entity = {
@@ -42,5 +42,5 @@ export type Entity = {
   embedding?: number[] | null;
 };
 
-const Entity = mongoose.connection.model("Entity", EntitySchema);
+const Entity = mongoose.model("Entity", EntitySchema);
 export default Entity;

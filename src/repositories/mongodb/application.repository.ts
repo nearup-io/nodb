@@ -1,5 +1,4 @@
 import { ObjectId } from "mongodb";
-import mongoose from "mongoose";
 import * as R from "ramda";
 import { type Application } from "../../models/application.model.ts";
 import { type Environment } from "../../models/environment.model.ts";
@@ -12,8 +11,8 @@ class ApplicationRepository
   extends BaseRepository
   implements IApplicationRepository
 {
-  constructor(readonly conn: mongoose.Connection) {
-    super(conn);
+  constructor() {
+    super();
   }
 
   private async getEnvironmentsByAppName(

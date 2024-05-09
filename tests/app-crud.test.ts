@@ -167,6 +167,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
       const appName = "random-app";
       const patchResponse = await helper.executePatchRequest({
         url: `/apps/${appName}`,
+        token: jwtToken,
         body: {
           appName: "new-app-name",
           description: "new description",

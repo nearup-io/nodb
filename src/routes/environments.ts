@@ -1,8 +1,6 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import type mongoose from "mongoose";
 import authMiddleware from "../middlewares/auth.middleware";
-import dbMiddleware from "../middlewares/db.middleware";
 import {
   createEnvironment,
   deleteEnvironment,
@@ -20,12 +18,10 @@ import type Context from "../middlewares/context.ts";
 const app = new Hono<{
   Variables: {
     user: USER_TYPE;
-    dbConnection: mongoose.Connection;
     context: Context;
   };
 }>();
 app.use(authMiddleware);
-app.use(dbMiddleware);
 app.use(contextMiddleware);
 
 app.get("/", async (c) => {
