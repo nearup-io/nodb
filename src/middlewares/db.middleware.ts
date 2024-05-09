@@ -7,7 +7,12 @@ import { ConnectionError } from "../utils/service-errors";
 const factory = createFactory();
 
 const middleware = factory.createMiddleware(async (c, next) => {
-  const dbParam = c.req.param("db");
+  const dbParam = c.req.param("db") || c.req.query("db"); // for auth routes db param does not exist but it's located inside the query
+  if (!dbParam) {
+    throw new HTTPException(400, {
+      message: "Database parameter is missing in the request",
+    });
+  }
   try {
     const connection = getConnection(dbParam);
     c.set("dbConnection", connection);

@@ -5,9 +5,19 @@ import {
   getGoogleLoginUrl,
   getGoogleUserData,
 } from "../../services/auth.service";
-import { getConnection as switchConnection } from "../../connections/connect.ts";
+import mongoose from "mongoose";
+import type Context from "../../middlewares/context.ts";
+import dbMiddleware from "../../middlewares/db.middleware.ts";
+import contextMiddleware from "../../middlewares/context.middleware.ts";
 
-const app = new Hono();
+const app = new Hono<{
+  Variables: {
+    dbConnection: mongoose.Connection;
+    context: Context;
+  };
+}>();
+app.use(dbMiddleware);
+app.use(contextMiddleware);
 
 app.get("/:db", async (c) => {
   const redirectUrl = c.req.query("redirectUrl") || Bun.env.GOOGLE_REDIRECT_URI;
@@ -34,20 +44,11 @@ app.post("/:db", async (c) => {
     });
   }
 
-  const db = c.req.query("db");
-  if (!db) {
-    throw new HTTPException(400, {
-      message: "Database parameter is missing in the request",
-    });
-  }
-  switchConnection(db);
-  console.log(`Using ${db} database`);
-
   try {
     const userData = await getGoogleUserData({
       redirectUrl: body.redirectUrl,
       code: body.code,
-      db,
+      context: c.get("context"),
     });
     const jwtToken = await jwt_sign(userData, JWT_SECRET);
     c.res.headers.set("Authorization", `Bearer ${jwtToken}`);

@@ -55,7 +55,7 @@ class EnvironmentRepository extends BaseRepository {
   }: {
     envName: string;
     appName: string;
-    description: string;
+    description?: string;
   }): Promise<Environment> {
     const environment = await this.environmentModel.create({
       name: envName,
@@ -68,10 +68,13 @@ class EnvironmentRepository extends BaseRepository {
       entities: [],
       description,
     });
-    await this.applicationModel.findOneAndUpdate(
+
+    await this.applicationModel.updateOne(
       { name: appName },
       { $addToSet: { environments: environment._id } },
+      { upsert: true },
     );
+
     return environment;
   }
 
