@@ -3,7 +3,7 @@ import { type Application } from "../models/application.model";
 import { APPLICATION_MONGO_DB_REPOSITORY, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 import type Context from "../middlewares/context.ts";
-import { type ApplicationRepository } from "../repositories/mongodb";
+import type { IApplicationRepository } from "../repositories/interfaces.ts";
 
 const getApplication = async ({
   context,
@@ -14,7 +14,7 @@ const getApplication = async ({
   appName: string;
   userEmail: string;
 }): Promise<Application> => {
-  const repository = context.get<ApplicationRepository>(
+  const repository = context.get<IApplicationRepository>(
     APPLICATION_MONGO_DB_REPOSITORY,
   );
 
@@ -32,7 +32,7 @@ const getUserApplications = async ({
   context: Context;
   userEmail: string;
 }): Promise<Application[]> => {
-  const repository = context.get<ApplicationRepository>(
+  const repository = context.get<IApplicationRepository>(
     APPLICATION_MONGO_DB_REPOSITORY,
   );
 
@@ -52,7 +52,7 @@ const createApplication = async ({
   image: string;
   appDescription: string;
 }): Promise<void> => {
-  const repository = context.get<ApplicationRepository>(
+  const repository = context.get<IApplicationRepository>(
     APPLICATION_MONGO_DB_REPOSITORY,
   );
 
@@ -81,7 +81,7 @@ const updateApplication = async (props: {
   description?: string;
   image?: string;
 }): Promise<Application | null> => {
-  const repository = props.context.get<ApplicationRepository>(
+  const repository = props.context.get<IApplicationRepository>(
     APPLICATION_MONGO_DB_REPOSITORY,
   );
 
@@ -114,7 +114,7 @@ const deleteApplication = async ({
   appName: string;
   userEmail: string;
 }): Promise<Application | null> => {
-  const repository = context.get<ApplicationRepository>(
+  const repository = context.get<IApplicationRepository>(
     APPLICATION_MONGO_DB_REPOSITORY,
   );
 

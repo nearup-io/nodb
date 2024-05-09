@@ -5,8 +5,9 @@ import { ObjectId } from "mongodb";
 import type { EntityQueryMeta, SortBy } from "../../utils/types.ts";
 import * as R from "ramda";
 import type { EntityAggregateResult } from "../../services/entity.service.ts";
+import type { IEntityRepository } from "../interfaces.ts";
 
-class EntityRepository extends BaseRepository {
+class EntityRepository extends BaseRepository implements IEntityRepository {
   constructor(readonly conn: mongoose.Connection) {
     super(conn);
   }
@@ -163,7 +164,7 @@ class EntityRepository extends BaseRepository {
     vectorIndex: string;
     limit: number;
     entityType?: string;
-  }): Promise<any[]> {
+  }): Promise<Entity[]> {
     return this.entityModel.aggregate([
       {
         $vectorSearch: {

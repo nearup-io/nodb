@@ -3,7 +3,7 @@ import { type Environment } from "../models/environment.model";
 import { ENVIRONMENT_MONGO_DB_REPOSITORY, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 import type Context from "../middlewares/context.ts";
-import { type EnvironmentRepository } from "../repositories/mongodb";
+import { type IEnvironmentRepository } from "../repositories/interfaces.ts";
 
 const findEnvironment = async ({
   context,
@@ -14,7 +14,7 @@ const findEnvironment = async ({
   envName: string;
   appName: string;
 }): Promise<Environment | undefined> => {
-  const repository = context.get<EnvironmentRepository>(
+  const repository = context.get<IEnvironmentRepository>(
     ENVIRONMENT_MONGO_DB_REPOSITORY,
   );
   return repository.findEnvironment({ appName, envName });
@@ -31,7 +31,7 @@ const createEnvironment = async ({
   appName: string;
   description?: string;
 }): Promise<Environment> => {
-  const repository = context.get<EnvironmentRepository>(
+  const repository = context.get<IEnvironmentRepository>(
     ENVIRONMENT_MONGO_DB_REPOSITORY,
   );
 
@@ -55,7 +55,7 @@ const deleteEnvironment = async ({
   appName: string;
   envName: string;
 }) => {
-  const repository = context.get<EnvironmentRepository>(
+  const repository = context.get<IEnvironmentRepository>(
     ENVIRONMENT_MONGO_DB_REPOSITORY,
   );
   const environment = await repository.findEnvironment({
@@ -93,7 +93,7 @@ const updateEnvironment = async ({
   oldEnvName: string;
   description: string;
 }): Promise<Environment> => {
-  const repository = context.get<EnvironmentRepository>(
+  const repository = context.get<IEnvironmentRepository>(
     ENVIRONMENT_MONGO_DB_REPOSITORY,
   );
 

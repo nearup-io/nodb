@@ -25,7 +25,7 @@ import type {
 } from "../utils/types.ts";
 import { findEnvironment } from "./environment.service";
 import type Context from "../middlewares/context.ts";
-import { EntityRepository } from "../repositories/mongodb";
+import { type IEntityRepository } from "../repositories/interfaces.ts";
 
 export type EntityAggregateResult = {
   totalCount: number;
@@ -45,7 +45,7 @@ const searchEntities = async ({
   limit?: number;
   entityType?: string;
 }) => {
-  const entityRepository = context.get<EntityRepository>(
+  const entityRepository = context.get<IEntityRepository>(
     ENTITY_MONGO_DB_REPOSITORY,
   );
   const embedding = await getEmbedding(query);
@@ -69,7 +69,7 @@ const searchAiEntities = async ({
   limit?: number;
   entityType?: string;
 }) => {
-  const entityRepository = context.get<EntityRepository>(
+  const entityRepository = context.get<IEntityRepository>(
     ENTITY_MONGO_DB_REPOSITORY,
   );
 
@@ -136,7 +136,7 @@ export const getEntities = async ({
   const ancestors = getAncestors(xpathEntitySegments);
   const entityTypes = getEntityTypes(xpathEntitySegments);
 
-  const entityRepository = context.get<EntityRepository>(
+  const entityRepository = context.get<IEntityRepository>(
     ENTITY_MONGO_DB_REPOSITORY,
   );
 
@@ -214,7 +214,7 @@ const getSingleEntity = async ({
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
   const entityTypes = getEntityTypes(xpathEntitySegments);
-  const entityRepository = context.get<EntityRepository>(
+  const entityRepository = context.get<IEntityRepository>(
     ENTITY_MONGO_DB_REPOSITORY,
   );
   const entity = await entityRepository.getSingleEntity({
@@ -312,7 +312,7 @@ const createOrOverwriteEntities = async ({
     });
   }
 
-  const entityRepository = context.get<EntityRepository>(
+  const entityRepository = context.get<IEntityRepository>(
     ENTITY_MONGO_DB_REPOSITORY,
   );
 
@@ -348,7 +348,7 @@ const deleteRootAndUpdateEnv = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const entityRepository = context.get<EntityRepository>(
+  const entityRepository = context.get<IEntityRepository>(
     ENTITY_MONGO_DB_REPOSITORY,
   );
 
@@ -391,7 +391,7 @@ const deleteSubEntitiesAndUpdateEnv = async ({
     (_: any, i: number) => i % 2 !== 0,
   );
 
-  const entityRepository = context.get<EntityRepository>(
+  const entityRepository = context.get<IEntityRepository>(
     ENTITY_MONGO_DB_REPOSITORY,
   );
 
@@ -434,7 +434,7 @@ const deleteSingleEntityAndUpdateEnv = async ({
   );
   const entityId = R.last(xpathEntitySegments)!;
 
-  const entityRepository = context.get<EntityRepository>(
+  const entityRepository = context.get<IEntityRepository>(
     ENTITY_MONGO_DB_REPOSITORY,
   );
   try {
@@ -472,7 +472,7 @@ const replaceEntities = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const entityRepository = context.get<EntityRepository>(
+  const entityRepository = context.get<IEntityRepository>(
     ENTITY_MONGO_DB_REPOSITORY,
   );
 
@@ -546,7 +546,7 @@ const updateEntities = async ({
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
 
-  const entityRepository = context.get<EntityRepository>(
+  const entityRepository = context.get<IEntityRepository>(
     ENTITY_MONGO_DB_REPOSITORY,
   );
   const entityTypes = getEntityTypes(xpathEntitySegments);

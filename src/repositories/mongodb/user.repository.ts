@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
 import BaseRepository from "./base-repository.ts";
 import { type User } from "../../models/user.model.ts";
+import type { IUserRepository } from "../interfaces.ts";
 
-class UserRepository extends BaseRepository {
+class UserRepository extends BaseRepository implements IUserRepository {
   constructor(readonly conn: mongoose.Connection) {
     super(conn);
   }

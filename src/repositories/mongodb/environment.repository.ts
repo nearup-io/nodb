@@ -5,8 +5,12 @@ import { httpError, Permissions } from "../../utils/const.ts";
 import generateToken from "../../utils/backend-token.ts";
 import { ServiceError } from "../../utils/service-errors.ts";
 import { ObjectId } from "mongodb";
+import type { IEnvironmentRepository } from "../interfaces.ts";
 
-class EnvironmentRepository extends BaseRepository {
+class EnvironmentRepository
+  extends BaseRepository
+  implements IEnvironmentRepository
+{
   constructor(readonly conn: mongoose.Connection) {
     super(conn);
   }

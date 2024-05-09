@@ -6,8 +6,12 @@ import { type Environment } from "../../models/environment.model.ts";
 import generateToken from "../../utils/backend-token.ts";
 import { defaultNodbEnv, Permissions } from "../../utils/const.ts";
 import BaseRepository from "./base-repository.ts";
+import type { IApplicationRepository } from "../interfaces.ts";
 
-class ApplicationRepository extends BaseRepository {
+class ApplicationRepository
+  extends BaseRepository
+  implements IApplicationRepository
+{
   constructor(readonly conn: mongoose.Connection) {
     super(conn);
   }
