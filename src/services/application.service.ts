@@ -1,304 +1,135 @@
-import { ObjectId } from "mongodb";
-import mongoose from "mongoose";
 import * as R from "ramda";
-import {
-  getApplicationModel,
-  getEntityModel,
-  getEnvironmentModel,
-  getUserModel,
-} from "../connections/connect";
 import { type Application } from "../models/application.model";
-import { type Environment } from "../models/environment.model";
-import generateToken from "../utils/backend-token";
-import { Permissions, defaultNodbEnv, httpError } from "../utils/const";
+import { APPLICATION_MONGO_DB_REPOSITORY, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
+import type Context from "../middlewares/context.ts";
+import type { IApplicationRepository } from "../repositories/interfaces.ts";
 
-export const getApplication = async ({
-  conn,
+const getApplication = async ({
+  context,
   appName,
   userEmail,
 }: {
-  conn: mongoose.Connection;
+  context: Context;
   appName: string;
   userEmail: string;
-}) => {
-  const userApplications = await getUserModel(conn).aggregate([
-    {
-      $match: {
-        $and: [
-          { email: userEmail },
-          { $expr: { $in: [appName, "$applications"] } },
-        ],
-      },
-    },
-    { $limit: 1 },
-    {
-      $lookup: {
-        from: "applications",
-        localField: "applications",
-        foreignField: "name",
-        as: "applications",
-      },
-    },
-    { $unwind: "$applications" },
-    {
-      $match: { "applications.name": appName },
-    },
-    {
-      $lookup: {
-        from: "environments",
-        localField: "applications.environments",
-        foreignField: "_id",
-        as: "environments",
-      },
-    },
-    {
-      $project: {
-        name: "$applications.name",
-        image: "$applications.image",
-        description: "$applications.description",
-        "environments.name": 1,
-        "environments.tokens": 1,
-        "environments.description": 1,
-        _id: 0,
-      },
-    },
-  ]);
-  if (!userApplications.length) {
+}): Promise<Application> => {
+  const repository = context.get<IApplicationRepository>(
+    APPLICATION_MONGO_DB_REPOSITORY,
+  );
+
+  const application = await repository.getApplication({ appName, userEmail });
+  if (!application) {
     throw new ServiceError(httpError.APPNAME_NOT_FOUND);
   }
-  return userApplications[0];
+  return application;
 };
 
-const getEnvironmentsByAppName = async (
-  conn: mongoose.Connection,
-  appName: string
-) => {
-  const applicationEnvironments = await getApplicationModel(
-    conn
-  ).aggregate<Environment>([
-    { $match: { name: appName } },
-    {
-      $lookup: {
-        from: "environments",
-        localField: "environments",
-        foreignField: "_id",
-        as: "environments",
-      },
-    },
-    { $unwind: "$environments" },
-    {
-      $project: {
-        name: "$environments.name",
-        tokens: "$environments.tokens",
-        entities: "$environments.entities",
-        description: "$environments.description",
-        _id: "$environments._id",
-      },
-    },
-  ]);
-  return applicationEnvironments;
-};
-
-export const getUserApplications = async ({
-  conn,
+const getUserApplications = async ({
+  context,
   userEmail,
 }: {
-  conn: mongoose.Connection;
+  context: Context;
   userEmail: string;
-}) => {
-  const userApplications = await getUserModel(conn).aggregate([
-    { $match: { email: userEmail } },
-    { $limit: 1 },
-    {
-      $lookup: {
-        from: "applications",
-        localField: "applications",
-        foreignField: "name",
-        as: "applications",
-      },
-    },
-    { $unwind: "$applications" },
-    {
-      $lookup: {
-        from: "environments",
-        localField: "applications.environments",
-        foreignField: "_id",
-        as: "applications.environments",
-      },
-    },
-    { $unwind: "$applications" },
-    {
-      $project: {
-        name: "$applications.name",
-        image: "$applications.image",
-        description: "$applications.description",
-        environments: {
-          $map: {
-            input: "$applications.environments",
-            as: "environment",
-            in: {
-              name: "$$environment.name",
-              tokens: "$$environment.tokens",
-              entities: "$$environment.entities",
-            },
-          },
-        },
-        _id: 0,
-      },
-    },
-  ]);
-  return userApplications;
+}): Promise<Application[]> => {
+  const repository = context.get<IApplicationRepository>(
+    APPLICATION_MONGO_DB_REPOSITORY,
+  );
+
+  return repository.getUserApplications({ userEmail });
 };
 
-export const createApplication = async ({
-  conn,
+const createApplication = async ({
+  context,
   appName,
   userEmail,
   image,
   appDescription,
 }: {
-  conn: mongoose.Connection;
+  context: Context;
   appName: string;
   userEmail: string;
   image: string;
   appDescription: string;
-}) => {
-  const session = await conn.startSession();
-  session.startTransaction();
+}): Promise<void> => {
+  const repository = context.get<IApplicationRepository>(
+    APPLICATION_MONGO_DB_REPOSITORY,
+  );
+
   try {
-    const environment = await getEnvironmentModel(conn).create(
-      [
-        {
-          name: defaultNodbEnv,
-          tokens: [
-            {
-              key: generateToken(),
-              permission: Permissions.ALL,
-            },
-          ],
-          entities: [],
-          description: "",
-        },
-      ],
-      { session }
-    );
-    await getApplicationModel(conn).create(
-      [
-        {
-          name: appName,
-          image,
-          description: appDescription,
-          environments: [new ObjectId(environment[0]._id)],
-        },
-      ],
-      { session }
-    );
-    await getUserModel(conn).findOneAndUpdate(
-      { email: userEmail },
-      { $addToSet: { applications: appName } },
-      { session }
-    );
-    await session.commitTransaction();
+    await repository.createApplication({
+      appName,
+      userEmail,
+      image,
+      appDescription,
+    });
   } catch (e: any) {
-    await session.abortTransaction();
     if (e.code === 11000) {
       throw new ServiceError(httpError.APPNAME_EXISTS);
     } else {
       console.log("Error creating app", e);
       throw new ServiceError(httpError.UNKNOWN);
     }
-  } finally {
-    await session.endSession();
   }
 };
 
-export const updateApplication = async (props: {
-  conn: mongoose.Connection;
+const updateApplication = async (props: {
+  context: Context;
   oldAppName: string;
   newAppName?: string;
   userEmail: string;
   description?: string;
   image?: string;
-}) => {
-  const session = await props.conn.startSession();
-  session.startTransaction();
+}): Promise<Application | null> => {
+  const repository = props.context.get<IApplicationRepository>(
+    APPLICATION_MONGO_DB_REPOSITORY,
+  );
+
   const updateProps = R.pickBy(R.pipe(R.isNil, R.not), {
     name: props.newAppName,
     description: props.description,
     image: props.image,
   }) as { name?: string; description?: string; image?: string };
+
   try {
-    const doc = await getApplicationModel(props.conn).findOneAndUpdate(
-      { name: props.oldAppName },
-      { ...updateProps },
-      { session }
-    );
-    if (
-      doc &&
-      props.oldAppName !== props.newAppName &&
-      R.is(String, props.newAppName)
-    ) {
-      await getUserModel(props.conn).findOneAndUpdate(
-        { email: props.userEmail, applications: props.oldAppName },
-        { $set: { "applications.$": props.newAppName } },
-        { session }
-      );
-    }
-    await session.commitTransaction();
-    return doc;
+    const result = await repository.updateApplication({
+      oldAppName: props.oldAppName,
+      userEmail: props.userEmail,
+      updateProps,
+    });
+
+    return result;
   } catch (e) {
     console.log("Error updating app", e);
-    await session.abortTransaction();
     throw new ServiceError(httpError.UNKNOWN);
-  } finally {
-    await session.endSession();
   }
 };
 
-export const deleteApplication = async ({
-  conn,
+const deleteApplication = async ({
+  context,
   appName,
   userEmail,
 }: {
-  conn: mongoose.Connection;
+  context: Context;
   appName: string;
   userEmail: string;
-}) => {
-  const envs = await getEnvironmentsByAppName(conn, appName);
-  const session = await conn.startSession();
-  session.startTransaction();
+}): Promise<Application | null> => {
+  const repository = context.get<IApplicationRepository>(
+    APPLICATION_MONGO_DB_REPOSITORY,
+  );
+
   try {
-    const app = await getApplicationModel(conn).findOneAndDelete<Application>(
-      { name: appName },
-      { session }
-    );
-    if (app && app._id) {
-      await getEnvironmentModel(conn).deleteMany(
-        {
-          _id: { $in: envs.map((e) => e._id) },
-        },
-        { session }
-      );
-      await getUserModel(conn).findOneAndUpdate(
-        { email: userEmail },
-        {
-          $pull: { applications: appName },
-        },
-        { session }
-      );
-      await getEntityModel(conn).deleteMany(
-        { type: { $regex: `^${appName}/` } },
-        { session }
-      );
-      await session.commitTransaction();
-    }
-    return app;
+    return repository.deleteApplication({ appName, userEmail });
   } catch (e) {
     console.error("Error deleting application", e);
-    await session.abortTransaction();
     throw new ServiceError(httpError.APP_CANT_DELETE);
-  } finally {
-    await session.endSession();
   }
+};
+
+export {
+  getApplication,
+  getUserApplications,
+  createApplication,
+  updateApplication,
+  deleteApplication,
 };

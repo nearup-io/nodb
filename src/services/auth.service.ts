@@ -1,16 +1,18 @@
 import axios from "axios";
 import { HTTPException } from "hono/http-exception";
 import { decode as jwt_decode } from "hono/jwt";
-import { ObjectId } from "mongodb";
 import * as R from "ramda";
-import { getConnection } from "../connections/connect";
-import Application from "../models/application.model";
-import Environment from "../models/environment.model";
-import User from "../models/user.model";
 import generateAppName from "../utils/app-name";
 import { generateState } from "../utils/auth-utils";
-import generateToken from "../utils/backend-token";
-import { defaultNodbEnv, Permissions, PROVIDER_GOOGLE } from "../utils/const";
+import {
+  defaultNodbEnv,
+  ENVIRONMENT_MONGO_DB_REPOSITORY,
+  PROVIDER_GOOGLE,
+  USER_MONGO_DB_REPOSITORY,
+} from "../utils/const";
+import type Context from "../middlewares/context.ts";
+import { EnvironmentRepository, UserRepository } from "../repositories/mongodb";
+import { type User } from "../models/user.model.ts";
 
 export const getGithubLoginUrl = ({ redirectUrl }: { redirectUrl: string }) => {
   const { GITHUB_CLIENT_ID, GITHUB_AUTH_ENDPOINT } = Bun.env;
@@ -45,65 +47,40 @@ export const getGoogleLoginUrl = ({ redirectUrl }: { redirectUrl: string }) => {
 };
 
 export const finalizeAuth = async ({
-  db,
+  context,
   email,
   provider,
 }: {
-  db: string;
+  context: Context;
   email: string;
   provider: string;
-}) => {
-  const conn = getConnection(db);
-  const user = await conn
-    .model("User")
-    .findOneAndUpdate(
-      { email },
-      { $addToSet: { providers: provider }, $set: { lastProvider: provider } },
-      { returnNewDocument: true }
-    );
-  let newUser;
-  if (!user) {
-    const applicationName = generateAppName();
-    const environment = await conn.model('Environment').create({
-      name: defaultNodbEnv,
-      tokens: [
-        {
-          key: generateToken(),
-          permission: Permissions.ALL,
-        },
-      ],
-      entities: [],
-    });
-    await conn.model('Application').create({
-      name: applicationName,
-      environments: [new ObjectId(environment._id)],
-    });
-    newUser = {
-      email,
-      providers: [provider],
-      applications: [applicationName],
-      lastProvider: provider,
-    };
-    await conn.model('User').create(newUser);
-  }
-  const loggedInUser = user ?? newUser;
-  if (!loggedInUser) {
-    return {};
-  }
-  return {
-    email: loggedInUser.email,
-    providers: loggedInUser.providers,
-    lastProvider: provider,
-    applications: loggedInUser.applications,
-  };
+}): Promise<User> => {
+  const userRepository = context.get<UserRepository>(USER_MONGO_DB_REPOSITORY);
+  const updatedUser = await userRepository.updateUser({ email, provider });
+
+  if (updatedUser) return updatedUser;
+
+  const appName = generateAppName();
+  const environmentRepository = context.get<EnvironmentRepository>(
+    ENVIRONMENT_MONGO_DB_REPOSITORY,
+  );
+
+  await environmentRepository.createEnvironment({
+    appName,
+    envName: defaultNodbEnv,
+  });
+
+  return userRepository.createUser({ provider, email, appName });
 };
 
 export const getGoogleUserData = async ({
   redirectUrl,
   code,
+  context,
 }: {
   redirectUrl: string;
   code: string;
+  context: Context;
 }) => {
   const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = Bun.env;
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
@@ -131,7 +108,7 @@ export const getGoogleUserData = async ({
   }
   const { id_token } = response.data;
   const email = R.path(["payload", "email"], jwt_decode(id_token));
-  return finalizeAuth({ email, provider: PROVIDER_GOOGLE });
+  return finalizeAuth({ context, email, provider: PROVIDER_GOOGLE });
 };
 
 export const getGithubUserData = async ({
@@ -176,6 +153,5 @@ export const getGithubUserData = async ({
       message: "Error while getting Github response",
     });
   }
-  const userData = githubUserResponse.data[0];
-  return userData;
+  return githubUserResponse.data[0];
 };

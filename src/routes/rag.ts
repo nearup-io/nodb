@@ -7,12 +7,19 @@ import dbMiddleware from "../middlewares/db.middleware";
 import { searchAiEntities } from "../services/entity.service";
 import type { USER_TYPE } from "../utils/auth-utils";
 import { ServiceError } from "../utils/service-errors";
+import contextMiddleware from "../middlewares/context.middleware.ts";
+import type Context from "../middlewares/context.ts";
 
 const app = new Hono<{
-  Variables: { user: USER_TYPE; dbConnection: mongoose.Connection };
+  Variables: {
+    user: USER_TYPE;
+    dbConnection: mongoose.Connection;
+    context: Context;
+  };
 }>();
 app.use(authMiddleware);
 app.use(dbMiddleware);
+app.use(contextMiddleware);
 
 app.post("/:app/:env/*", async (c) => {
   const { app, env } = c.req.param();
@@ -21,17 +28,17 @@ app.post("/:app/:env/*", async (c) => {
   const entityType = R.replace(
     "/knowledgebase/",
     "",
-    last === "/" ? R.init(path) : path
+    last === "/" ? R.init(path) : path,
   );
   const hasTypeFilter = `${app}/${env}` !== entityType;
   const body = await c.req.json();
   if (body.query) {
     try {
       const res = await searchAiEntities({
-        conn: c.get("dbConnection"),
+        context: c.get("context"),
         query: body.query,
         limit: body.limit,
-        entityType: hasTypeFilter ? entityType : null,
+        entityType: hasTypeFilter ? entityType : undefined,
       });
       return c.json(res);
     } catch (e) {

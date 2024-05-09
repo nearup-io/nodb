@@ -14,30 +14,38 @@ import type { USER_TYPE } from "../utils/auth-utils";
 import { APPNAME_MIN_LENGTH, APPNAME_REGEX, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 import envsRoute from "./environments";
+import contextMiddleware from "../middlewares/context.middleware.ts";
+import type Context from "../middlewares/context.ts";
 
 const app = new Hono<{
-  Variables: { user: USER_TYPE; dbConnection: mongoose.Connection };
+  Variables: {
+    user: USER_TYPE;
+    dbConnection: mongoose.Connection;
+    context: Context;
+  };
 }>();
 app.use(authMiddleware);
 app.use(dbMiddleware);
+app.use(contextMiddleware);
 
 app.get("/all", async (c) => {
   const user = c.get("user");
-  const conn = c.get("dbConnection");
+
   const apps = await getUserApplications({
-    conn,
+    context: c.get("context"),
     userEmail: user.email,
   });
+
   return c.json(apps);
 });
 
 app.get("/:appName", async (c) => {
   const appName = c.req.param("appName");
   const user = c.get("user");
-  const conn = c.get("dbConnection");
+
   try {
     const application = await getApplication({
-      conn,
+      context: c.get("context"),
       appName,
       userEmail: user.email,
     });
@@ -69,10 +77,10 @@ app.post("/:appName", async (c) => {
     });
   }
   const user = c.get("user");
-  const conn = c.get("dbConnection");
+
   try {
     await createApplication({
-      conn,
+      context: c.get("context"),
       appName,
       image: body.image || "",
       userEmail: user.email,
@@ -117,10 +125,9 @@ app.patch("/:appName", async (c) => {
     });
   }
   const user = c.get("user");
-  const conn = c.get("dbConnection");
   try {
     const doc = await updateApplication({
-      conn,
+      context: c.get("context"),
       oldAppName: appName,
       newAppName: body.appName,
       userEmail: user.email,
@@ -144,9 +151,8 @@ app.delete("/:appName", async (c) => {
   const user = c.get("user");
   const appName = c.req.param("appName");
   try {
-    const conn = c.get("dbConnection");
     const app = await deleteApplication({
-      conn,
+      context: c.get("context"),
       appName,
       userEmail: user.email,
     });

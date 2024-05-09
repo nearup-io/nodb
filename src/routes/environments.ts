@@ -3,7 +3,6 @@ import { HTTPException } from "hono/http-exception";
 import type mongoose from "mongoose";
 import authMiddleware from "../middlewares/auth.middleware";
 import dbMiddleware from "../middlewares/db.middleware";
-import { type Environment } from "../models/environment.model";
 import {
   createEnvironment,
   deleteEnvironment,
@@ -15,21 +14,31 @@ import { httpError } from "../utils/const";
 import { asyncTryJson } from "../utils/route-utils";
 import { ServiceError } from "../utils/service-errors";
 import entitiesRoute from "./entities";
+import contextMiddleware from "../middlewares/context.middleware.ts";
+import type Context from "../middlewares/context.ts";
 
 const app = new Hono<{
-  Variables: { user: USER_TYPE; dbConnection: mongoose.Connection };
+  Variables: {
+    user: USER_TYPE;
+    dbConnection: mongoose.Connection;
+    context: Context;
+  };
 }>();
 app.use(authMiddleware);
 app.use(dbMiddleware);
+app.use(contextMiddleware);
 
 app.get("/", async (c) => {
   const { appName, envName } = c.req.param() as {
     appName: string;
     envName: string;
   };
-  const conn = c.get("dbConnection");
   try {
-    const env = await findEnvironment({ conn, appName, envName });
+    const env = await findEnvironment({
+      context: c.get("context"),
+      appName,
+      envName,
+    });
     if (!env) {
       throw new HTTPException(404, {
         message: httpError.ENV_NOTFOUND,
@@ -56,7 +65,7 @@ app.post("/", async (c) => {
   };
   try {
     const doc = await createEnvironment({
-      conn: c.get("dbConnection"),
+      context: c.get("context"),
       appName,
       envName,
       description: body.description,
@@ -89,7 +98,7 @@ app.patch("/", async (c) => {
   }
   try {
     const doc = await updateEnvironment({
-      conn: c.get("dbConnection"),
+      context: c.get("context"),
       appName,
       newEnvName: body.envName,
       oldEnvName: envName,
@@ -123,8 +132,7 @@ app.delete("/", async (c) => {
     envName: string;
   };
   try {
-    const conn = c.get("dbConnection");
-    await deleteEnvironment({ conn, appName, envName });
+    await deleteEnvironment({ context: c.get("context"), appName, envName });
     return c.json({ found: true });
   } catch (e) {
     if (e instanceof ServiceError) {
