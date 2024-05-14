@@ -59,6 +59,7 @@ export const embeddingProvider: EmbeddingProvider =
 
 export const httpError = {
   USER_CANT_CREATE: "Couldn't create user",
+  USER_NOT_FOUND: "Can't find user",
   ENV_CANT_CREATE: "Couldn't create environment",
   APPNAME_LENGTH: `Application name length must be greater than ${APPNAME_MIN_LENGTH}`,
   APPNAME_NOT_ALLOWED:

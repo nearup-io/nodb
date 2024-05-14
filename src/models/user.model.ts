@@ -14,6 +14,7 @@ export const UserSchema = new Schema({
   applications: { type: Array, default: [] },
   lastProvider: { type: String, default: "" },
   lastUse: { type: Date, default: Date.now },
+  telegramId: { type: Number, required: false },
 });
 
 export type User = {
@@ -22,7 +23,7 @@ export type User = {
   applications: Application[];
   lastProvider: string;
   lastUse: Date;
-}
+};
 
 const User = mongoose.model("User", UserSchema);
 export default User;

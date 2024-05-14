@@ -40,6 +40,20 @@ class UserRepository extends BaseRepository implements IUserRepository {
       { returnNewDocument: true },
     );
   }
+
+  public async updateUserTelegramId({
+    email,
+    telegramId,
+  }: {
+    email: string;
+    telegramId?: number;
+  }): Promise<User | null> {
+    return this.userModel.findOneAndUpdate(
+      { email },
+      { telegramId },
+      { returnNewDocument: true },
+    );
+  }
 }
 
 export default UserRepository;

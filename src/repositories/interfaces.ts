@@ -120,4 +120,11 @@ export interface IUserRepository {
     appName: string;
   }): Promise<User>;
   updateUser(props: { provider: string; email: string }): Promise<User | null>;
+  updateUserTelegramId({
+    email,
+    telegramId,
+  }: {
+    email: string;
+    telegramId?: number;
+  }): Promise<User | null>;
 }
