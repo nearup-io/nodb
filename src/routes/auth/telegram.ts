@@ -16,6 +16,7 @@ const app = new Hono<{
 app.use(authMiddleware);
 app.use(contextMiddleware);
 
+// TODO cover with e2e tests
 app.patch("/", async (c) => {
   try {
     const body = await c.req.json();
@@ -25,7 +26,7 @@ app.patch("/", async (c) => {
       email: c.get("user").email,
       context: c.get("context"),
     });
-    return c.json({});
+    return c.json({ done: true });
   } catch (e: any) {
     if (e instanceof HTTPException) {
       throw e;
