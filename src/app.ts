@@ -6,6 +6,7 @@ import uiAuthRoute from "./routes/examples/auth";
 import ragRoute from "./routes/rag";
 import searchRoute from "./routes/search";
 import mongoConnect from "./connections/mongodb.ts";
+import webhooksRoute from "./routes/webhooks.ts";
 
 const app = new Hono();
 if (Bun.env.NODE_ENV === "development") {
@@ -19,5 +20,6 @@ app.route("/search", searchRoute);
 app.route("/knowledgebase", ragRoute);
 app.route("/auth/github", githubAuth);
 app.route("/examples/auth", uiAuthRoute);
+app.route("/webhooks", webhooksRoute);
 
 export default app;
