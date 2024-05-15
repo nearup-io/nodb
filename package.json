@@ -22,6 +22,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.6",
+    "@clerk/backend": "^1.1.5",
+    "@hono/clerk-auth": "^2.0.0",
     "@langchain/openai": "^0.0.28",
     "assert": "^2.1.0",
     "axios": "^1.6.8",
