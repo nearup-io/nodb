@@ -5,17 +5,13 @@ import authMiddleware from "../middlewares/auth.middleware";
 import { searchAiEntities } from "../services/entity.service";
 import type { USER_TYPE } from "../utils/auth-utils";
 import { ServiceError } from "../utils/service-errors";
-import contextMiddleware from "../middlewares/context.middleware.ts";
-import type Context from "../middlewares/context.ts";
 
 const app = new Hono<{
   Variables: {
     user: USER_TYPE;
-    context: Context;
   };
 }>();
 app.use(authMiddleware);
-app.use(contextMiddleware);
 
 app.post("/:app/:env/*", async (c) => {
   const { app, env } = c.req.param();

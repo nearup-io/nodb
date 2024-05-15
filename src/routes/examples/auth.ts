@@ -19,6 +19,8 @@ app.get("/", (c) => {
   return c.html(Layout({ githubLoginUrl, googleLoginUrl: "" }));
 });
 
+app.post("/", async (c) => {});
+
 app.route("/telegram", telegramRoute);
 
 export default app;
