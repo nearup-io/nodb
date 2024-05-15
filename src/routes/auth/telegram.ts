@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import contextMiddleware from "../../middlewares/context.middleware.ts";
 import type Context from "../../middlewares/context.ts";
-import authMiddleware from "../../middlewares/auth.middleware.ts";
 import type { USER_TYPE } from "../../utils/auth-utils.ts";
 import { updateUserTelegramId } from "../../services/user.service.ts";
 import { ServiceError } from "../../utils/service-errors.ts";
+import authMiddleware from "../../middlewares/auth.middleware.ts";
+import contextMiddleware from "../../middlewares/context.middleware.ts";
 
 const app = new Hono<{
   Variables: {

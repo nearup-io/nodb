@@ -7,6 +7,7 @@ import ragRoute from "./routes/rag";
 import searchRoute from "./routes/search";
 import mongoConnect from "./connections/mongodb.ts";
 import webhooksRoute from "./routes/webhooks.ts";
+import { cors } from "hono/cors";
 
 const app = new Hono();
 if (Bun.env.NODE_ENV === "development") {
@@ -14,6 +15,11 @@ if (Bun.env.NODE_ENV === "development") {
 }
 
 await mongoConnect();
+app.use(
+  cors({
+    origin: "https://5806-109-92-19-84.ngrok-free.app",
+  }),
+);
 
 app.route("/apps", appsRoute);
 app.route("/search", searchRoute);
