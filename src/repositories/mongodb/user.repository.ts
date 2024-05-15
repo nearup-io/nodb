@@ -54,6 +54,10 @@ class UserRepository extends BaseRepository implements IUserRepository {
       { returnNewDocument: true },
     );
   }
+
+  public async findUserByEmail(email: string): Promise<User | null> {
+    return this.userModel.findOne({ email });
+  }
 }
 
 export default UserRepository;

@@ -4,8 +4,6 @@ import type Context from "../../middlewares/context.ts";
 import type { USER_TYPE } from "../../utils/auth-utils.ts";
 import { updateUserTelegramId } from "../../services/user.service.ts";
 import { ServiceError } from "../../utils/service-errors.ts";
-import authMiddleware from "../../middlewares/auth.middleware.ts";
-import contextMiddleware from "../../middlewares/context.middleware.ts";
 
 const app = new Hono<{
   Variables: {
@@ -13,8 +11,6 @@ const app = new Hono<{
     context: Context;
   };
 }>();
-app.use(authMiddleware);
-app.use(contextMiddleware);
 
 // TODO cover with e2e tests
 app.patch("/", async (c) => {
