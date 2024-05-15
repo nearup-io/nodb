@@ -8,9 +8,6 @@ import searchRoute from "./routes/search";
 import mongoConnect from "./connections/mongodb.ts";
 import webhooksRoute from "./routes/webhooks.ts";
 import { cors } from "hono/cors";
-import userRoutes from "./routes/users.ts";
-import { clerkMiddleware } from "@hono/clerk-auth";
-import contextMiddleware from "./middlewares/context.middleware.ts";
 
 const app = new Hono();
 if (Bun.env.NODE_ENV === "development") {
@@ -18,14 +15,9 @@ if (Bun.env.NODE_ENV === "development") {
 }
 
 await mongoConnect();
-app.use("*", clerkMiddleware());
-app.use(contextMiddleware);
 app.use(
   cors({
-    origin: [
-      "https://5806-109-92-19-84.ngrok-free.app",
-      "http://localhost:5173",
-    ],
+    origin: "https://5806-109-92-19-84.ngrok-free.app",
   }),
 );
 
@@ -35,6 +27,5 @@ app.route("/knowledgebase", ragRoute);
 app.route("/auth/github", githubAuth);
 app.route("/examples/auth", uiAuthRoute);
 app.route("/webhooks", webhooksRoute);
-app.route("/users", userRoutes);
 
 export default app;

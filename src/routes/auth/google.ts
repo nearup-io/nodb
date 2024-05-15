@@ -5,8 +5,15 @@ import {
   getGoogleLoginUrl,
   getGoogleUserData,
 } from "../../services/auth.service";
+import type Context from "../../middlewares/context.ts";
+import contextMiddleware from "../../middlewares/context.middleware.ts";
 
-const app = new Hono();
+const app = new Hono<{
+  Variables: {
+    context: Context;
+  };
+}>();
+app.use(contextMiddleware);
 
 app.get("/:db", async (c) => {
   const redirectUrl = c.req.query("redirectUrl") || Bun.env.GOOGLE_REDIRECT_URI;

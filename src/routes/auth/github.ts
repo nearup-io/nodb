@@ -4,8 +4,16 @@ import { sign as jwt_sign } from "hono/jwt";
 import { finalizeAuth, getGithubUserData } from "../../services/auth.service";
 import type { USER_TYPE } from "../../utils/auth-utils";
 import { PROVIDER_GITHUB } from "../../utils/const";
+import contextMiddleware from "../../middlewares/context.middleware.ts";
+import type Context from "../../middlewares/context.ts";
 
-const app = new Hono();
+const app = new Hono<{
+  Variables: {
+    context: Context;
+  };
+}>();
+
+app.use(contextMiddleware);
 
 app.get("/", async (c) => {
   const jwtSecret = Bun.env.JWT_SECRET;
