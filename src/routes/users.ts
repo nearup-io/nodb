@@ -31,7 +31,6 @@ app.post("/auth", async (c) => {
   }
 
   try {
-    console.log(clerkUser.primaryEmailAddress?.emailAddress);
     const user = await createOrFetchUser({
       user: clerkUser,
       context: c.get("context"),
@@ -42,6 +41,20 @@ app.post("/auth", async (c) => {
       message: httpError.UNKNOWN,
     });
   }
+});
+
+app.get("/profile", async (c) => {
+  const clerkClient = c.get("clerk");
+  const auth = getAuth(c);
+
+  if (!auth?.userId) {
+    return c.json({
+      message: "You are not logged in.",
+    });
+  }
+  const user = await clerkClient.users.getUser(auth.userId);
+
+  return c.json(user);
 });
 
 export default app;

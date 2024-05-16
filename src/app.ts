@@ -8,8 +8,8 @@ import webhooksRoute from "./routes/webhooks.ts";
 import { cors } from "hono/cors";
 import users from "./routes/users.ts";
 import { clerkMiddleware } from "@hono/clerk-auth";
-import authMiddleware from "./middlewares/auth.middleware.ts";
 import contextMiddleware from "./middlewares/context.middleware.ts";
+import authMiddleware from "./middlewares/auth.middleware.ts";
 
 const app = new Hono();
 if (Bun.env.NODE_ENV === "development") {
@@ -20,7 +20,10 @@ await mongoConnect();
 app.use(contextMiddleware);
 app.use(
   cors({
-    origin: "https://5806-109-92-19-84.ngrok-free.app",
+    origin: [
+      "https://5806-109-92-19-84.ngrok-free.app",
+      "http://localhost:5173",
+    ],
   }),
 );
 
