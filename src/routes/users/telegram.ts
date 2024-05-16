@@ -19,7 +19,7 @@ app.patch("/", async (c) => {
 
     await updateUserTelegramId({
       telegramId: body.telegramId,
-      email: c.get("user").email,
+      clerkUserId: c.get("user").clerkUserId,
       context: c.get("context"),
     });
     return c.json({ done: true });

@@ -1,10 +1,8 @@
 import crypto from "crypto";
+import { type User } from "../models/user.model.ts";
 
-export type USER_TYPE = {
-  email: string;
-  applications: [];
-  lastProvider: string;
-};
+// TODO remove this type and use User everywhere
+export type USER_TYPE = User;
 
 export const generateState = (length = 32) => {
   const randomBytes = crypto.randomBytes(length);

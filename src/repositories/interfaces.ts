@@ -115,14 +115,15 @@ export interface IEntityRepository {
 
 export interface IUserRepository {
   createUser(props: {
-    provider: string;
+    clerkUserId: string;
     email: string;
     appName: string;
   }): Promise<User>;
-  updateUser(props: { provider: string; email: string }): Promise<User | null>;
+  updateUserLastUse(props: { clerkUserId: string }): Promise<User | null>;
   updateUserTelegramId(props: {
-    email: string;
+    clerkUserId: string;
     telegramId?: number;
   }): Promise<User | null>;
   findUserByEmail(email: string): Promise<User | null>;
+  findUserClerkId(id: string): Promise<User | null>;
 }

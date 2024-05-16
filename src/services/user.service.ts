@@ -15,14 +15,17 @@ import { EnvironmentRepository } from "../repositories/mongodb";
 const updateUserTelegramId = async ({
   telegramId,
   context,
-  email,
+  clerkUserId,
 }: {
   telegramId?: number;
-  email: string;
+  clerkUserId: string;
   context: Context;
 }): Promise<User> => {
   const repository = context.get<IUserRepository>(USER_MONGO_DB_REPOSITORY);
-  const user = await repository.updateUserTelegramId({ email, telegramId });
+  const user = await repository.updateUserTelegramId({
+    clerkUserId,
+    telegramId,
+  });
   if (!user) {
     throw new ServiceError(httpError.USER_NOT_FOUND);
   }
@@ -41,6 +44,17 @@ const findUserByEmail = async ({
   return repository.findUserByEmail(email);
 };
 
+const findUserByClerkId = async ({
+  id,
+  context,
+}: {
+  id: string;
+  context: Context;
+}): Promise<User | null> => {
+  const repository = context.get<IUserRepository>(USER_MONGO_DB_REPOSITORY);
+  return repository.findUserClerkId(id);
+};
+
 const createOrFetchUser = async ({
   user,
   context,
@@ -54,7 +68,7 @@ const createOrFetchUser = async ({
     throw new ServiceError(httpError.USER_DOES_NOT_HAVE_EMAIL);
   }
 
-  const dbUser = await findUserByEmail({ email: userEmail, context });
+  const dbUser = await findUserByClerkId({ id: user.id, context });
 
   if (dbUser) {
     return dbUser;
@@ -70,12 +84,16 @@ const createOrFetchUser = async ({
     envName: defaultNodbEnv,
   });
 
-  // TODO remove provider
   return repository.createUser({
-    provider: "github",
+    clerkUserId: user.id,
     email: userEmail,
     appName,
   });
 };
 
-export { updateUserTelegramId, createOrFetchUser, findUserByEmail };
+export {
+  updateUserTelegramId,
+  createOrFetchUser,
+  findUserByEmail,
+  findUserByClerkId,
+};

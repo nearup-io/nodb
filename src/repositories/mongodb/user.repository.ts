@@ -8,48 +8,44 @@ class UserRepository extends BaseRepository implements IUserRepository {
   }
 
   public async createUser({
-    provider,
+    clerkUserId,
     email,
     appName,
   }: {
-    provider: string;
+    clerkUserId: string;
     email: string;
     appName: string;
   }): Promise<User> {
     return this.userModel.create({
       email,
-      providers: [provider],
-      lastProvider: provider,
+      clerkUserId,
       applications: [appName],
     });
   }
 
-  public async updateUser({
-    provider,
-    email,
+  public async updateUserLastUse({
+    clerkUserId,
   }: {
-    provider: string;
-    email: string;
+    clerkUserId: string;
   }): Promise<User | null> {
     return this.userModel.findOneAndUpdate(
-      { email },
+      { clerkUserId },
       {
-        $addToSet: { providers: provider },
-        $set: { lastProvider: provider },
+        lastUse: Date.now(),
       },
       { returnNewDocument: true },
     );
   }
 
   public async updateUserTelegramId({
-    email,
+    clerkUserId,
     telegramId,
   }: {
-    email: string;
+    clerkUserId: string;
     telegramId?: number;
   }): Promise<User | null> {
     return this.userModel.findOneAndUpdate(
-      { email },
+      { clerkUserId },
       { telegramId },
       { returnNewDocument: true },
     );
@@ -57,6 +53,10 @@ class UserRepository extends BaseRepository implements IUserRepository {
 
   public async findUserByEmail(email: string): Promise<User | null> {
     return this.userModel.findOne({ email });
+  }
+
+  public async findUserClerkId(id: string): Promise<User | null> {
+    return this.userModel.findOne({ clerkUserId: id });
   }
 }
 
