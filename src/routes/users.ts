@@ -4,17 +4,16 @@ import type Context from "../middlewares/context.ts";
 import { type ClerkClient } from "@clerk/backend";
 import { HTTPException } from "hono/http-exception";
 import { httpError } from "../utils/const.ts";
-import {
-  createOrFetchUser,
-  findUserByEmail,
-} from "../services/user.service.ts";
+import { createOrFetchUser } from "../services/user.service.ts";
 import telegramRoute from "./users/telegram.ts";
 import authMiddleware from "../middlewares/auth.middleware.ts";
+import { type User } from "../models/user.model.ts";
 
 const app = new Hono<{
   Variables: {
     context: Context;
     clerk: ClerkClient;
+    user: User;
   };
 }>();
 
@@ -49,26 +48,12 @@ app.post("/auth", async (c) => {
   }
 });
 
+app.use(authMiddleware);
+
 app.get("/profile", async (c) => {
-  const clerkClient = c.get("clerk");
-  const auth = getAuth(c);
-
-  if (!auth?.userId) {
-    return c.json({
-      message: "You are not logged in.",
-    });
-  }
-  const clerkUser = await clerkClient.users.getUser(auth.userId);
-
-  const user = await findUserByEmail({
-    email: clerkUser.primaryEmailAddress?.emailAddress || "",
-    context: c.get("context"),
-  });
-
-  return c.json(user);
+  return c.json(c.get("user"));
 });
 
-app.use(authMiddleware);
 app.route("/settings/telegram", telegramRoute);
 
 export default app;

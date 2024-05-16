@@ -7,7 +7,6 @@ import { findUserByClerkId } from "../services/user.service.ts";
 const factory = createFactory();
 
 const middleware = factory.createMiddleware(async (c, next) => {
-  const clerkClient = c.get("clerk");
   const auth = getAuth(c);
 
   if (!auth?.userId) {
@@ -16,7 +15,7 @@ const middleware = factory.createMiddleware(async (c, next) => {
     });
   }
 
-  const user = findUserByClerkId({
+  const user = await findUserByClerkId({
     id: auth.userId,
     context: c.get("context"),
   });
