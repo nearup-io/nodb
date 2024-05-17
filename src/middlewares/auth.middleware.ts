@@ -14,18 +14,29 @@ const middleware = factory.createMiddleware(async (c, next) => {
       message: httpError.USER_NOT_AUTHENTICATED,
     });
   }
+  try {
+    const user = await findUserByClerkId({
+      id: auth.userId,
+      context: c.get("context"),
+    });
 
-  const user = await findUserByClerkId({
-    id: auth.userId,
-    context: c.get("context"),
-  });
+    if (!user) {
+      throw new HTTPException(401, {
+        message: httpError.USER_NOT_AUTHENTICATED,
+      });
+    }
 
-  if (!user) {
-    throw new HTTPException(404, { message: httpError.USER_NOT_FOUND });
+    c.set("user", user);
+    await next();
+  } catch (e) {
+    if (e instanceof HTTPException) {
+      throw e;
+    } else {
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
+      });
+    }
   }
-
-  c.set("user", user);
-  await next();
 });
 
 export default middleware;
