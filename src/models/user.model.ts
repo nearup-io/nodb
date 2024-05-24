@@ -3,6 +3,15 @@ import type { Application } from "./application.model";
 
 const { Schema } = mongoose;
 
+export const TelegramSchema = new Schema(
+  {
+    id: { type: Number, required: true, index: true },
+    appName: { type: String, required: true },
+    envName: { type: String, required: true },
+  },
+  { _id: false },
+);
+
 export const UserSchema = new Schema({
   email: {
     type: String,
@@ -13,7 +22,10 @@ export const UserSchema = new Schema({
   applications: { type: Array, default: [] },
   clerkUserId: { type: String, required: true, unique: true },
   lastUse: { type: Date, default: Date.now },
-  telegramId: { type: Number, required: false },
+  telegram: {
+    type: TelegramSchema,
+    required: false,
+  },
 });
 
 export type User = {
@@ -21,6 +33,11 @@ export type User = {
   applications: Application[];
   lastUse: Date;
   clerkUserId: string;
+  telegram?: {
+    id: number;
+    appName: string;
+    envName: string;
+  };
 };
 
 const User = mongoose.model("User", UserSchema);

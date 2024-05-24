@@ -126,4 +126,5 @@ export interface IUserRepository {
   }): Promise<User | null>;
   findUserByEmail(email: string): Promise<User | null>;
   findUserClerkId(id: string): Promise<User | null>;
+  findUserByTelegramId(id: number): Promise<User | null>;
 }

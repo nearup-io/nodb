@@ -21,7 +21,7 @@ app.use(contextMiddleware);
 app.use(
   cors({
     origin: [
-      "https://5806-109-92-19-84.ngrok-free.app",
+      "https://7966-109-92-19-84.ngrok-free.app",
       "http://localhost:5173",
     ],
   }),

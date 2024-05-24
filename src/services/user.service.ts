@@ -55,6 +55,17 @@ const findUserByClerkId = async ({
   return repository.findUserClerkId(id);
 };
 
+const findUserByTelegramId = async ({
+  id,
+  context,
+}: {
+  id: number;
+  context: Context;
+}): Promise<User | null> => {
+  const repository = context.get<IUserRepository>(USER_MONGO_DB_REPOSITORY);
+  return repository.findUserByTelegramId(id);
+};
+
 const createOrFetchUser = async ({
   user,
   context,
@@ -96,4 +107,5 @@ export {
   createOrFetchUser,
   findUserByEmail,
   findUserByClerkId,
+  findUserByTelegramId,
 };

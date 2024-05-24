@@ -1,6 +1,7 @@
 import BaseRepository from "./base-repository.ts";
 import { type User } from "../../models/user.model.ts";
 import type { IUserRepository } from "../interfaces.ts";
+import * as R from "ramda";
 
 class UserRepository extends BaseRepository implements IUserRepository {
   constructor() {
@@ -16,11 +17,14 @@ class UserRepository extends BaseRepository implements IUserRepository {
     email: string;
     appName: string;
   }): Promise<User> {
-    return this.userModel.create({
+    const result = await this.userModel.create({
       email,
       clerkUserId,
       applications: [appName],
     });
+
+    // convert null values to undefined
+    return R.defaultTo(undefined, result) as User;
   }
 
   public async updateUserLastUse({
@@ -44,9 +48,15 @@ class UserRepository extends BaseRepository implements IUserRepository {
     clerkUserId: string;
     telegramId?: number;
   }): Promise<User | null> {
+    const updateObj = telegramId
+      ? { "telegram.id": telegramId }
+      : { telegram: undefined };
+
     return this.userModel.findOneAndUpdate(
       { clerkUserId },
-      { telegramId },
+      {
+        ...updateObj,
+      },
       { returnNewDocument: true },
     );
   }
@@ -57,6 +67,10 @@ class UserRepository extends BaseRepository implements IUserRepository {
 
   public async findUserClerkId(id: string): Promise<User | null> {
     return this.userModel.findOne({ clerkUserId: id });
+  }
+
+  public async findUserByTelegramId(id: number): Promise<User | null> {
+    return this.userModel.findOne({ "telegram.id": id });
   }
 }
 

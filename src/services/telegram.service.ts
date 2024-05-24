@@ -1,3 +1,10 @@
+import { searchAiEntities } from "./entity.service.ts";
+import type Context from "../middlewares/context.ts";
+import { type User } from "../models/user.model.ts";
+import { httpError } from "../utils/const.ts";
+import { ServiceError } from "../utils/service-errors.ts";
+import { findUserByTelegramId } from "./user.service.ts";
+
 const telegramBaseUrl = `https://api.telegram.org/bot${Bun.env.TELEGRAM_TOKEN}`;
 
 interface TelegramRequest {
@@ -24,27 +31,49 @@ interface TelegramMessage {
   text: string;
 }
 
-const handleWebhookMessage = async (
-  telegramRequestBody: TelegramRequest,
-): Promise<void> => {
+const handleWebhookMessage = async ({
+  telegramRequestBody,
+  context,
+}: {
+  telegramRequestBody: TelegramRequest;
+  context: Context;
+  user: User;
+}): Promise<void> => {
   const { message } = telegramRequestBody;
 
   if (!Bun.env.TELEGRAM_TOKEN) {
     return;
   }
-  const result = await fetch(`${telegramBaseUrl}/sendMessage`, {
+
+  const userTelegramId = message.from.id;
+  const user = await findUserByTelegramId({ id: userTelegramId, context });
+
+  if (!user || !user.telegram) {
+    throw new ServiceError(httpError.USER_NOT_FOUND);
+  }
+
+  const appFilter = `${user.telegram.appName}/${user.telegram.envName}`;
+
+  const res = await searchAiEntities({
+    context,
+    query: message.text,
+    entityType: appFilter,
+  });
+
+  if (!res) {
+    throw new ServiceError(httpError.UNKNOWN);
+  }
+
+  await fetch(`${telegramBaseUrl}/sendMessage`, {
     method: "POST",
     headers: {
       "Content-type": "application/json",
     },
     body: JSON.stringify({
       chat_id: message.chat.id,
-      text: "Hello from Hono app",
+      text: res.answer as string,
     }),
   });
-
-  console.log(result.status);
-  console.log(await result.json());
 };
 
 export { handleWebhookMessage };
