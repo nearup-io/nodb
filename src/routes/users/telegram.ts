@@ -2,8 +2,9 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type Context from "../../middlewares/context.ts";
 import type { USER_TYPE } from "../../utils/auth-utils.ts";
-import { updateUserTelegramId } from "../../services/user.service.ts";
+import { updateUserTelegramSettings } from "../../services/user.service.ts";
 import { ServiceError } from "../../utils/service-errors.ts";
+import type { TelegramSettings } from "../../utils/types.ts";
 
 const app = new Hono<{
   Variables: {
@@ -15,10 +16,10 @@ const app = new Hono<{
 // TODO cover with e2e tests
 app.patch("/", async (c) => {
   try {
-    const body = await c.req.json();
+    const body = (await c.req.json()) as TelegramSettings;
 
-    await updateUserTelegramId({
-      telegramId: body.telegramId,
+    await updateUserTelegramSettings({
+      telegramSettings: body,
       clerkUserId: c.get("user").clerkUserId,
       context: c.get("context"),
     });

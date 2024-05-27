@@ -2,6 +2,7 @@ import BaseRepository from "./base-repository.ts";
 import { type User } from "../../models/user.model.ts";
 import type { IUserRepository } from "../interfaces.ts";
 import * as R from "ramda";
+import type { TelegramSettings } from "../../utils/types.ts";
 
 class UserRepository extends BaseRepository implements IUserRepository {
   constructor() {
@@ -41,15 +42,19 @@ class UserRepository extends BaseRepository implements IUserRepository {
     );
   }
 
-  public async updateUserTelegramId({
+  public async updateUserTelegramSettings({
     clerkUserId,
-    telegramId,
+    telegramSettings,
   }: {
     clerkUserId: string;
-    telegramId?: number;
+    telegramSettings?: TelegramSettings;
   }): Promise<User | null> {
-    const updateObj = telegramId
-      ? { "telegram.id": telegramId }
+    const updateObj = telegramSettings?.telegramId
+      ? {
+          "telegram.id": telegramSettings.telegramId,
+          "telegram.appName": telegramSettings.appName,
+          "telegram.envName": telegramSettings.envName,
+        }
       : { telegram: undefined };
 
     return this.userModel.findOneAndUpdate(

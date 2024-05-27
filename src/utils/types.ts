@@ -43,3 +43,9 @@ export type Pagination = {
   previous_page?: string;
   next_page?: string;
 };
+
+export type TelegramSettings = {
+  telegramId: number;
+  appName: string;
+  envName: string;
+};

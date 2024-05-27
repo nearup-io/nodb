@@ -11,20 +11,26 @@ import { ServiceError } from "../utils/service-errors.ts";
 import { type User as ClerkUser } from "@clerk/backend";
 import generateAppName from "../utils/app-name.ts";
 import { EnvironmentRepository } from "../repositories/mongodb";
+import type { TelegramSettings } from "../utils/types.ts";
+import * as R from "ramda";
 
-const updateUserTelegramId = async ({
-  telegramId,
+const updateUserTelegramSettings = async ({
+  telegramSettings,
   context,
   clerkUserId,
 }: {
-  telegramId?: number;
+  telegramSettings: TelegramSettings;
   clerkUserId: string;
   context: Context;
 }): Promise<User> => {
+  if (R.keys(R.filter(R.isNil, telegramSettings)).length === 0) {
+    throw new ServiceError(httpError.USER_TELEGRAM_SETTINGS_MISSING);
+  }
+
   const repository = context.get<IUserRepository>(USER_MONGO_DB_REPOSITORY);
-  const user = await repository.updateUserTelegramId({
+  const user = await repository.updateUserTelegramSettings({
     clerkUserId,
-    telegramId,
+    telegramSettings,
   });
   if (!user) {
     throw new ServiceError(httpError.USER_NOT_FOUND);
@@ -103,7 +109,7 @@ const createOrFetchUser = async ({
 };
 
 export {
-  updateUserTelegramId,
+  updateUserTelegramSettings,
   createOrFetchUser,
   findUserByEmail,
   findUserByClerkId,

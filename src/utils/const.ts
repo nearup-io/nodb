@@ -62,6 +62,8 @@ export const httpError = {
   USER_NOT_FOUND: "Can't find user",
   USER_NOT_AUTHENTICATED: "Unauthenticated",
   USER_DOES_NOT_HAVE_EMAIL: "User does not have a linked email",
+  USER_TELEGRAM_SETTINGS_MISSING:
+    "User does not have all required settings for setting up telegram",
   ENV_CANT_CREATE: "Couldn't create environment",
   APPNAME_LENGTH: `Application name length must be greater than ${APPNAME_MIN_LENGTH}`,
   APPNAME_NOT_ALLOWED:
