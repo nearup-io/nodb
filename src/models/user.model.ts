@@ -5,7 +5,16 @@ const { Schema } = mongoose;
 
 export const TelegramSchema = new Schema(
   {
-    id: { type: Number, required: true, index: true },
+    id: { type: Number, required: true, index: true, unique: true },
+    appName: { type: String, required: true },
+    envName: { type: String, required: true },
+  },
+  { _id: false },
+);
+
+export const WhatsappSchema = new Schema(
+  {
+    id: { type: String, required: true, index: true, unique: true },
     appName: { type: String, required: true },
     envName: { type: String, required: true },
   },
@@ -24,6 +33,10 @@ export const UserSchema = new Schema({
   lastUse: { type: Date, default: Date.now },
   telegram: {
     type: TelegramSchema,
+    required: false,
+  },
+  whatsapp: {
+    type: WhatsappSchema,
     required: false,
   },
 });
