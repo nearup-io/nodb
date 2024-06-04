@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import authMiddleware from "../middlewares/auth.middleware";
 import {
   createApplication,
   deleteApplication,
@@ -12,7 +11,6 @@ import type { USER_TYPE } from "../utils/auth-utils";
 import { APPNAME_MIN_LENGTH, APPNAME_REGEX, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 import envsRoute from "./environments";
-import contextMiddleware from "../middlewares/context.middleware.ts";
 import type Context from "../middlewares/context.ts";
 
 const app = new Hono<{
@@ -21,8 +19,6 @@ const app = new Hono<{
     context: Context;
   };
 }>();
-app.use(authMiddleware);
-app.use(contextMiddleware);
 
 app.get("/all", async (c) => {
   const user = c.get("user");

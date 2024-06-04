@@ -23,7 +23,6 @@ import { entityQueryValidator } from "../utils/route-validators";
 import { RoutingError, ServiceError } from "../utils/service-errors";
 import type { EntityRequestDto, PostEntityRequestDto } from "../utils/types.ts";
 import type Context from "../middlewares/context.ts";
-import contextMiddleware from "../middlewares/context.middleware.ts";
 
 const app = new Hono<
   {
@@ -35,7 +34,6 @@ const app = new Hono<
   BlankSchema,
   "/:appName/:envName/:entityName"
 >();
-app.use(contextMiddleware);
 
 app.get("/*", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
