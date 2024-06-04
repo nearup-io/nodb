@@ -6,6 +6,7 @@ import searchRoute from "./routes/search";
 import mongoConnect from "./connections/mongodb.ts";
 import authMiddleware from "./middlewares/auth.middleware.ts";
 import contextMiddleware from "./middlewares/context.middleware.ts";
+import { clerkMiddleware } from "@hono/clerk-auth";
 
 const app = new Hono();
 if (Bun.env.NODE_ENV === "development") {
@@ -14,8 +15,9 @@ if (Bun.env.NODE_ENV === "development") {
 
 await mongoConnect();
 
-app.use(authMiddleware);
 app.use(contextMiddleware);
+app.use(authMiddleware);
+app.use("*", clerkMiddleware());
 app.route("/apps", appsRoute);
 app.route("/search", searchRoute);
 app.route("/knowledgebase", ragRoute);
