@@ -21,14 +21,14 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.20.6",
+    "@anthropic-ai/sdk": "^0.22.0",
     "@clerk/backend": "^1.2.1",
     "@hono/clerk-auth": "^2.0.0",
     "@langchain/openai": "^0.0.28",
     "assert": "^2.1.0",
     "axios": "^1.6.8",
     "chalk": "^5.3.0",
-    "hono": "^4.2.1",
+    "hono": "^4.4.3",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "6.5",
     "mongoose": "^8.3.2",
