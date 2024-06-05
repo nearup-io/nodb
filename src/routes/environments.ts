@@ -6,16 +6,16 @@ import {
   findEnvironment,
   updateEnvironment,
 } from "../services/environment.service";
-import type { USER_TYPE } from "../utils/auth-utils";
 import { httpError } from "../utils/const";
 import { asyncTryJson } from "../utils/route-utils";
 import { ServiceError } from "../utils/service-errors";
 import entitiesRoute from "./entities";
 import type Context from "../middlewares/context.ts";
+import { type User } from "../models/user.model.ts";
 
 const app = new Hono<{
   Variables: {
-    user: USER_TYPE;
+    user: User;
     context: Context;
   };
 }>();

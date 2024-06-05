@@ -7,15 +7,15 @@ import {
   getUserApplications,
   updateApplication,
 } from "../services/application.service";
-import type { USER_TYPE } from "../utils/auth-utils";
 import { APPNAME_MIN_LENGTH, APPNAME_REGEX, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 import envsRoute from "./environments";
 import type Context from "../middlewares/context.ts";
+import { type User } from "../models/user.model.ts";
 
 const app = new Hono<{
   Variables: {
-    user: USER_TYPE;
+    user: User;
     context: Context;
   };
 }>();
@@ -25,7 +25,7 @@ app.get("/all", async (c) => {
 
   const apps = await getUserApplications({
     context: c.get("context"),
-    userEmail: user.email,
+    clerkId: user.clerkId,
   });
 
   return c.json(apps);
@@ -39,7 +39,7 @@ app.get("/:appName", async (c) => {
     const application = await getApplication({
       context: c.get("context"),
       appName,
-      userEmail: user.email,
+      clerkId: user.clerkId,
     });
     return c.json(application);
   } catch (err) {
@@ -75,7 +75,7 @@ app.post("/:appName", async (c) => {
       context: c.get("context"),
       appName,
       image: body.image || "",
-      userEmail: user.email,
+      clerkId: user.clerkId,
       appDescription: body.description || "",
     });
     c.status(201);
@@ -122,7 +122,7 @@ app.patch("/:appName", async (c) => {
       context: c.get("context"),
       oldAppName: appName,
       newAppName: body.appName,
-      userEmail: user.email,
+      clerkId: user.clerkId,
       description: body.description,
       image: body.image,
     });
@@ -146,7 +146,7 @@ app.delete("/:appName", async (c) => {
     const app = await deleteApplication({
       context: c.get("context"),
       appName,
-      userEmail: user.email,
+      clerkId: user.clerkId,
     });
     if (!app) return c.json({ found: false });
     return c.json({ found: true });

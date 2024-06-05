@@ -12,7 +12,7 @@ import {
   replaceEntities,
   updateEntities,
 } from "../services/entity.service";
-import type { USER_TYPE } from "../utils/auth-utils.ts";
+import { type User } from "../models/user.model.ts";
 import { httpError } from "../utils/const";
 import {
   asyncTryJson,
@@ -27,7 +27,7 @@ import type Context from "../middlewares/context.ts";
 const app = new Hono<
   {
     Variables: {
-      user: USER_TYPE;
+      user: User;
       context: Context;
     };
   },

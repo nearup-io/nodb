@@ -8,17 +8,17 @@ import type { IApplicationRepository } from "../repositories/interfaces.ts";
 const getApplication = async ({
   context,
   appName,
-  userEmail,
+  clerkId,
 }: {
   context: Context;
   appName: string;
-  userEmail: string;
+  clerkId: string;
 }): Promise<Application> => {
   const repository = context.get<IApplicationRepository>(
     APPLICATION_MONGO_DB_REPOSITORY,
   );
 
-  const application = await repository.getApplication({ appName, userEmail });
+  const application = await repository.getApplication({ appName, clerkId });
   if (!application) {
     throw new ServiceError(httpError.APPNAME_NOT_FOUND);
   }
@@ -27,28 +27,28 @@ const getApplication = async ({
 
 const getUserApplications = async ({
   context,
-  userEmail,
+  clerkId,
 }: {
   context: Context;
-  userEmail: string;
+  clerkId: string;
 }): Promise<Application[]> => {
   const repository = context.get<IApplicationRepository>(
     APPLICATION_MONGO_DB_REPOSITORY,
   );
 
-  return repository.getUserApplications({ userEmail });
+  return repository.getUserApplications({ clerkId });
 };
 
 const createApplication = async ({
   context,
   appName,
-  userEmail,
+  clerkId,
   image,
   appDescription,
 }: {
   context: Context;
   appName: string;
-  userEmail: string;
+  clerkId: string;
   image: string;
   appDescription: string;
 }): Promise<void> => {
@@ -59,7 +59,7 @@ const createApplication = async ({
   try {
     await repository.createApplication({
       appName,
-      userEmail,
+      clerkId,
       image,
       appDescription,
     });
@@ -77,7 +77,7 @@ const updateApplication = async (props: {
   context: Context;
   oldAppName: string;
   newAppName?: string;
-  userEmail: string;
+  clerkId: string;
   description?: string;
   image?: string;
 }): Promise<Application | null> => {
@@ -94,7 +94,7 @@ const updateApplication = async (props: {
   try {
     const result = await repository.updateApplication({
       oldAppName: props.oldAppName,
-      userEmail: props.userEmail,
+      clerkId: props.clerkId,
       updateProps,
     });
 
@@ -107,19 +107,19 @@ const updateApplication = async (props: {
 
 const deleteApplication = async ({
   context,
+  clerkId,
   appName,
-  userEmail,
 }: {
   context: Context;
   appName: string;
-  userEmail: string;
+  clerkId: string;
 }): Promise<Application | null> => {
   const repository = context.get<IApplicationRepository>(
     APPLICATION_MONGO_DB_REPOSITORY,
   );
 
   try {
-    return repository.deleteApplication({ appName, userEmail });
+    return repository.deleteApplication({ appName, clerkId });
   } catch (e) {
     console.error("Error deleting application", e);
     throw new ServiceError(httpError.APP_CANT_DELETE);

@@ -43,18 +43,15 @@ class ApplicationRepository
 
   public async getApplication({
     appName,
-    userEmail,
+    clerkId,
   }: {
     appName: string;
-    userEmail: string;
+    clerkId: string;
   }): Promise<Application | undefined> {
     const userApplications = await this.userModel.aggregate([
       {
         $match: {
-          $and: [
-            { email: userEmail },
-            { $expr: { $in: [appName, "$applications"] } },
-          ],
+          $and: [{ clerkId }, { $expr: { $in: [appName, "$applications"] } }],
         },
       },
       { $limit: 1 },
@@ -94,12 +91,12 @@ class ApplicationRepository
   }
 
   public async getUserApplications({
-    userEmail,
+    clerkId,
   }: {
-    userEmail: string;
+    clerkId: string;
   }): Promise<Application[]> {
     return this.userModel.aggregate<Application>([
-      { $match: { email: userEmail } },
+      { $match: { clerkId } },
       { $limit: 1 },
       {
         $lookup: {
@@ -143,12 +140,12 @@ class ApplicationRepository
 
   public async createApplication({
     appName,
-    userEmail,
+    clerkId,
     image,
     appDescription,
   }: {
     appName: string;
-    userEmail: string;
+    clerkId: string;
     image: string;
     appDescription: string;
   }): Promise<void> {
@@ -181,7 +178,7 @@ class ApplicationRepository
         { session },
       );
       await this.userModel.findOneAndUpdate(
-        { email: userEmail },
+        { clerkId },
         { $addToSet: { applications: appName } },
         { session },
       );
@@ -190,7 +187,7 @@ class ApplicationRepository
 
   public async updateApplication(props: {
     oldAppName: string;
-    userEmail: string;
+    clerkId: string;
     updateProps: {
       newAppName?: string;
       description?: string;
@@ -210,7 +207,7 @@ class ApplicationRepository
           R.is(String, props.updateProps.newAppName)
         ) {
           await this.userModel.findOneAndUpdate(
-            { email: props.userEmail, applications: props.oldAppName },
+            { clerkId: props.clerkId, applications: props.oldAppName },
             { $set: { "applications.$": props.updateProps.newAppName } },
             { session },
           );
@@ -223,10 +220,10 @@ class ApplicationRepository
 
   public async deleteApplication({
     appName,
-    userEmail,
+    clerkId,
   }: {
     appName: string;
-    userEmail: string;
+    clerkId: string;
   }): Promise<Application | null> {
     const envs = await this.getEnvironmentsByAppName(appName);
 
@@ -243,7 +240,7 @@ class ApplicationRepository
           { session },
         );
         await this.userModel.findOneAndUpdate(
-          { email: userEmail },
+          { clerkId },
           {
             $pull: { applications: appName },
           },

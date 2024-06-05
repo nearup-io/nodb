@@ -1,7 +1,6 @@
 import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { verify as jwt_verify } from "hono/jwt";
-import { bearerFromHeader } from "../utils/auth-utils";
 
 const factory = createFactory();
 
@@ -11,7 +10,8 @@ const middleware = factory.createMiddleware(async (c, next) => {
   if (!authorizationHeader || !secret) {
     throw new HTTPException(401, { message: "Unauthorized request" });
   }
-  const bearerToken = bearerFromHeader(authorizationHeader);
+  // TODO replace this middleware
+  const bearerToken = "RANDOM STRING";
   try {
     const user = await jwt_verify(bearerToken, secret);
     c.set("user", user);

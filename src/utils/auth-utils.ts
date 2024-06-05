@@ -1,9 +1,8 @@
 import crypto from "crypto";
 
 export type USER_TYPE = {
-  email: string;
+  clerkId: string;
   applications: [];
-  lastProvider: string;
 };
 
 export const generateState = (length = 32) => {

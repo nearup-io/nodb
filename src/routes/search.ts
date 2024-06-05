@@ -2,13 +2,13 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import * as R from "ramda";
 import { searchEntities } from "../services/entity.service";
-import type { USER_TYPE } from "../utils/auth-utils";
 import { httpError } from "../utils/const";
 import type Context from "../middlewares/context.ts";
+import { type User } from "../models/user.model.ts";
 
 const app = new Hono<{
   Variables: {
-    user: USER_TYPE;
+    user: User;
     context: Context;
   };
 }>();
