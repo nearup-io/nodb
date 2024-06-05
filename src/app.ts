@@ -14,10 +14,10 @@ if (Bun.env.NODE_ENV === "development") {
 }
 
 await mongoConnect();
-
+app.use("*", clerkMiddleware());
 app.use(contextMiddleware);
 app.use(authMiddleware);
-app.use("*", clerkMiddleware());
+
 app.route("/apps", appsRoute);
 app.route("/search", searchRoute);
 app.route("/knowledgebase", ragRoute);
