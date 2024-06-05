@@ -2,7 +2,7 @@ import { type Application } from "../models/application.model.ts";
 import { type Environment } from "../models/environment.model.ts";
 import { type Entity } from "../models/entity.model.ts";
 import { type User } from "../models/user.model.ts";
-import type { EntityQueryMeta } from "../utils/types.ts";
+import type { EntityQueryMeta, TelegramSettings } from "../utils/types.ts";
 import type { EntityAggregateResult } from "../services/entity.service.ts";
 
 export interface IApplicationRepository {
@@ -115,9 +115,16 @@ export interface IEntityRepository {
 
 export interface IUserRepository {
   createUser(props: {
-    provider: string;
+    clerkUserId: string;
     email: string;
     appName: string;
   }): Promise<User>;
-  updateUser(props: { provider: string; email: string }): Promise<User | null>;
+  updateUserLastUse(props: { clerkUserId: string }): Promise<User | null>;
+  updateUserTelegramSettings(props: {
+    clerkUserId: string;
+    telegramSettings?: TelegramSettings;
+  }): Promise<User | null>;
+  findUserByEmail(email: string): Promise<User | null>;
+  findUserClerkId(id: string): Promise<User | null>;
+  findUserByTelegramId(id: number): Promise<User | null>;
 }

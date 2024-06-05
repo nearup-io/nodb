@@ -1,24 +1,41 @@
 import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import { verify as jwt_verify } from "hono/jwt";
-import { bearerFromHeader } from "../utils/auth-utils";
+import { getAuth } from "@hono/clerk-auth";
+import { httpError } from "../utils/const.ts";
+import { findUserByClerkId } from "../services/user.service.ts";
 
 const factory = createFactory();
 
 const middleware = factory.createMiddleware(async (c, next) => {
-  const authorizationHeader = c.req.header("Authorization");
-  const secret = Bun.env.JWT_SECRET;
-  if (!authorizationHeader || !secret) {
-    throw new HTTPException(401, { message: "Unauthorized request" });
+  const auth = getAuth(c);
+
+  if (!auth?.userId) {
+    throw new HTTPException(401, {
+      message: httpError.USER_NOT_AUTHENTICATED,
+    });
   }
-  const bearerToken = bearerFromHeader(authorizationHeader);
   try {
-    const user = await jwt_verify(bearerToken, secret);
+    const user = await findUserByClerkId({
+      id: auth.userId,
+      context: c.get("context"),
+    });
+
+    if (!user) {
+      throw new HTTPException(401, {
+        message: httpError.USER_NOT_AUTHENTICATED,
+      });
+    }
+
     c.set("user", user);
     await next();
-  } catch (err) {
-    console.log({ err });
-    throw new HTTPException(401, { message: "Unauthorized" });
+  } catch (e) {
+    if (e instanceof HTTPException) {
+      throw e;
+    } else {
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
+      });
+    }
   }
 });
 

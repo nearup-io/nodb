@@ -1,6 +1,8 @@
 import BaseRepository from "./base-repository.ts";
 import { type User } from "../../models/user.model.ts";
 import type { IUserRepository } from "../interfaces.ts";
+import * as R from "ramda";
+import type { TelegramSettings } from "../../utils/types.ts";
 
 class UserRepository extends BaseRepository implements IUserRepository {
   constructor() {
@@ -8,37 +10,72 @@ class UserRepository extends BaseRepository implements IUserRepository {
   }
 
   public async createUser({
-    provider,
+    clerkUserId,
     email,
     appName,
   }: {
-    provider: string;
+    clerkUserId: string;
     email: string;
     appName: string;
   }): Promise<User> {
-    return this.userModel.create({
+    const result = await this.userModel.create({
       email,
-      providers: [provider],
-      lastProvider: provider,
+      clerkUserId,
       applications: [appName],
     });
+
+    // convert null values to undefined
+    return R.defaultTo(undefined, result) as User;
   }
 
-  public async updateUser({
-    provider,
-    email,
+  public async updateUserLastUse({
+    clerkUserId,
   }: {
-    provider: string;
-    email: string;
+    clerkUserId: string;
   }): Promise<User | null> {
     return this.userModel.findOneAndUpdate(
-      { email },
+      { clerkUserId },
       {
-        $addToSet: { providers: provider },
-        $set: { lastProvider: provider },
+        lastUse: Date.now(),
       },
       { returnNewDocument: true },
     );
+  }
+
+  public async updateUserTelegramSettings({
+    clerkUserId,
+    telegramSettings,
+  }: {
+    clerkUserId: string;
+    telegramSettings?: TelegramSettings;
+  }): Promise<User | null> {
+    const updateObj = telegramSettings?.telegramId
+      ? {
+          "telegram.id": telegramSettings.telegramId,
+          "telegram.appName": telegramSettings.appName,
+          "telegram.envName": telegramSettings.envName,
+        }
+      : { telegram: undefined };
+
+    return this.userModel.findOneAndUpdate(
+      { clerkUserId },
+      {
+        ...updateObj,
+      },
+      { returnNewDocument: true },
+    );
+  }
+
+  public async findUserByEmail(email: string): Promise<User | null> {
+    return this.userModel.findOne({ email });
+  }
+
+  public async findUserClerkId(id: string): Promise<User | null> {
+    return this.userModel.findOne({ clerkUserId: id });
+  }
+
+  public async findUserByTelegramId(id: number): Promise<User | null> {
+    return this.userModel.findOne({ "telegram.id": id });
   }
 }
 

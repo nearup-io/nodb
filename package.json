@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "NODE_ENV=development bun --hot src/app.ts",
     "start": "bun src/app.ts",
-    "e2e-app-tests": "bun test app-crud --env-file=.env.test",
+    "e2e-app-tests": "bun test app-crud --env-file=.env.test --only",
     "e2e-env-tests": "bun test environment-crud --env-file=.env.test",
     "e2e-entity-tests": "bun test entity --env-file=.env.test",
     "e2e-tests-all": "bun test --env-file=.env.test"
@@ -22,6 +22,9 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.6",
+    "@clerk/backend": "^1.2.1",
+    "@clerk/clerk-sdk-node": "^5.0.7",
+    "@hono/clerk-auth": "^2.0.0",
     "@langchain/openai": "^0.0.28",
     "assert": "^2.1.0",
     "axios": "^1.6.8",
