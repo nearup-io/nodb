@@ -4,7 +4,7 @@ import type { Application } from "./application.model";
 const { Schema } = mongoose;
 
 export const UserSchema = new Schema({
-  email: {
+  clerkId: {
     type: String,
     required: true,
     unique: true,
@@ -15,7 +15,7 @@ export const UserSchema = new Schema({
 });
 
 export type User = {
-  email: string;
+  clerkId: string;
   applications: Application[];
   lastUse: Date;
 };
