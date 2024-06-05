@@ -8,37 +8,33 @@ class UserRepository extends BaseRepository implements IUserRepository {
   }
 
   public async createUser({
-    provider,
-    email,
+    clerkId,
     appName,
   }: {
-    provider: string;
-    email: string;
+    clerkId: string;
     appName: string;
   }): Promise<User> {
     return this.userModel.create({
-      email,
-      providers: [provider],
-      lastProvider: provider,
+      clerkId,
       applications: [appName],
     });
   }
-
-  public async updateUser({
-    provider,
-    email,
+  public async updateUserLastUse({
+    clerkId,
   }: {
-    provider: string;
-    email: string;
+    clerkId: string;
   }): Promise<User | null> {
     return this.userModel.findOneAndUpdate(
-      { email },
+      { clerkId },
       {
-        $addToSet: { providers: provider },
-        $set: { lastProvider: provider },
+        lastUse: Date.now(),
       },
       { returnNewDocument: true },
     );
+  }
+
+  public async findUserClerkId(id: string): Promise<User | null> {
+    return this.userModel.findOne({ clerkUserId: id });
   }
 }
 
