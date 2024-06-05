@@ -10,19 +10,15 @@ export const UserSchema = new Schema({
     unique: true,
     index: true,
   },
-  providers: { type: Array, default: [] },
   applications: { type: Array, default: [] },
-  lastProvider: { type: String, default: "" },
   lastUse: { type: Date, default: Date.now },
 });
 
 export type User = {
   email: string;
-  providers: string[];
   applications: Application[];
-  lastProvider: string;
   lastUse: Date;
-}
+};
 
 const User = mongoose.model("User", UserSchema);
 export default User;
