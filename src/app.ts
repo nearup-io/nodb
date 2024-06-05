@@ -3,6 +3,7 @@ import { logger } from "hono/logger";
 import appsRoute from "./routes/applications";
 import ragRoute from "./routes/rag";
 import searchRoute from "./routes/search";
+import usersRoute from "./routes/users.ts";
 import mongoConnect from "./connections/mongodb.ts";
 import authMiddleware from "./middlewares/auth.middleware.ts";
 import contextMiddleware from "./middlewares/context.middleware.ts";
@@ -16,6 +17,9 @@ if (Bun.env.NODE_ENV === "development") {
 await mongoConnect();
 app.use("*", clerkMiddleware());
 app.use(contextMiddleware);
+
+app.route("/users", usersRoute);
+
 app.use(authMiddleware);
 
 app.route("/apps", appsRoute);
