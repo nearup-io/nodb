@@ -1,11 +1,14 @@
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import appsRoute from "./routes/applications";
-import githubAuth from "./routes/auth/github";
-import uiAuthRoute from "./routes/examples/auth";
 import ragRoute from "./routes/rag";
 import searchRoute from "./routes/search";
+import usersRoute from "./routes/users.ts";
 import mongoConnect from "./connections/mongodb.ts";
+import authMiddleware from "./middlewares/auth.middleware.ts";
+import contextMiddleware from "./middlewares/context.middleware.ts";
+import { clerkMiddleware } from "@hono/clerk-auth";
+import { cors } from "hono/cors";
 
 const app = new Hono();
 if (Bun.env.NODE_ENV === "development") {
@@ -13,11 +16,21 @@ if (Bun.env.NODE_ENV === "development") {
 }
 
 await mongoConnect();
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  }),
+);
+app.use("*", clerkMiddleware());
+app.use(contextMiddleware);
+
+app.route("/users", usersRoute);
+
+app.use(authMiddleware);
 
 app.route("/apps", appsRoute);
 app.route("/search", searchRoute);
 app.route("/knowledgebase", ragRoute);
-app.route("/auth/github", githubAuth);
-app.route("/examples/auth", uiAuthRoute);
 
 export default app;

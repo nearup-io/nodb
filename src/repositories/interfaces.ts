@@ -8,18 +8,18 @@ import type { EntityAggregateResult } from "../services/entity.service.ts";
 export interface IApplicationRepository {
   getApplication(props: {
     appName: string;
-    userEmail: string;
+    clerkId: string;
   }): Promise<Application | undefined>;
-  getUserApplications(props: { userEmail: string }): Promise<Application[]>;
+  getUserApplications(props: { clerkId: string }): Promise<Application[]>;
   createApplication(props: {
     appName: string;
-    userEmail: string;
+    clerkId: string;
     image: string;
     appDescription: string;
   }): Promise<void>;
   updateApplication(props: {
     oldAppName: string;
-    userEmail: string;
+    clerkId: string;
     updateProps: {
       newAppName?: string;
       description?: string;
@@ -28,7 +28,7 @@ export interface IApplicationRepository {
   }): Promise<Application | null>;
   deleteApplication(props: {
     appName: string;
-    userEmail: string;
+    clerkId: string;
   }): Promise<Application | null>;
 }
 
@@ -115,9 +115,10 @@ export interface IEntityRepository {
 
 export interface IUserRepository {
   createUser(props: {
-    provider: string;
-    email: string;
+    clerkId: string;
     appName: string;
+    email: string;
   }): Promise<User>;
-  updateUser(props: { provider: string; email: string }): Promise<User | null>;
+  updateUserLastUse(props: { clerkId: string }): Promise<User | null>;
+  findUserClerkId(id: string): Promise<User | null>;
 }
