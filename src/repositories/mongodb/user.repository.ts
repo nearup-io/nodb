@@ -10,12 +10,15 @@ class UserRepository extends BaseRepository implements IUserRepository {
   public async createUser({
     clerkId,
     appName,
+    email,
   }: {
     clerkId: string;
     appName: string;
+    email: string;
   }): Promise<User> {
     return this.userModel.create({
       clerkId,
+      email,
       applications: [appName],
     });
   }
@@ -34,7 +37,7 @@ class UserRepository extends BaseRepository implements IUserRepository {
   }
 
   public async findUserClerkId(id: string): Promise<User | null> {
-    return this.userModel.findOne({ clerkUserId: id });
+    return this.userModel.findOne({ clerkId: id });
   }
 }
 

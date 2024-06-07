@@ -8,6 +8,7 @@ import mongoConnect from "./connections/mongodb.ts";
 import authMiddleware from "./middlewares/auth.middleware.ts";
 import contextMiddleware from "./middlewares/context.middleware.ts";
 import { clerkMiddleware } from "@hono/clerk-auth";
+import { cors } from "hono/cors";
 
 const app = new Hono();
 if (Bun.env.NODE_ENV === "development") {
@@ -15,6 +16,12 @@ if (Bun.env.NODE_ENV === "development") {
 }
 
 await mongoConnect();
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  }),
+);
 app.use("*", clerkMiddleware());
 app.use(contextMiddleware);
 

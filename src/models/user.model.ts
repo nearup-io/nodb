@@ -10,12 +10,19 @@ export const UserSchema = new Schema({
     unique: true,
     index: true,
   },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true,
+  },
   applications: { type: Array, default: [] },
   lastUse: { type: Date, default: Date.now },
 });
 
 export type User = {
   clerkId: string;
+  email: string;
   applications: Application[];
   lastUse: Date;
 };

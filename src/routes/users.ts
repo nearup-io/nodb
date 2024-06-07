@@ -5,6 +5,7 @@ import { type ClerkClient } from "@clerk/backend";
 import { HTTPException } from "hono/http-exception";
 import { httpError } from "../utils/const.ts";
 import { createOrFetchUser } from "../services/user.service.ts";
+import { ServiceError } from "../utils/service-errors.ts";
 
 const app = new Hono<{
   Variables: {
@@ -16,8 +17,8 @@ const app = new Hono<{
 // TODO e2e tests
 app.post("/auth", async (c) => {
   const clerkClient = c.get("clerk");
-  const auth = getAuth(c);
 
+  const auth = getAuth(c);
   if (!auth?.userId) {
     throw new HTTPException(401, {
       message: httpError.USER_NOT_AUTHENTICATED,
@@ -38,9 +39,15 @@ app.post("/auth", async (c) => {
     });
     return c.json(user);
   } catch (e) {
-    throw new HTTPException(500, {
-      message: httpError.UNKNOWN,
-    });
+    if (e instanceof ServiceError) {
+      throw new HTTPException(400, {
+        message: e.explicitMessage,
+      });
+    } else {
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
+      });
+    }
   }
 });
 

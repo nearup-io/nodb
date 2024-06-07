@@ -54,6 +54,7 @@ const createOrFetchUser = async ({
 
   return repository.createUser({
     clerkId: user.id,
+    email: userEmail,
     appName,
   });
 };
