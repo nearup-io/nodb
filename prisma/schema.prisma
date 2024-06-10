@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  // TODO should I add a user id here?
+  clerkId String @id
+  email String @unique
+  applications Application[]
+  lastUse DateTime
+}
+
+model Application {
+  name String @id
+  user    User     @relation(fields: [userId], references: [clerkId])
+  userId  String
+  environments Environment[]
+  image String?
+  description String?
+  extras Json?
+}
+
+model Environment {
+  // TODO this id can be an incremental int
+  id String @id
+  name String
+  entities Entity[]
+  description String?
+  app String?
+  extras Json?
+  tokens Token[]
+  application Application @relation(fields: [applicationName], references: [name])
+  applicationName String
+}
+
+model Token {
+  key String @id
+  permission Permission
+  environment Environment @relation(fields: [environmentId], references: [id])
+  environmentId String
+}
+
+model Entity {
+  id String @id
+  type String @unique
+  model Json
+  ancestors String[] @default([])
+  environment Environment @relation(fields: [environmentId], references: [id])
+  environmentId String
+  embedding Unsupported("vector")
+  extras Json?
+}
+
+enum Permission {
+  ALL
+  READ_ONLY
+}
