@@ -6,11 +6,13 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 
@@ -57,7 +59,7 @@ model Entity {
   ancestors String[] @default([])
   environment Environment @relation(fields: [environmentId], references: [id])
   environmentId String
-  embedding Unsupported("vector")
+  embedding Unsupported("vector(1536)")
   extras Json?
 }
 
