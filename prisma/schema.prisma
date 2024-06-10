@@ -34,7 +34,7 @@ model Application {
 }
 
 model Environment {
-  id String @id @default(uuid())
+  id String @id @default(uuid()) @map("_id")
   name String
   entities Entity[]
   description String?

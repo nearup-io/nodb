@@ -38,7 +38,7 @@ export const EnvironmentSchema = new Schema({
 });
 
 export type Environment = {
-  id: ObjectId;
+  _id: ObjectId;
   name: string;
   app?: string | null;
   extras?: Record<string, unknown>;
