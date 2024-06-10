@@ -18,7 +18,7 @@ const findUserByClerkId = async ({
 }: {
   id: string;
   context: Context;
-}): Promise<User | null> => {
+}): Promise<Omit<User, "applications"> | null> => {
   const repository = context.get<IUserRepository>(USER_MONGO_DB_REPOSITORY);
   return repository.findUserClerkId(id);
 };
@@ -29,7 +29,7 @@ const createOrFetchUser = async ({
 }: {
   user: ClerkUser;
   context: Context;
-}): Promise<User> => {
+}): Promise<Omit<User, "applications">> => {
   const userEmail = user.primaryEmailAddress?.emailAddress;
 
   if (!userEmail) {

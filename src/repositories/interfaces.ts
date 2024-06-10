@@ -118,7 +118,9 @@ export interface IUserRepository {
     clerkId: string;
     appName: string;
     email: string;
-  }): Promise<User>;
-  updateUserLastUse(props: { clerkId: string }): Promise<User | null>;
-  findUserClerkId(id: string): Promise<User | null>;
+  }): Promise<Omit<User, "applications">>;
+  updateUserLastUse(props: {
+    clerkId: string;
+  }): Promise<Omit<User, "applications"> | null>;
+  findUserClerkId(id: string): Promise<Omit<User, "applications"> | null>;
 }
