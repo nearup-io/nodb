@@ -24,13 +24,14 @@ model User {
 }
 
 model Application {
-  name String @id
+  id String @id @default(uuid())
+  // TODO this should be unique on like (user
+  name String @unique
   user    User     @relation(fields: [userId], references: [clerkId])
   userId  String
   environments Environment[]
   image String?
   description String?
-  extras Json?
 }
 
 model Environment {
@@ -38,8 +39,6 @@ model Environment {
   name String
   entities Entity[]
   description String?
-  app String?
-  extras Json?
   tokens Token[]
   application Application @relation(fields: [applicationName], references: [name])
   applicationName String

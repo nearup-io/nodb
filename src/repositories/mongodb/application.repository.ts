@@ -47,7 +47,7 @@ class ApplicationRepository
   }: {
     appName: string;
     clerkId: string;
-  }): Promise<Application | undefined> {
+  }): Promise<Application | null> {
     const userApplications = await this.userModel.aggregate([
       {
         $match: {
@@ -87,7 +87,7 @@ class ApplicationRepository
         },
       },
     ]);
-    return userApplications?.[0];
+    return userApplications?.[0] || null;
   }
 
   public async getUserApplications({
@@ -193,16 +193,18 @@ class ApplicationRepository
       description?: string;
       image?: string;
     };
-  }): Promise<Application | null> {
-    const result = await this.transaction<Application | null>(
+  }): Promise<Omit<Application, "environments"> | null> {
+    return this.transaction<Omit<Application, "environments"> | null>(
       async (session) => {
         const doc = await this.applicationModel.findOneAndUpdate(
           { name: props.oldAppName },
           { ...props.updateProps },
           { session },
         );
+
+        if (!doc) return null;
+
         if (
-          doc &&
           props.oldAppName !== props.updateProps.newAppName &&
           R.is(String, props.updateProps.newAppName)
         ) {
@@ -212,10 +214,13 @@ class ApplicationRepository
             { session },
           );
         }
-        return doc;
+
+        return {
+          _id: doc._id.toString(),
+          ...R.omit(["_id"], doc),
+        };
       },
     );
-    return result;
   }
 
   public async deleteApplication({

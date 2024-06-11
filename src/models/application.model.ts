@@ -1,4 +1,3 @@
-import type { ObjectId } from "mongodb";
 import mongoose, { Schema } from "mongoose";
 import type { Environment } from "./environment.model";
 
@@ -22,7 +21,8 @@ export const ApplicationSchema = new Schema({
 });
 
 export type Application = {
-  _id: ObjectId;
+  // TODO rename this id to _id
+  _id: string;
   name: string;
   environments: Environment[];
   image?: string | null;

@@ -1,17 +1,16 @@
-import type { ObjectId } from "mongodb";
 import mongoose, { Schema } from "mongoose";
 
 const TokenSchema = new Schema(
   {
     key: { type: String, required: true },
-    permission: { type: String, enum: ["ALL", "READ-ONLY"], required: true },
+    permission: { type: String, enum: ["ALL", "READ_ONLY"], required: true },
   },
   { _id: false },
 );
 
 type Token = {
   key: string;
-  permission: "ALL" | "READ-ONLY";
+  permission: "ALL" | "READ_ONLY";
 };
 
 export const EnvironmentSchema = new Schema({
@@ -38,7 +37,7 @@ export const EnvironmentSchema = new Schema({
 });
 
 export type Environment = {
-  _id: ObjectId;
+  _id: string;
   name: string;
   app?: string | null;
   extras?: Record<string, unknown>;
