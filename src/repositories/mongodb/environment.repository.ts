@@ -1,10 +1,10 @@
 import { type Environment } from "../../models/environment.model.ts";
 import BaseRepository from "./base-repository.ts";
-import { httpError, Permissions } from "../../utils/const.ts";
+import { Permissions } from "../../utils/const.ts";
 import generateToken from "../../utils/backend-token.ts";
-import { ServiceError } from "../../utils/service-errors.ts";
 import { ObjectId } from "mongodb";
 import type { IEnvironmentRepository } from "../interfaces.ts";
+import * as R from "ramda";
 
 class EnvironmentRepository
   extends BaseRepository
@@ -20,7 +20,7 @@ class EnvironmentRepository
   }: {
     envName: string;
     appName: string;
-  }): Promise<Environment | undefined> {
+  }): Promise<Environment | null> {
     const applicationEnvironments =
       await this.applicationModel.aggregate<Environment>([
         {
@@ -48,7 +48,12 @@ class EnvironmentRepository
           },
         },
       ]);
-    return applicationEnvironments[0];
+    if (!applicationEnvironments[0]) return null;
+
+    return {
+      _id: applicationEnvironments[0]._id.toString(),
+      ...R.omit(["_id"], applicationEnvironments[0]),
+    };
   }
 
   public async createEnvironment({
@@ -78,7 +83,7 @@ class EnvironmentRepository
       { upsert: true },
     );
 
-    return environment;
+    return { _id: environment._id.toString(), ...R.omit(["_id"], environment) };
   }
 
   public async deleteEnvironment({
@@ -91,14 +96,6 @@ class EnvironmentRepository
     environmentDbId: string;
   }): Promise<void> {
     const environmentObjectId = new ObjectId(environmentDbId);
-    const environment = await this.findEnvironment({
-      appName,
-      envName,
-    });
-    if (!environment) {
-      throw new ServiceError(httpError.ENV_DOESNT_EXIST);
-    }
-
     await this.transaction(async (session) => {
       await this.entityModel.deleteMany(
         { type: { $regex: `${appName}/${envName}/` } },

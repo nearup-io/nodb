@@ -13,7 +13,7 @@ const findEnvironment = async ({
   context: Context;
   envName: string;
   appName: string;
-}): Promise<Environment | undefined> => {
+}): Promise<Environment | null> => {
   const repository = context.get<IEnvironmentRepository>(
     ENVIRONMENT_MONGO_DB_REPOSITORY,
   );
