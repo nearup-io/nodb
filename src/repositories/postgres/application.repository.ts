@@ -1,6 +1,6 @@
 import { type Application } from "../../models/application.model.ts";
 import { type Environment } from "../../models/environment.model.ts";
-import BaseRepository from "./base-repository.ts";
+import BaseRepository from "./base.repository.ts";
 import type { IApplicationRepository } from "../interfaces.ts";
 import type { PrismaClient } from "@prisma/client";
 import * as R from "ramda";
