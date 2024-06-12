@@ -1,4 +1,4 @@
-import BaseRepository from "./base-repository.ts";
+import BaseRepository from "./base.repository.ts";
 import { type User } from "../../models/user.model.ts";
 import type { IUserRepository } from "../interfaces.ts";
 

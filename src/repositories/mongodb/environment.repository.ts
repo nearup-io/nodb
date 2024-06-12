@@ -1,5 +1,5 @@
 import { type Environment } from "../../models/environment.model.ts";
-import BaseRepository from "./base-repository.ts";
+import BaseRepository from "./base.repository.ts";
 import { Permissions } from "../../utils/const.ts";
 import generateToken from "../../utils/backend-token.ts";
 import { ObjectId } from "mongodb";

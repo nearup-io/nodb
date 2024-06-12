@@ -4,7 +4,7 @@ import { type Application } from "../../models/application.model.ts";
 import { type Environment } from "../../models/environment.model.ts";
 import generateToken from "../../utils/backend-token.ts";
 import { defaultNodbEnv, Permissions } from "../../utils/const.ts";
-import BaseRepository from "./base-repository.ts";
+import BaseRepository from "./base.repository.ts";
 import type { IApplicationRepository } from "../interfaces.ts";
 
 class ApplicationRepository

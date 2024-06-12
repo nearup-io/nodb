@@ -1,5 +1,5 @@
 import { type PipelineStage } from "mongoose";
-import BaseRepository from "./base-repository.ts";
+import BaseRepository from "./base.repository.ts";
 import { type Entity } from "../../models/entity.model.ts";
 import { ObjectId } from "mongodb";
 import type { EntityQueryMeta, SortBy } from "../../utils/types.ts";
