@@ -38,6 +38,7 @@
     "mongodb": "6.5",
     "mongoose": "^8.3.2",
     "openai": "^4.36.0",
+    "pgvector": "^0.1.8",
     "ramda": "^0.29.1",
     "unique-names-generator": "^4.7.1",
     "zod": "^3.22.4"

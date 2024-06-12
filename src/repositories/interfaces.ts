@@ -82,7 +82,7 @@ export interface IEntityRepository {
     ids: string[];
     type: string;
     ancestors: string[];
-  }): Promise<Entity[]>;
+  }): Promise<Omit<Entity, "embedding">[]>;
   createOrOverwriteEntities(props: {
     entityTypes: string[];
     dbEnvironmentId: string;

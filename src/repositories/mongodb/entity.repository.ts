@@ -199,7 +199,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     ids: string[];
     type: string;
     ancestors: string[];
-  }): Promise<Entity[]> {
+  }): Promise<Omit<Entity, "embedding">[]> {
     return this.entityModel.find({
       id: { $in: ids },
       type,
