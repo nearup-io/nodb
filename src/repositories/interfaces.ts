@@ -71,7 +71,7 @@ export interface IEntityRepository {
     parentId?: string;
     ancestors: string[];
     entityTypes: string[];
-  }): Promise<EntityAggregateResult[]>;
+  }): Promise<EntityAggregateResult>;
   searchEntities(props: {
     embedding: number[];
     vectorIndex: string;

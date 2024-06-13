@@ -152,10 +152,7 @@ export const getEntities = async ({
   });
 
   const entityName = entityTypes.at(-1)!;
-  const { totalCount, entities } = fromDb.at(0) || {
-    entities: [],
-    totalCount: 0,
-  };
+  const { totalCount, entities } = fromDb;
   if (!entities || R.isEmpty(entities)) {
     return { [entityName]: [] };
   }

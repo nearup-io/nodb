@@ -138,7 +138,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     parentId?: string;
     ancestors: string[];
     entityTypes: string[];
-  }): Promise<EntityAggregateResult[]> {
+  }): Promise<EntityAggregateResult> {
     const modelFilters = this.toModelFilters(propFilters);
     const aggregateQuery = this.getAggregateQuery({
       modelFilters,
@@ -151,7 +151,9 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       ancestors,
     });
 
-    return this.entityModel.aggregate<EntityAggregateResult>(aggregateQuery);
+    const result =
+      await this.entityModel.aggregate<EntityAggregateResult>(aggregateQuery);
+    return result[0] ? result[0] : { totalCount: 0, entities: [] };
   }
 
   public async searchEntities({
