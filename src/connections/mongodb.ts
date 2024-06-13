@@ -1,17 +1,17 @@
 import mongoose, { type Mongoose } from "mongoose";
 
-const mongodbUrl = Bun.env.MONGODB_URL;
-if (!mongodbUrl) {
-  console.error("Invalid mongodb url");
-  process.exit(1);
-}
-
 declare global {
   var dbconn: Mongoose | null;
 }
 
 const mongoconnect: () => Promise<void> = async () => {
-  const { MAX_POOL_SIZE } = Bun.env;
+  const { MAX_POOL_SIZE, MONGODB_URL: mongodbUrl } = Bun.env;
+
+  if (!mongodbUrl) {
+    console.error("Invalid mongodb url");
+    process.exit(1);
+  }
+
   try {
     if (globalThis.dbconn) {
       // close on "hot reload": bun --hot, or bun --watch
