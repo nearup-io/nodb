@@ -25,7 +25,7 @@ model User {
 
 model Application {
   id String @id @default(dbgenerated("gen_random_uuid()"))
-  // TODO this should be unique on like (user
+  // TODO this should be unique on like (user + name)
   name String @unique
   user    User     @relation(fields: [userId], references: [clerkId], onDelete: Cascade)
   userId  String
@@ -40,6 +40,7 @@ model Environment {
   entities Entity[]
   description String?
   tokens Token[]
+  // TODO this one should refer to the id and not the name
   application Application @relation(fields: [applicationName], references: [name], onDelete: Cascade)
   applicationName String
 
