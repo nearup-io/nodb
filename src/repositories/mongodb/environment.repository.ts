@@ -65,26 +65,36 @@ class EnvironmentRepository
     appName: string;
     description?: string;
   }): Promise<Environment> {
-    // TODO if this is happening here, it should be in a transaction
-    const environment = await this.environmentModel.create({
-      name: envName,
-      tokens: [
+    return this.transaction(async (session) => {
+      const [environment] = await this.environmentModel.create(
+        [
+          {
+            name: envName,
+            tokens: [
+              {
+                key: generateToken(),
+                permission: Permissions.ALL,
+              },
+            ],
+            entities: [],
+            description,
+          },
+        ],
         {
-          key: generateToken(),
-          permission: Permissions.ALL,
+          session,
         },
-      ],
-      entities: [],
-      description,
+      );
+      await this.applicationModel.updateOne(
+        { name: appName },
+        { $addToSet: { environments: environment._id } },
+        { upsert: true, session },
+      );
+
+      return {
+        _id: environment._id.toString(),
+        ...R.omit(["_id"], environment),
+      };
     });
-
-    await this.applicationModel.updateOne(
-      { name: appName },
-      { $addToSet: { environments: environment._id } },
-      { upsert: true },
-    );
-
-    return { _id: environment._id.toString(), ...R.omit(["_id"], environment) };
   }
 
   public async deleteEnvironment({

@@ -42,6 +42,8 @@ model Environment {
   tokens Token[]
   application Application @relation(fields: [applicationName], references: [name], onDelete: Cascade)
   applicationName String
+
+  @@unique([name, applicationName])
 }
 
 model Token {
