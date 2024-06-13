@@ -13,13 +13,16 @@ import Application, {
   type Application as AppType,
 } from "../../src/models/application.model.ts";
 import User, { type User as UserType } from "../../src/models/user.model.ts";
+import { type ClerkClient, createClerkClient } from "@clerk/backend";
 
 export class TestApplicationHelper {
   private readonly application: Hono;
   private readonly mongoClient: MongoClient;
   private readonly databaseName: string;
-
+  private readonly clerkClient: ClerkClient;
   constructor() {
+    this.clerkClient = createClerkClient({ secretKey: "..." });
+
     this.application = app;
     this.mongoClient = new MongoClient(Bun.env.MONGODB_URL!);
     this.databaseName = Bun.env
@@ -53,14 +56,22 @@ export class TestApplicationHelper {
     return this.application;
   }
 
-  public async generateJWTTokenAndUser(
-    userData: UserType,
+  public async insertUser(
+    userData: Omit<UserType, "applications" | "lastUse">,
     createUser: boolean = true,
   ): Promise<string> {
     const userModel = User;
+
+    const user = await this.clerkClient.users.getUser(
+      "user_2hozbRNXy3X0IGuQcV0hehJqhzR",
+    );
+
+    this.clerkClient.sessions.getSessionList();
+
     if (createUser) {
       await userModel.create({
         clerkId: userData.clerkId,
+        email: "randomEmail@gmail.com",
       });
     }
     return jwt_sign(userData, Bun.env.JWT_SECRET!);

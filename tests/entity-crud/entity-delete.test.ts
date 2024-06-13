@@ -5,7 +5,7 @@ import * as R from "ramda";
 
 describe("DELETE /apps/:appName/:envName/:entityName", async () => {
   const helper = new TestApplicationHelper();
-  const jwtToken = await helper.generateJWTTokenAndUser({
+  const jwtToken = await helper.insertUser({
     email: "random@random.com",
     lastProvider: "",
     applications: [],

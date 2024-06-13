@@ -7,10 +7,9 @@ describe("All endpoints used for apps CRUD operations", async () => {
   const helper = new TestApplicationHelper();
   let jwtToken = "";
   beforeAll(async () => {
-    jwtToken = await helper.generateJWTTokenAndUser({
+    jwtToken = await helper.insertUser({
       email: "random@random.com",
-      lastProvider: "",
-      applications: [],
+      clerkId: "randomId",
     });
   });
 
@@ -244,10 +243,9 @@ describe("All endpoints used for apps CRUD operations", async () => {
       },
     ];
 
-    const jwtForGetRequests = await helper.generateJWTTokenAndUser({
+    const jwtForGetRequests = await helper.insertUser({
       email: "newJwt@test.com",
-      lastProvider: "",
-      applications: [],
+      clerkId: "randomClerkId",
     });
     beforeAll(async () => {
       for (const { name, ...otherProps } of apps) {
@@ -300,10 +298,9 @@ describe("All endpoints used for apps CRUD operations", async () => {
       });
 
       test("Should return 200 OK and empty array when the user does not have any apps", async () => {
-        const token = await helper.generateJWTTokenAndUser({
+        const token = await helper.insertUser({
           email: "test@test.com",
-          lastProvider: "",
-          applications: [],
+          clerkId: "randomClerkId",
         });
 
         const response = await helper.executeGetRequest({
@@ -337,10 +334,9 @@ describe("All endpoints used for apps CRUD operations", async () => {
   });
 
   describe("DELETE /apps/:appName", async () => {
-    const jwtForDeleteRequests = await helper.generateJWTTokenAndUser({
+    const jwtForDeleteRequests = await helper.insertUser({
       email: "delete@test.com",
-      lastProvider: "",
-      applications: [],
+      clerkId: "randomClerkId",
     });
 
     test("should return 200 OK {found: false} when app is not found", async () => {

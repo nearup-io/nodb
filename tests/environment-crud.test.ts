@@ -8,7 +8,7 @@ describe("Environment entity CRUD", async () => {
   let jwtToken = "";
 
   beforeAll(async () => {
-    jwtToken = await helper.generateJWTTokenAndUser({
+    jwtToken = await helper.insertUser({
       email: "random@random.com",
       lastProvider: "",
       applications: [],
