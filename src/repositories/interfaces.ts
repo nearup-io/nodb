@@ -16,8 +16,8 @@ export interface IApplicationRepository {
   createApplication(props: {
     appName: string;
     clerkId: string;
-    image: string;
-    appDescription: string;
+    image?: string;
+    appDescription?: string;
   }): Promise<void>;
   updateApplication(props: {
     oldAppName: string;

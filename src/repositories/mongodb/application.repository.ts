@@ -146,8 +146,8 @@ class ApplicationRepository
   }: {
     appName: string;
     clerkId: string;
-    image: string;
-    appDescription: string;
+    image?: string;
+    appDescription?: string;
   }): Promise<void> {
     await this.transaction<void>(async (session) => {
       const environment = await this.environmentModel.create(

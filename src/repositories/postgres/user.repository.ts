@@ -10,24 +10,17 @@ class UserRepository extends BaseRepository implements IUserRepository {
 
   public async createUser({
     clerkId,
-    appName,
     email,
   }: {
     clerkId: string;
     appName: string;
     email: string;
   }): Promise<Omit<User, "applications">> {
-    // TODO verify appName is actually added
     return this.prisma.user.create({
       data: {
         clerkId,
         email,
         lastUse: new Date(),
-        applications: {
-          connect: {
-            name: appName,
-          },
-        },
       },
       select: {
         applications: false,

@@ -65,6 +65,7 @@ class EnvironmentRepository
     appName: string;
     description?: string;
   }): Promise<Environment> {
+    // TODO if this is happening here, it should be in a transaction
     const environment = await this.environmentModel.create({
       name: envName,
       tokens: [
