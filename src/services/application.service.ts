@@ -1,6 +1,6 @@
 import * as R from "ramda";
 import { type Application } from "../models/application.model";
-import { APPLICATION_MONGO_DB_REPOSITORY, httpError } from "../utils/const";
+import { APPLICATION_REPOSITORY, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 import type Context from "../middlewares/context.ts";
 import type { IApplicationRepository } from "../repositories/interfaces.ts";
@@ -21,7 +21,7 @@ const getApplication = async ({
   }
 > => {
   const repository = context.get<IApplicationRepository>(
-    APPLICATION_MONGO_DB_REPOSITORY,
+    APPLICATION_REPOSITORY,
   );
 
   const application = await repository.getApplication({ appName, clerkId });
@@ -39,7 +39,7 @@ const getUserApplications = async ({
   clerkId: string;
 }): Promise<Application[]> => {
   const repository = context.get<IApplicationRepository>(
-    APPLICATION_MONGO_DB_REPOSITORY,
+    APPLICATION_REPOSITORY,
   );
 
   return repository.getUserApplications({ clerkId });
@@ -59,7 +59,7 @@ const createApplication = async ({
   appDescription: string;
 }): Promise<void> => {
   const repository = context.get<IApplicationRepository>(
-    APPLICATION_MONGO_DB_REPOSITORY,
+    APPLICATION_REPOSITORY,
   );
 
   try {
@@ -90,7 +90,7 @@ const updateApplication = async (props: {
   image?: string;
 }): Promise<Omit<Application, "environments"> | null> => {
   const repository = props.context.get<IApplicationRepository>(
-    APPLICATION_MONGO_DB_REPOSITORY,
+    APPLICATION_REPOSITORY,
   );
 
   const updateProps = R.pickBy(R.pipe(R.isNil, R.not), {
@@ -124,7 +124,7 @@ const deleteApplication = async ({
   clerkId: string;
 }): Promise<Omit<Application, "environments"> | null> => {
   const repository = context.get<IApplicationRepository>(
-    APPLICATION_MONGO_DB_REPOSITORY,
+    APPLICATION_REPOSITORY,
   );
 
   const application = await repository.getApplication({ appName, clerkId });

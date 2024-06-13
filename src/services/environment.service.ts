@@ -1,6 +1,6 @@
 import * as R from "ramda";
 import { type Environment } from "../models/environment.model";
-import { ENVIRONMENT_MONGO_DB_REPOSITORY, httpError } from "../utils/const";
+import { ENVIRONMENT_REPOSITORY, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 import type Context from "../middlewares/context.ts";
 import { type IEnvironmentRepository } from "../repositories/interfaces.ts";
@@ -15,7 +15,7 @@ const findEnvironment = async ({
   appName: string;
 }): Promise<Environment | null> => {
   const repository = context.get<IEnvironmentRepository>(
-    ENVIRONMENT_MONGO_DB_REPOSITORY,
+    ENVIRONMENT_REPOSITORY,
   );
   return repository.findEnvironment({ appName, envName });
 };
@@ -32,7 +32,7 @@ const createEnvironment = async ({
   description?: string;
 }): Promise<Environment> => {
   const repository = context.get<IEnvironmentRepository>(
-    ENVIRONMENT_MONGO_DB_REPOSITORY,
+    ENVIRONMENT_REPOSITORY,
   );
 
   const existingEnvironment = await repository.findEnvironment({
@@ -56,7 +56,7 @@ const deleteEnvironment = async ({
   envName: string;
 }) => {
   const repository = context.get<IEnvironmentRepository>(
-    ENVIRONMENT_MONGO_DB_REPOSITORY,
+    ENVIRONMENT_REPOSITORY,
   );
   const environment = await repository.findEnvironment({
     appName,
@@ -94,7 +94,7 @@ const updateEnvironment = async ({
   description: string;
 }): Promise<Environment> => {
   const repository = context.get<IEnvironmentRepository>(
-    ENVIRONMENT_MONGO_DB_REPOSITORY,
+    ENVIRONMENT_REPOSITORY,
   );
 
   if (oldEnvName === newEnvName) {

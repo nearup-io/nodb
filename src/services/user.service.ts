@@ -2,9 +2,9 @@ import type { User } from "../models/user.model.ts";
 import type Context from "../middlewares/context.ts";
 import {
   defaultNodbEnv,
-  ENVIRONMENT_MONGO_DB_REPOSITORY,
+  ENVIRONMENT_REPOSITORY,
   httpError,
-  USER_MONGO_DB_REPOSITORY,
+  USER_REPOSITORY,
 } from "../utils/const.ts";
 import type { IUserRepository } from "../repositories/interfaces.ts";
 import { ServiceError } from "../utils/service-errors.ts";
@@ -19,7 +19,7 @@ const findUserByClerkId = async ({
   id: string;
   context: Context;
 }): Promise<Omit<User, "applications"> | null> => {
-  const repository = context.get<IUserRepository>(USER_MONGO_DB_REPOSITORY);
+  const repository = context.get<IUserRepository>(USER_REPOSITORY);
   return repository.findUserClerkId(id);
 };
 
@@ -41,10 +41,10 @@ const createOrFetchUser = async ({
   if (dbUser) {
     return dbUser;
   }
-  const repository = context.get<IUserRepository>(USER_MONGO_DB_REPOSITORY);
+  const repository = context.get<IUserRepository>(USER_REPOSITORY);
   const appName = generateAppName();
   const environmentRepository = context.get<EnvironmentRepository>(
-    ENVIRONMENT_MONGO_DB_REPOSITORY,
+    ENVIRONMENT_REPOSITORY,
   );
 
   await environmentRepository.createEnvironment({
