@@ -192,7 +192,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
 
   public async searchEntities({
     embedding,
-    vectorIndex,
     limit,
     entityType,
   }: {
@@ -201,7 +200,15 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     limit: number;
     entityType?: string;
   }): Promise<Entity[]> {
-    throw new Error("method not implemented");
+    const embeddingSql = pgvector.toSql(embedding);
+
+    const whereClause = entityType
+      ? Prisma.sql`WHERE type = '${entityType}'`
+      : "";
+
+    return this.prisma.$queryRaw<
+      Entity[]
+    >`SELECT * FROM entity ${whereClause} ORDER BY embedding <-> ${embeddingSql}::vector LIMIT ${limit * 15}`;
   }
 
   public async findEntitiesByIdsTypeAndAncestors({
