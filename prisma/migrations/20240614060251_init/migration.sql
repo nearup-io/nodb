@@ -63,7 +63,10 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX "Application_name_key" ON "Application"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Entity_type_key" ON "Entity"("type");
+CREATE UNIQUE INDEX "Environment_name_applicationName_key" ON "Environment"("name", "applicationName");
+
+-- CreateIndex
+CREATE INDEX "Entity_type_idx" ON "Entity"("type");
 
 -- AddForeignKey
 ALTER TABLE "Application" ADD CONSTRAINT "Application_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("clerkId") ON DELETE CASCADE ON UPDATE CASCADE;

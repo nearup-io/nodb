@@ -77,7 +77,7 @@ export interface IEntityRepository {
     vectorIndex: string;
     limit: number;
     entityType?: string;
-  }): Promise<Entity[]>;
+  }): Promise<Record<string, unknown>[]>;
   findEntitiesByIdsTypeAndAncestors(props: {
     ids: string[];
     type: string;

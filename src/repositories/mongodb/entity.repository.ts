@@ -166,8 +166,8 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     vectorIndex: string;
     limit: number;
     entityType?: string;
-  }): Promise<Entity[]> {
-    return this.entityModel.aggregate([
+  }): Promise<Record<string, unknown>[]> {
+    return this.entityModel.aggregate<Record<string, unknown>>([
       {
         $vectorSearch: {
           index: vectorIndex,

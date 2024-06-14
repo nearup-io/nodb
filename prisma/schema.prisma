@@ -56,13 +56,15 @@ model Token {
 
 model Entity {
   id String @id @default(dbgenerated("gen_random_uuid()"))
-  type String @unique
+  type String
   model Json
   ancestors String[] @default([])
   environment Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
   environmentId String
   embedding Unsupported("vector(1536)")?
   extras Json?
+
+  @@index([type])
 }
 
 enum Permission {
