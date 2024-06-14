@@ -17,9 +17,7 @@
     "@types/react": "^18.2.74",
     "@types/react-dom": "^18.2.24",
     "prettier": "3.2.5",
-    "prisma": "^5.15.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "prisma": "^5.15.0"
   },
   "peerDependencies": {
     "typescript": "^5.4.5"
