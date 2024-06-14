@@ -102,21 +102,9 @@ class EnvironmentRepository
         },
       });
 
-      await prisma.environment.deleteMany({
+      await prisma.environment.delete({
         where: {
           id: environmentDbId,
-        },
-      });
-      await prisma.application.update({
-        where: {
-          name: appName,
-        },
-        data: {
-          environments: {
-            disconnect: {
-              id: environmentDbId,
-            },
-          },
         },
       });
     });

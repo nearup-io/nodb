@@ -16,13 +16,11 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
   private generateInsertSql(entities: Entity[], environmentId: string): Sql {
     const values = entities.map((entity) => {
       const id = Prisma.sql`${entity.id}`;
-      const model = Prisma.sql`${JSON.stringify(entity.model)}`;
+      const model = Prisma.sql`${entity.model}`;
       const ancestors = entity.ancestors?.length
-        ? Prisma.sql`{${Prisma.join(entity.ancestors)}}`
-        : Prisma.sql`{}`;
-      const extras = entity.extras
-        ? Prisma.sql`${JSON.stringify(entity.extras)}`
-        : null;
+        ? Prisma.sql`'{${Prisma.join(entity.ancestors)}}'`
+        : Prisma.sql`'{}'`;
+      const extras = entity.extras ? Prisma.sql`${entity.extras}` : null;
       const embedding = entity.embedding
         ? Prisma.sql`${pgvector.toSql(entity.embedding)}::vector`
         : null;
@@ -30,7 +28,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       return Prisma.sql`(${id}, ${entity.type}, ${model}, ${ancestors}, ${environmentId}, ${extras}, ${embedding})`;
     });
 
-    return Prisma.sql`INSERT INTO Entity (id, type, model, ancestors, environmentId, extras, embedding) VALUES
+    return Prisma.sql`INSERT INTO "public"."Entity" (id, type, model, ancestors, "environmentId", extras, embedding) VALUES
     ${Prisma.join(values)}
     RETURNING id`;
   }
