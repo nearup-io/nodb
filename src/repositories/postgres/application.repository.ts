@@ -134,8 +134,8 @@ class ApplicationRepository
                 permission: token.permission,
               };
             }),
-            entities: env.entities.map(
-              (entity) => entity.type.split("/").at(-1)!,
+            entities: R.uniq(
+              env.entities.map((entity) => entity.type.split("/").at(-1)!),
             ),
           };
         }),
