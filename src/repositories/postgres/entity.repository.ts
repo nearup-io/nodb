@@ -68,9 +68,11 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     const propFilterKeys = R.keys(propFilters);
     const modelFilterSql = propFilterKeys.length
       ? Prisma.sql`AND ${Prisma.join(
-          propFilterKeys.map(
-            (key) => Prisma.sql`model->>${key} = ${propFilters[key]}`,
-          ),
+          propFilterKeys.map((key) => {
+            const type = typeof propFilters[key];
+            const sqlType: string = typeToSqlType[type] ?? "text";
+            return Prisma.sql`${Prisma.raw(`(model->>'${key}')::${sqlType}`)} = ${propFilters[key]}`;
+          }),
           " AND ",
         )}`
       : Prisma.empty;
@@ -363,5 +365,12 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     };
   }
 }
+
+const typeToSqlType: Record<string, string | undefined> = {
+  boolean: "boolean",
+  string: "text",
+  number: "int",
+  bigint: "int",
+};
 
 export default EntityRepository;
