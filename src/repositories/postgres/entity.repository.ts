@@ -122,7 +122,9 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
 
     const orderBy = sortBy?.length
       ? Prisma.sql`ORDER BY 
-        ${Prisma.join(sortBy.map((x) => `model->>${x.name} ${x.order.toUpperCase()}`))}`
+      ${Prisma.raw(
+        `${sortBy.map((x) => `model->'${x.name}' ${x.order.toUpperCase()}`)}`,
+      )}`
       : Prisma.empty;
 
     const pagination = Prisma.sql`OFFSET ${skip} LIMIT ${limit}`;
