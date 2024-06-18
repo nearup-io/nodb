@@ -1,6 +1,6 @@
 import BaseRepository from "./base.repository.ts";
 import type { IEntityRepository } from "../interfaces.ts";
-import type { EntityQueryMeta } from "../../utils/types.ts";
+import type { EntityQueryMeta, SortBy } from "../../utils/types.ts";
 import * as R from "ramda";
 import type { EntityAggregateResult } from "../../services/entity.service.ts";
 import { type Entity } from "../../models/entity.model.ts";
@@ -37,7 +37,8 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     const defaultFields = Prisma.sql`id, type, ancestors, extras`;
 
     const jsonFields = fields?.length
-      ? Prisma.sql`${defaultFields}, jsonb_strip_nulls(jsonb_build_object(${Prisma.raw(fields.map((field) => `'${field}', model->>'${field}'`).join(","))})) AS model`
+      ? // TODO can I get rid of Prisma.raw here?
+        Prisma.sql`${defaultFields}, jsonb_strip_nulls(jsonb_build_object(${Prisma.raw(fields.map((field) => `'${field}', model->'${field}'`).join(","))})) AS model`
       : Prisma.sql`${defaultFields}, model`;
     return Prisma.sql`SELECT ${jsonFields} FROM public."Entity"`;
   }
@@ -89,6 +90,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     parentId,
     ancestors,
     entityTypes,
+    sortBy,
   }: {
     propFilters: Record<string, unknown>;
     paginationQuery: { skip: number; limit: number };
@@ -98,6 +100,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     parentId?: string;
     ancestors: string[];
     entityTypes: string[];
+    sortBy?: SortBy[];
   }): Sql {
     const whereClause = this.generateSqlQueryWhereClause({
       propFilters,
@@ -117,7 +120,11 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
             (SELECT COUNT(*) FROM Data) AS totalCount
     FROM Data`;
 
-    const orderBy = Prisma.empty;
+    const orderBy = sortBy?.length
+      ? Prisma.sql`ORDER BY 
+        ${Prisma.join(sortBy.map((x) => `model->>${x.name} ${x.order.toUpperCase()}`))}`
+      : Prisma.empty;
+
     const pagination = Prisma.sql`OFFSET ${skip} LIMIT ${limit}`;
 
     return Prisma.sql`${query} ${orderBy} ${pagination};`;
@@ -184,6 +191,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       envName,
       parentId,
       ancestors,
+      sortBy: metaFilters?.sortBy,
     });
 
     const result =
