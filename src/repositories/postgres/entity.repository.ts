@@ -1,6 +1,6 @@
 import BaseRepository from "./base.repository.ts";
 import type { IEntityRepository } from "../interfaces.ts";
-import type { EntityQueryMeta, SortBy } from "../../utils/types.ts";
+import type { EntityQueryMeta } from "../../utils/types.ts";
 import * as R from "ramda";
 import type { EntityAggregateResult } from "../../services/entity.service.ts";
 import { type Entity } from "../../models/entity.model.ts";
@@ -33,36 +33,54 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     RETURNING id`;
   }
 
-  private getSortDbQuery = (
-    sortBy: SortBy[] | undefined,
-  ): Prisma.EntityOrderByWithRelationInput[] => {
-    // TODO  this is not supported by prisma, so we would need to run our own query for this
-    return [];
-  };
+  private toModelSelectSql(fields?: string[]): Sql {
+    const defaultFields = Prisma.sql`id, type, ancestors, extras`;
 
-  private toModelFilters(filters: Record<string, unknown>): {
-    model: Prisma.JsonFilter<"Entity">;
-  }[] {
-    // {
-    //   "foo": "bar" ->  { model: { path: ["foo"], equals: "bar" }}
-    //   "baz": "bux" ->  { model: { path: ["baz"], equals: "bux" }}
-    // }
-    const filtersKeys = R.keys(filters);
-    if (filtersKeys.length === 0) return [];
-
-    return filtersKeys.map((k: string) => {
-      return {
-        model: {
-          path: [k],
-          equals: filters[k] as Prisma.InputJsonValue,
-        },
-      };
-    });
+    const jsonFields = fields?.length
+      ? Prisma.sql`${defaultFields}, jsonb_strip_nulls(jsonb_build_object(${Prisma.raw(fields.map((field) => `'${field}', model->>'${field}'`).join(","))})) AS model`
+      : Prisma.sql`${defaultFields}, model`;
+    return Prisma.sql`SELECT ${jsonFields} FROM public."Entity"`;
   }
 
-  private getAggregateQuery = ({
-    modelFilters,
-    metaFilters,
+  private generateSqlQueryWhereClause({
+    propFilters,
+    ancestors,
+    parentId,
+    appName,
+    envName,
+    entityTypes,
+  }: {
+    propFilters: Record<string, unknown>;
+    ancestors: string[];
+    parentId?: string;
+    appName: string;
+    envName: string;
+    entityTypes: string[];
+  }): Sql {
+    const type = `${appName}/${envName}/${entityTypes.join("/")}%`;
+    const typeSql = Prisma.sql`type LIKE ${type}`;
+
+    const ancestorSql =
+      parentId && ancestors.length
+        ? Prisma.sql`'AND ancestors = {${ancestors.map((value) => `'${value}'`).join(",")}}'`
+        : Prisma.empty;
+
+    const propFilterKeys = R.keys(propFilters);
+    const modelFilterSql = propFilterKeys.length
+      ? Prisma.sql`AND ${Prisma.join(
+          propFilterKeys.map(
+            (key) => Prisma.sql`model->>${key} = ${propFilters[key]}`,
+          ),
+          " AND ",
+        )}`
+      : Prisma.empty;
+
+    return Prisma.sql`WHERE ${typeSql} ${ancestorSql} ${modelFilterSql}`;
+  }
+
+  private getAggregateQuery({
+    propFilters,
+    onlyProps,
     paginationQuery: { skip, limit },
     appName,
     envName,
@@ -70,44 +88,38 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     ancestors,
     entityTypes,
   }: {
-    modelFilters: {
-      model: Prisma.JsonFilter<"Entity">;
-    }[];
+    propFilters: Record<string, unknown>;
     paginationQuery: { skip: number; limit: number };
-    metaFilters?: EntityQueryMeta;
+    onlyProps?: string[];
     appName: string;
     envName: string;
     parentId?: string;
     ancestors: string[];
     entityTypes: string[];
-  }): Pick<Prisma.EntityFindManyArgs, "where" | "select" | "skip" | "take"> => {
-    //  TODO sort is not supported
-    //  TODO select is not supported yet
-    const entityWhere: Prisma.EntityWhereInput[] = [
-      {
-        type: {
-          startsWith: `${appName}/${envName}/${entityTypes.join("/")}`,
-        },
-      },
-      ...modelFilters,
-    ];
+  }): Sql {
+    const whereClause = this.generateSqlQueryWhereClause({
+      propFilters,
+      ancestors,
+      appName,
+      envName,
+      entityTypes,
+      parentId,
+    });
 
-    if (parentId) {
-      entityWhere.push({
-        ancestors: {
-          hasEvery: ancestors,
-        },
-      });
-    }
+    const query = Prisma.sql`WITH Data AS (
+            ${this.toModelSelectSql(onlyProps)}
+            ${whereClause}
+    )
+    SELECT
+            *,
+            (SELECT COUNT(*) FROM Data) AS totalCount
+    FROM Data`;
 
-    return {
-      where: {
-        AND: entityWhere,
-      },
-      skip,
-      take: limit,
-    };
-  };
+    const orderBy = Prisma.empty;
+    const pagination = Prisma.sql`OFFSET ${skip} LIMIT ${limit}`;
+
+    return Prisma.sql`${query} ${orderBy} ${pagination};`;
+  }
 
   public async getSingleEntity({
     entityId,
@@ -161,13 +173,9 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     ancestors: string[];
     entityTypes: string[];
   }): Promise<EntityAggregateResult> {
-    const modelFilters = this.toModelFilters(propFilters);
-    // TODO sort is not yet supported by prisma
-    const sortQuery = this.getSortDbQuery(metaFilters?.sortBy);
-
     const query = this.getAggregateQuery({
-      modelFilters,
-      metaFilters,
+      propFilters,
+      onlyProps: metaFilters?.only,
       entityTypes,
       paginationQuery,
       appName,
@@ -176,16 +184,14 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       ancestors,
     });
 
-    return this.transaction(async (prisma) => {
-      // This could be done manually where we could support one query
-      const totalCount = await prisma.entity.count({ where: query.where });
-      const entities = (await prisma.entity.findMany(query)) as Entity[];
+    const result =
+      await this.prisma.$queryRaw<(Entity & { totalCount: number })[]>(query);
 
-      return {
-        totalCount,
-        entities,
-      };
-    });
+    console.log("result", result);
+    return {
+      totalCount: result[0]?.totalCount || 0,
+      entities: result.map((entity) => R.omit(["totalCount"], entity)),
+    };
   }
 
   public async searchEntities({
