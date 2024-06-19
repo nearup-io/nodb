@@ -2,15 +2,18 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { TestApplicationHelper } from "./helpers/test-application-helper.ts";
 import { type Application as AppType } from "../src/models/application.model.ts";
 import * as R from "ramda";
+import {
+  defaultTestUser,
+  testUser2,
+  testUser3,
+  testUser4,
+} from "./helpers/testUsers.ts";
 
 describe("All endpoints used for apps CRUD operations", async () => {
   const helper = new TestApplicationHelper();
   let jwtToken = "";
   beforeAll(async () => {
-    jwtToken = await helper.insertUser({
-      email: "random@random.com",
-      clerkId: "randomId",
-    });
+    jwtToken = await helper.insertUser(defaultTestUser);
   });
 
   afterAll(async () => {
@@ -243,10 +246,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
       },
     ];
 
-    const jwtForGetRequests = await helper.insertUser({
-      email: "newJwt@test.com",
-      clerkId: "randomClerkId",
-    });
+    const jwtForGetRequests = await helper.insertUser(testUser2);
     beforeAll(async () => {
       for (const { name, ...otherProps } of apps) {
         const postResponse = await helper.executePostRequest({
@@ -298,10 +298,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
       });
 
       test("Should return 200 OK and empty array when the user does not have any apps", async () => {
-        const token = await helper.insertUser({
-          email: "test@test.com",
-          clerkId: "randomClerkId",
-        });
+        const token = await helper.insertUser(testUser3);
 
         const response = await helper.executeGetRequest({
           url: "/apps/all",
@@ -334,10 +331,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
   });
 
   describe("DELETE /apps/:appName", async () => {
-    const jwtForDeleteRequests = await helper.insertUser({
-      email: "delete@test.com",
-      clerkId: "randomClerkId",
-    });
+    const jwtForDeleteRequests = await helper.insertUser(testUser4);
 
     test("should return 200 OK {found: false} when app is not found", async () => {
       const response = await helper.executeDeleteRequest({
