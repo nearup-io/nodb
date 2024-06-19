@@ -2,14 +2,11 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { TestApplicationHelper } from "../helpers/test-application-helper.ts";
 import { deepEqual } from "assert";
 import * as R from "ramda";
+import { defaultTestUser } from "../helpers/testUsers.ts";
 
 describe("PUT /apps/:appName/:envName/:entityName", async () => {
   const helper = new TestApplicationHelper();
-  const jwtToken = await helper.generateJWTTokenAndUser({
-    email: "random@random.com",
-    lastProvider: "",
-    applications: [],
-  });
+  const jwtToken = await helper.insertUser(defaultTestUser);
 
   const putAppName = "memes-app-3";
   const putEnvironmentName = "environment-3";

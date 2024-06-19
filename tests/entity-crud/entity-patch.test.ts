@@ -1,14 +1,11 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { TestApplicationHelper } from "../helpers/test-application-helper.ts";
 import { deepEqual } from "assert";
+import { defaultTestUser } from "../helpers/testUsers.ts";
 
 describe("PATCH /apps/:appName/:envName/:entityName", async () => {
   const helper = new TestApplicationHelper();
-  const jwtToken = await helper.generateJWTTokenAndUser({
-    email: "random@random.com",
-    lastProvider: "",
-    applications: [],
-  });
+  const jwtToken = await helper.insertUser(defaultTestUser);
 
   const patchAppName = "memes-app-2";
   const patchEnvironmentName = "environment-2";
