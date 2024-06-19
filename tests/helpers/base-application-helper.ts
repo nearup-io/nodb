@@ -1,15 +1,10 @@
 import type { Hono } from "hono";
-import app from "../../src/app.ts";
 
 export abstract class BaseApplicationHelper {
-  private readonly application: Hono;
-
-  protected constructor() {
-    this.application = app;
-  }
+  protected application: Hono | undefined;
 
   get app(): Hono {
-    return this.application;
+    return this.application!;
   }
 
   public async executePostRequest({

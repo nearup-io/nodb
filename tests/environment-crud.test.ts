@@ -9,6 +9,7 @@ describe("Environment entity CRUD", async () => {
   let jwtToken = "";
 
   beforeAll(async () => {
+    await helper.init();
     jwtToken = await helper.insertUser(defaultTestUser);
   });
 

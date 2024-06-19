@@ -3,9 +3,9 @@ import { TestApplicationHelper } from "../helpers/test-application-helper.ts";
 import { deepEqual } from "assert";
 import { defaultTestUser } from "../helpers/testUsers.ts";
 
-describe("PATCH /apps/:appName/:envName/:entityName", async () => {
+describe("PATCH /apps/:appName/:envName/:entityName", () => {
   const helper = new TestApplicationHelper();
-  const jwtToken = await helper.insertUser(defaultTestUser);
+  let jwtToken = "";
 
   const patchAppName = "memes-app-2";
   const patchEnvironmentName = "environment-2";
@@ -24,6 +24,8 @@ describe("PATCH /apps/:appName/:envName/:entityName", async () => {
   let entityIdWithSubEntity: string = "";
 
   beforeAll(async () => {
+    await helper.init();
+    jwtToken = await helper.insertUser(defaultTestUser);
     const {
       createdEntityIds: ids,
       createdSubEntityIds: subIds,

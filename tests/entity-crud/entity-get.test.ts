@@ -4,9 +4,9 @@ import * as R from "ramda";
 import { deepEqual } from "assert";
 import { defaultTestUser } from "../helpers/testUsers.ts";
 
-describe("GET /apps/:appName/:envName/:entityName", async () => {
+describe("GET /apps/:appName/:envName/:entityName", () => {
   const helper = new TestApplicationHelper();
-  const jwtToken = await helper.insertUser(defaultTestUser);
+  let jwtToken = "";
 
   const appName = "memes-app-5";
   const environmentName = "environment-5";
@@ -36,6 +36,8 @@ describe("GET /apps/:appName/:envName/:entityName", async () => {
   let entityIdWithSubEntity = "";
 
   beforeAll(async () => {
+    await helper.init();
+    jwtToken = await helper.insertUser(defaultTestUser);
     const {
       createdEntityIds: ids,
       createdSubEntityIds: subIds,

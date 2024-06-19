@@ -6,12 +6,14 @@ import { defaultTestUser } from "../helpers/testUsers.ts";
 
 describe("POST /apps/:appName/:envName/:entityName", async () => {
   const helper = new TestApplicationHelper();
-  const jwtToken = await helper.insertUser(defaultTestUser);
+  let jwtToken = "";
 
   const appName = "memes-app";
   const environmentName = "environment";
 
   beforeAll(async () => {
+    await helper.init();
+    jwtToken = await helper.insertUser(defaultTestUser);
     const appResponse = await helper.executePostRequest({
       url: `/apps/${appName}`,
       token: jwtToken,

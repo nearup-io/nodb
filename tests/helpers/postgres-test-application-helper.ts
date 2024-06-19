@@ -4,17 +4,50 @@ import type { Environment } from "../../src/models/environment.model.ts";
 import { BaseApplicationHelper } from "./base-application-helper.ts";
 import type { ITestApplicationHelper } from "./IApplicationHelper.ts";
 import type { TestUser } from "./testUsers.ts";
+import {
+  PostgreSqlContainer,
+  StartedPostgreSqlContainer,
+} from "@testcontainers/postgresql";
+import { execSync } from "node:child_process";
+import { startApp } from "../../src/server.ts";
 
 export class PostgresTestApplicationHelper
   extends BaseApplicationHelper
   implements ITestApplicationHelper
 {
-  async insertUser(userData: TestUser, createUser: boolean): Promise<string> {
-    throw new Error("Method not implemented.");
+  private container: StartedPostgreSqlContainer | undefined;
+
+  constructor() {
+    super();
   }
+
+  async init(): Promise<void> {
+    this.container = await new PostgreSqlContainer(
+      "postgres:16-alpine",
+    ).start();
+
+    // Set new database Url
+    const databaseUrl = `postgresql://${this.container.getUsername()}:${this.container.getPassword()}@${this.container.getHost()}:${this.container.getPort()}/${this.container.getDatabase()}`;
+    // Execute Prisma migrations
+    execSync("npx prisma migrate dev", { env: { DATABASE_URL: databaseUrl } });
+    this.application = await startApp();
+  }
+
   async stopApplication(): Promise<void> {
+    await this.container?.stop();
+  }
+
+  get port(): number {
+    return this.container!.getFirstMappedPort();
+  }
+
+  async insertUser(
+    userData: TestUser,
+    createUser: boolean = true,
+  ): Promise<string> {
     throw new Error("Method not implemented.");
   }
+
   async getEntitiesByIdFromDatabase(
     ids: string[],
     sortByProp: string,

@@ -4,6 +4,7 @@ import { type Environment as EnvironmentType } from "../../src/models/environmen
 import { type Application as AppType } from "../../src/models/application.model.ts";
 
 export interface ITestApplicationHelper {
+  init(): Promise<void>;
   executePostRequest(props: {
     url: string;
     token?: string;

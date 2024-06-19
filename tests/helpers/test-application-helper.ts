@@ -14,6 +14,7 @@ import type { TestUser } from "./testUsers.ts";
 import * as R from "ramda";
 import { BaseApplicationHelper } from "./base-application-helper.ts";
 import type { ITestApplicationHelper } from "./IApplicationHelper.ts";
+import { startApp } from "../../src/server.ts";
 
 export class TestApplicationHelper
   extends BaseApplicationHelper
@@ -29,6 +30,10 @@ export class TestApplicationHelper
       .at(-1)!
       .split("?")
       .at(0)!;
+  }
+
+  async init(): Promise<void> {
+    this.application = await startApp();
   }
 
   private async cleanup() {

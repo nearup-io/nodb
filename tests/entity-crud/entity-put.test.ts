@@ -4,9 +4,9 @@ import { deepEqual } from "assert";
 import * as R from "ramda";
 import { defaultTestUser } from "../helpers/testUsers.ts";
 
-describe("PUT /apps/:appName/:envName/:entityName", async () => {
+describe("PUT /apps/:appName/:envName/:entityName", () => {
   const helper = new TestApplicationHelper();
-  const jwtToken = await helper.insertUser(defaultTestUser);
+  let jwtToken = "";
 
   const putAppName = "memes-app-3";
   const putEnvironmentName = "environment-3";
@@ -25,25 +25,25 @@ describe("PUT /apps/:appName/:envName/:entityName", async () => {
   let entityIdWithSubEntity: string = "";
 
   beforeAll(async () => {
-    beforeAll(async () => {
-      const {
-        createdEntityIds: ids,
-        createdSubEntityIds: subIds,
-        entityIdWithSubEntity: entityId,
-      } = await helper.createAppWithEnvironmentEntitiesAndSubEntities({
-        appName: putAppName,
-        environmentName: putEnvironmentName,
-        token: jwtToken,
-        entities,
-        subEntityName: putSubEntityName,
-        subEntities,
-        entityName: putEntityName,
-      });
-
-      createdEntityIds.push(...ids);
-      createdSubEntityIds.push(...subIds!);
-      entityIdWithSubEntity = entityId!;
+    await helper.init();
+    jwtToken = await helper.insertUser(defaultTestUser);
+    const {
+      createdEntityIds: ids,
+      createdSubEntityIds: subIds,
+      entityIdWithSubEntity: entityId,
+    } = await helper.createAppWithEnvironmentEntitiesAndSubEntities({
+      appName: putAppName,
+      environmentName: putEnvironmentName,
+      token: jwtToken,
+      entities,
+      subEntityName: putSubEntityName,
+      subEntities,
+      entityName: putEntityName,
     });
+
+    createdEntityIds.push(...ids);
+    createdSubEntityIds.push(...subIds!);
+    entityIdWithSubEntity = entityId!;
   });
 
   afterAll(async () => {

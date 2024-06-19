@@ -4,9 +4,9 @@ import { deepEqual } from "assert";
 import * as R from "ramda";
 import { defaultTestUser } from "../helpers/testUsers.ts";
 
-describe("DELETE /apps/:appName/:envName/:entityName", async () => {
+describe("DELETE /apps/:appName/:envName/:entityName", () => {
   const helper = new TestApplicationHelper();
-  const jwtToken = await helper.insertUser(defaultTestUser);
+  let jwtToken = "";
 
   const deleteAppName = "memes-app-4";
   const deleteEnvironmentName = "environment-4";
@@ -23,6 +23,8 @@ describe("DELETE /apps/:appName/:envName/:entityName", async () => {
   const createdEntityIds: string[] = [];
 
   beforeAll(async () => {
+    await helper.init();
+    jwtToken = await helper.insertUser(defaultTestUser);
     const { createdEntityIds: ids } =
       await helper.createAppWithEnvironmentEntitiesAndSubEntities({
         appName: deleteAppName,

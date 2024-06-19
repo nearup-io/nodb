@@ -13,6 +13,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
   const helper = new TestApplicationHelper();
   let jwtToken = "";
   beforeAll(async () => {
+    await helper.init();
     jwtToken = await helper.insertUser(defaultTestUser);
   });
 
