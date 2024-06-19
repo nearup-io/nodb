@@ -13,6 +13,7 @@ import Application, {
 } from "../../src/models/application.model.ts";
 import User from "../../src/models/user.model.ts";
 import type { TestUser } from "./testUsers.ts";
+import * as R from "ramda";
 
 export class TestApplicationHelper {
   private readonly application: Hono;
@@ -174,21 +175,33 @@ export class TestApplicationHelper {
   public async getEnvironmentFromDbByName(
     name: string,
   ): Promise<EnvironmentType | null> {
-    return Environment.findOne({ name }).select("-__v").lean();
+    const result = await Environment.findOne({ name }).select("-__v").lean();
+    if (!result) return null;
+
+    return { id: result._id.toString(), ...R.omit(["_id"], result) };
   }
 
   public async getEnvironmentsFromDbByAppName(
     appName: string,
   ): Promise<EnvironmentType[]> {
-    return Environment.find({ app: appName }).select("-__v").lean();
+    const environments = await Environment.find({ app: appName })
+      .select("-__v")
+      .lean();
+
+    return environments.map((env) => {
+      return { id: env._id.toString(), ...R.omit(["_id"], env) };
+    });
   }
 
   public async getAppFromDbByName(appName: string): Promise<AppType | null> {
-    return Application.findOne<AppType>({
+    const result = await Application.findOne({
       name: appName,
     })
       .select("-__v")
       .lean();
+
+    if (!result) return null;
+    return { id: result._id.toString(), ...R.omit(["_id"], result) };
   }
 
   public async getEntityFromDbById(id: string): Promise<EntityType | null> {

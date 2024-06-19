@@ -45,14 +45,16 @@ class EnvironmentRepository
             description: "$environments.description",
             id: "$environments._id",
             entities: "$environments.entities",
+            _id: 0,
           },
         },
       ]);
     if (!applicationEnvironments[0]) return null;
 
+    const environment = applicationEnvironments[0];
     return {
-      id: applicationEnvironments[0].toString(),
-      ...R.omit(["id"], applicationEnvironments[0]),
+      id: environment.id.toString(),
+      ...R.omit(["id"], environment),
     };
   }
 
