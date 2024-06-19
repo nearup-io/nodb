@@ -21,8 +21,7 @@ export const ApplicationSchema = new Schema({
 });
 
 export type Application = {
-  // TODO rename this id to _id
-  _id: string;
+  id: string;
   name: string;
   environments: Environment[];
   image?: string | null;

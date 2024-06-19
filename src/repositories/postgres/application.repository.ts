@@ -35,13 +35,11 @@ class ApplicationRepository
 
     return (
       application?.environments.map((env) => {
-        const id = env.id;
         return {
-          _id: id,
           entities: env.entities.map(
             (entity) => entity.type.split("/").at(-1)!,
           ),
-          ...R.omit(["id", "entities"], env),
+          ...R.omit(["entities"], env),
         };
       }) || []
     );
@@ -53,12 +51,7 @@ class ApplicationRepository
   }: {
     appName: string;
     clerkId: string;
-  }): Promise<
-    | (Omit<Application, "environments"> & {
-        environments: Pick<Environment, "_id" | "name" | "description">[];
-      })
-    | null
-  > {
+  }): Promise<Application | null> {
     const app = await this.prisma.application.findFirst({
       where: {
         userId: clerkId,
@@ -79,15 +72,17 @@ class ApplicationRepository
 
     return app
       ? {
-          _id: app.id,
+          id: app.id,
           name: app.name,
           image: app.image,
           description: app.description,
           environments: app.environments.map((env) => {
             return {
-              _id: env.id,
+              id: env.id,
               name: env.name,
               description: env.description,
+              tokens: [],
+              entities: [],
             };
           }),
         }
@@ -119,13 +114,13 @@ class ApplicationRepository
 
     return applications.map((app) => {
       return {
-        _id: app.id,
+        id: app.id,
         name: app.name,
         description: app.description,
         image: app.image,
         environments: app.environments.map((env) => {
           return {
-            _id: env.id,
+            id: env.id,
             name: env.name,
             description: env.description,
             tokens: env.tokens.map((token) => {
@@ -208,7 +203,7 @@ class ApplicationRepository
     });
 
     return {
-      _id: doc.id,
+      id: doc.id,
       name: doc.name,
       image: doc.image,
       description: doc.description,
@@ -223,7 +218,7 @@ class ApplicationRepository
     clerkId: string;
   }): Promise<Omit<Application, "environments"> | null> {
     const envIds = (await this.getEnvironmentsByAppName(appName)).map(
-      ({ _id }) => _id,
+      ({ id }) => id,
     );
 
     return this.transaction<Omit<Application, "environments"> | null>(
@@ -263,7 +258,7 @@ class ApplicationRepository
         });
 
         return {
-          _id: app.id,
+          id: app.id,
           name: app.name,
           description: app.description,
           image: app.image,

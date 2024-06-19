@@ -35,7 +35,7 @@ class ApplicationRepository
           tokens: "$environments.tokens",
           entities: "$environments.entities",
           description: "$environments.description",
-          _id: "$environments._id",
+          id: "$environments._id",
         },
       },
     ]);
@@ -48,7 +48,7 @@ class ApplicationRepository
     appName: string;
     clerkId: string;
   }): Promise<Application | null> {
-    const userApplications = await this.userModel.aggregate([
+    const userApplications = await this.userModel.aggregate<Application>([
       {
         $match: {
           $and: [{ clerkId }, { $expr: { $in: [appName, "$applications"] } }],
@@ -77,13 +77,14 @@ class ApplicationRepository
       },
       {
         $project: {
+          id: "$applications._id",
           name: "$applications.name",
           image: "$applications.image",
           description: "$applications.description",
+          "environments.id": "$environments._id",
           "environments.name": 1,
           "environments.tokens": 1,
           "environments.description": 1,
-          _id: 0,
         },
       },
     ]);
@@ -216,7 +217,7 @@ class ApplicationRepository
         }
 
         return {
-          _id: doc._id.toString(),
+          id: doc._id.toString(),
           ...R.omit(["_id"], doc),
         };
       },
@@ -229,35 +230,36 @@ class ApplicationRepository
   }: {
     appName: string;
     clerkId: string;
-  }): Promise<Application | null> {
+  }): Promise<Omit<Application, "environments"> | null> {
     const envs = await this.getEnvironmentsByAppName(appName);
 
     return this.transaction<Application | null>(async (session) => {
-      const app = await this.applicationModel.findOneAndDelete<Application>(
+      const app = await this.applicationModel.findOneAndDelete(
         { name: appName },
         { session },
       );
-      if (app && app._id) {
-        await this.environmentModel.deleteMany(
-          {
-            _id: { $in: envs.map((e) => e._id) },
-          },
-          { session },
-        );
-        await this.userModel.findOneAndUpdate(
-          { clerkId },
-          {
-            $pull: { applications: appName },
-          },
-          { session },
-        );
-        await this.entityModel.deleteMany(
-          { type: { $regex: `^${appName}/` } },
-          { session },
-        );
-        await session.commitTransaction();
-      }
-      return app;
+
+      if (!app || !app._id) return null;
+
+      await this.environmentModel.deleteMany(
+        {
+          _id: { $in: envs.map((e) => e.id) },
+        },
+        { session },
+      );
+      await this.userModel.findOneAndUpdate(
+        { clerkId },
+        {
+          $pull: { applications: appName },
+        },
+        { session },
+      );
+      await this.entityModel.deleteMany(
+        { type: { $regex: `^${appName}/` } },
+        { session },
+      );
+
+      return { id: app._id, ...R.omit(["_id"], app) };
     });
   }
 }

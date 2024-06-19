@@ -24,7 +24,6 @@ const factory = createFactory();
 
 const middleware = (prismaClient: PrismaClient | undefined) =>
   factory.createMiddleware(async (c, next) => {
-    // TODO maybe this should be a singleton object or just have a common place where to initiate all
     const context = new Context();
     if (prismaClient) {
       context.register(

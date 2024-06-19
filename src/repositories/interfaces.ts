@@ -6,12 +6,10 @@ import type { EntityQueryMeta } from "../utils/types.ts";
 import type { EntityAggregateResult } from "../services/entity.service.ts";
 
 export interface IApplicationRepository {
-  getApplication(props: { appName: string; clerkId: string }): Promise<
-    | (Omit<Application, "environments"> & {
-        environments: Pick<Environment, "_id" | "name" | "description">[];
-      })
-    | null
-  >;
+  getApplication(props: {
+    appName: string;
+    clerkId: string;
+  }): Promise<Application | null>;
   getUserApplications(props: { clerkId: string }): Promise<Application[]>;
   createApplication(props: {
     appName: string;

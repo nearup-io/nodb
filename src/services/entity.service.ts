@@ -307,7 +307,7 @@ const createOrOverwriteEntities = async ({
     return await entityRepository.createOrOverwriteEntities({
       entitiesIdsToBeReplaced,
       entityTypes,
-      dbEnvironmentId: environment._id.toString(),
+      dbEnvironmentId: environment.id,
       insertEntities,
     });
   } catch (e) {
@@ -342,7 +342,7 @@ const deleteRootAndUpdateEnv = async ({
       appName,
       envName,
       entityName,
-      dbEnvironmentId: environment._id.toString(),
+      dbEnvironmentId: environment.id,
     });
   } catch (e) {
     console.error("Error deleting entities", e);
@@ -383,7 +383,7 @@ const deleteSubEntitiesAndUpdateEnv = async ({
       appName,
       envName,
       entityTypes,
-      dbEnvironmentId: environment._id.toString(),
+      dbEnvironmentId: environment.id,
       ancestors,
     });
   } catch (e) {
@@ -422,7 +422,7 @@ const deleteSingleEntityAndUpdateEnv = async ({
       envName,
       entityTypes,
       entityId,
-      dbEnvironmentId: environment._id.toString(),
+      dbEnvironmentId: environment.id,
     });
   } catch (e) {
     console.log("Error deleting entity", e);

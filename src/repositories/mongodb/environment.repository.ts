@@ -43,7 +43,7 @@ class EnvironmentRepository
             name: "$environments.name",
             tokens: "$environments.tokens",
             description: "$environments.description",
-            _id: "$environments._id",
+            id: "$environments._id",
             entities: "$environments.entities",
           },
         },
@@ -51,8 +51,8 @@ class EnvironmentRepository
     if (!applicationEnvironments[0]) return null;
 
     return {
-      _id: applicationEnvironments[0]._id.toString(),
-      ...R.omit(["_id"], applicationEnvironments[0]),
+      id: applicationEnvironments[0].toString(),
+      ...R.omit(["id"], applicationEnvironments[0]),
     };
   }
 
@@ -91,7 +91,7 @@ class EnvironmentRepository
       );
 
       return {
-        _id: environment._id.toString(),
+        id: environment._id.toString(),
         ...R.omit(["_id"], environment),
       };
     });

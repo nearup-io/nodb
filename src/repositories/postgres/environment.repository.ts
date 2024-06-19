@@ -38,7 +38,7 @@ class EnvironmentRepository
     if (!environment) return null;
 
     return {
-      _id: environment.id,
+      id: environment.id,
       name: environment.name,
       description: environment.description,
       tokens: environment.tokens,
@@ -78,7 +78,7 @@ class EnvironmentRepository
     });
 
     return {
-      _id: environment.id,
+      id: environment.id,
       name: environment.name,
       description: environment.description,
       tokens: environment.tokens,
@@ -135,7 +135,7 @@ class EnvironmentRepository
     });
 
     return {
-      _id: environment.id,
+      id: environment.id,
       name: environment.name,
       description: environment.description,
       tokens: environment.tokens,

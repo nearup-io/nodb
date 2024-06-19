@@ -17,7 +17,7 @@ const getApplication = async ({
   clerkId: string;
 }): Promise<
   Omit<Application, "environments"> & {
-    environments: Pick<Environment, "_id" | "name" | "description">[];
+    environments: Pick<Environment, "id" | "name" | "description">[];
   }
 > => {
   const repository = context.get<IApplicationRepository>(

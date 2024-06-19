@@ -71,7 +71,7 @@ const deleteEnvironment = async ({
     await repository.deleteEnvironment({
       appName,
       envName,
-      environmentDbId: environment._id.toString(),
+      environmentDbId: environment.id,
     });
     return environment;
   } catch (e) {
@@ -125,7 +125,7 @@ const updateEnvironment = async ({
   }
   const updatedEnvironment = await repository.updateEnvironment({
     updateProps,
-    databaseEnvironmentId: environment._id.toString(),
+    databaseEnvironmentId: environment.id,
   });
 
   if (!updatedEnvironment) {
