@@ -1,10 +1,12 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { MongodbTestApplicationHelper } from "../helpers/mongodb-test-application-helper.ts";
 import { deepEqual } from "assert";
-import { defaultTestUser } from "../helpers/testUsers.ts";
+import {
+  createTestApplicationHelperFactory,
+  defaultTestUser,
+} from "../helpers";
 
 describe("PATCH /apps/:appName/:envName/:entityName", () => {
-  const helper = new MongodbTestApplicationHelper();
+  const helper = createTestApplicationHelperFactory();
   let jwtToken = "";
 
   const patchAppName = "memes-app-2";

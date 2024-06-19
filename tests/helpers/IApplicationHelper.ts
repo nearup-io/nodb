@@ -25,11 +25,11 @@ export interface ITestApplicationHelper {
     url: string;
     token?: string;
   }): Promise<Response>;
-  insertUser(userData: TestUser, createUser: boolean): Promise<string>;
+  insertUser(userData: TestUser, createUser?: boolean): Promise<string>;
   stopApplication(): Promise<void>;
   getEntitiesByIdFromDatabase(
     ids: string[],
-    sortByProp: string,
+    sortByProp?: string,
   ): Promise<EntityType[]>;
   getEnvironmentFromDbByName(name: string): Promise<EnvironmentType | null>;
   getEnvironmentsFromDbByAppName(appName: string): Promise<EnvironmentType[]>;

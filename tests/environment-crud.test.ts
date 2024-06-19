@@ -1,11 +1,10 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { MongodbTestApplicationHelper } from "./helpers/mongodb-test-application-helper.ts";
 import { type Environment as EnvironmentType } from "../src/models/environment.model.ts";
 import * as R from "ramda";
-import { defaultTestUser } from "./helpers/testUsers.ts";
+import { createTestApplicationHelperFactory, defaultTestUser } from "./helpers";
 
 describe("Environment entity CRUD", async () => {
-  const helper = new MongodbTestApplicationHelper();
+  const helper = createTestApplicationHelperFactory();
   let jwtToken = "";
 
   beforeAll(async () => {

@@ -1,11 +1,13 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { MongodbTestApplicationHelper } from "../helpers/mongodb-test-application-helper.ts";
 import * as R from "ramda";
 import { deepEqual } from "assert";
-import { defaultTestUser } from "../helpers/testUsers.ts";
+import {
+  createTestApplicationHelperFactory,
+  defaultTestUser,
+} from "../helpers";
 
 describe("POST /apps/:appName/:envName/:entityName", async () => {
-  const helper = new MongodbTestApplicationHelper();
+  const helper = createTestApplicationHelperFactory();
   let jwtToken = "";
 
   const appName = "memes-app";
