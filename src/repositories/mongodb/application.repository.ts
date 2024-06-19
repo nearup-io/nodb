@@ -15,11 +15,9 @@ class ApplicationRepository
     super();
   }
 
-  private async getEnvironmentsByAppName(
-    appName: string,
-  ): Promise<Environment[]> {
+  private async getEnvironmentsByAppId(appId: string): Promise<Environment[]> {
     return this.applicationModel.aggregate<Environment>([
-      { $match: { name: appName } },
+      { $match: { _id: appId } },
       {
         $lookup: {
           from: "environments",
@@ -225,17 +223,19 @@ class ApplicationRepository
   }
 
   public async deleteApplication({
-    appName,
     clerkId,
+    dbAppId,
+    appName,
   }: {
     appName: string;
+    dbAppId: string;
     clerkId: string;
   }): Promise<Omit<Application, "environments"> | null> {
-    const envs = await this.getEnvironmentsByAppName(appName);
+    const envs = await this.getEnvironmentsByAppId(dbAppId);
 
     return this.transaction<Application | null>(async (session) => {
       const app = await this.applicationModel.findOneAndDelete(
-        { name: appName },
+        { _id: dbAppId },
         { session },
       );
 

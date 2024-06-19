@@ -126,14 +126,17 @@ const deleteApplication = async ({
   const repository = context.get<IApplicationRepository>(
     APPLICATION_REPOSITORY,
   );
-
   const application = await repository.getApplication({ appName, clerkId });
   if (!application) {
-    throw new ServiceError(httpError.APP_CANT_DELETE);
+    throw new ServiceError(httpError.APP_DOESNT_EXIST);
   }
 
   try {
-    return repository.deleteApplication({ appName, clerkId });
+    return repository.deleteApplication({
+      appName,
+      clerkId,
+      dbAppId: application.id,
+    });
   } catch (e) {
     console.error("Error deleting application", e);
     throw new ServiceError(httpError.APP_CANT_DELETE);

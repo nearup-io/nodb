@@ -16,10 +16,10 @@ class ApplicationRepository
   }
 
   private async getEnvironmentsByAppName(
-    appName: string,
+    appId: string,
   ): Promise<Omit<Environment, "extras" | "tokens">[]> {
     const application = await this.prisma.application.findFirst({
-      where: { name: appName },
+      where: { id: appId },
       include: {
         environments: {
           include: {
@@ -211,13 +211,13 @@ class ApplicationRepository
   }
 
   public async deleteApplication({
-    appName,
-    clerkId,
+    dbAppId,
   }: {
     appName: string;
     clerkId: string;
+    dbAppId: string;
   }): Promise<Omit<Application, "environments"> | null> {
-    const envIds = (await this.getEnvironmentsByAppName(appName)).map(
+    const envIds = (await this.getEnvironmentsByAppName(dbAppId)).map(
       ({ id }) => id,
     );
 
@@ -249,8 +249,7 @@ class ApplicationRepository
 
         const app = await prisma.application.delete({
           where: {
-            name: appName,
-            userId: clerkId,
+            id: dbAppId,
           },
           include: {
             environments: false,

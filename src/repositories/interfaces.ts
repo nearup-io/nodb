@@ -29,6 +29,7 @@ export interface IApplicationRepository {
   deleteApplication(props: {
     appName: string;
     clerkId: string;
+    dbAppId: string;
   }): Promise<Omit<Application, "environments"> | null>;
 }
 
