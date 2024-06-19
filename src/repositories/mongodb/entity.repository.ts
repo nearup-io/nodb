@@ -335,10 +335,9 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     entityTypes: string[];
     dbEnvironmentId: string;
   }): Promise<Entity | null> {
-    const entity = await this.entityModel.findOne({ id: entityId });
-    if (!entity) return null;
-
-    await this.transaction(async (session) => {
+    return this.transaction<Entity | null>(async (session) => {
+      const entity = await this.entityModel.findOne({ id: entityId });
+      if (!entity) return null;
       await this.entityModel.deleteOne({ id: entityId }, { session });
       await this.entityModel.deleteMany(
         {
@@ -367,9 +366,9 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
           { session },
         );
       }
-    });
 
-    return entity;
+      return entity;
+    });
   }
 }
 
