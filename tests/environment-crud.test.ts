@@ -2,17 +2,14 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { TestApplicationHelper } from "./helpers/test-application-helper.ts";
 import { type Environment as EnvironmentType } from "../src/models/environment.model.ts";
 import * as R from "ramda";
+import { defaultTestUser } from "./helpers/testUsers.ts";
 
 describe("Environment entity CRUD", async () => {
   const helper = new TestApplicationHelper();
   let jwtToken = "";
 
   beforeAll(async () => {
-    jwtToken = await helper.generateJWTTokenAndUser({
-      email: "random@random.com",
-      lastProvider: "",
-      applications: [],
-    });
+    jwtToken = await helper.insertUser(defaultTestUser);
   });
 
   afterAll(async () => {

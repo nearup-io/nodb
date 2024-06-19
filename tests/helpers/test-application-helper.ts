@@ -1,5 +1,4 @@
 import type { Hono } from "hono";
-import { sign as jwt_sign } from "hono/jwt";
 import { MongoClient } from "mongodb";
 import app from "../../src/app";
 import Entity, {
@@ -12,13 +11,13 @@ import { expect } from "bun:test";
 import Application, {
   type Application as AppType,
 } from "../../src/models/application.model.ts";
-import User, { type User as UserType } from "../../src/models/user.model.ts";
+import User from "../../src/models/user.model.ts";
+import type { TestUser } from "./testUsers.ts";
 
 export class TestApplicationHelper {
   private readonly application: Hono;
   private readonly mongoClient: MongoClient;
   private readonly databaseName: string;
-
   constructor() {
     this.application = app;
     this.mongoClient = new MongoClient(Bun.env.MONGODB_URL!);
@@ -53,17 +52,20 @@ export class TestApplicationHelper {
     return this.application;
   }
 
-  public async generateJWTTokenAndUser(
-    userData: UserType,
+  public async insertUser(
+    userData: TestUser,
     createUser: boolean = true,
   ): Promise<string> {
     const userModel = User;
+
     if (createUser) {
       await userModel.create({
-        clerkId: userData.clerkId,
+        clerkId: userData.userId,
+        email: userData.email,
       });
     }
-    return jwt_sign(userData, Bun.env.JWT_SECRET!);
+
+    return userData.jwt;
   }
 
   public async stopApplication(): Promise<void> {
