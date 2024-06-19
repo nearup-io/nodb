@@ -33,7 +33,12 @@ export interface ITestApplicationHelper {
   ): Promise<EntityType[]>;
   getEnvironmentFromDbByName(name: string): Promise<EnvironmentType | null>;
   getEnvironmentsFromDbByAppName(appName: string): Promise<EnvironmentType[]>;
-  getAppFromDbByName(appName: string): Promise<AppType | null>;
+  getAppFromDbByName(appName: string): Promise<
+    | (Omit<AppType, "environments"> & {
+        environments: Pick<EnvironmentType, "name">[];
+      })
+    | null
+  >;
   getEntityFromDbById(id: string): Promise<EntityType | null>;
   getUserAppsFromDbByEmail(email: string): Promise<string[]>;
   getEnvironmentsFromAppName(name: string): Promise<string[]>;

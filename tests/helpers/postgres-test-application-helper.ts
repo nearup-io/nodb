@@ -10,12 +10,14 @@ import {
 } from "@testcontainers/postgresql";
 import { execSync } from "node:child_process";
 import { startApp } from "../../src/server.ts";
+import { type PrismaClient as Prisma, PrismaClient } from "@prisma/client";
 
 export class PostgresTestApplicationHelper
   extends BaseApplicationHelper
   implements ITestApplicationHelper
 {
   private container: StartedPostgreSqlContainer | undefined;
+  private prisma: Prisma | undefined;
 
   constructor() {
     super();
@@ -31,6 +33,9 @@ export class PostgresTestApplicationHelper
     // Execute Prisma migrations
     execSync("npx prisma migrate dev", { env: { DATABASE_URL: databaseUrl } });
     this.application = await startApp();
+    this.prisma = new PrismaClient({
+      datasourceUrl: databaseUrl,
+    });
   }
 
   async stopApplication(): Promise<void> {
@@ -45,7 +50,17 @@ export class PostgresTestApplicationHelper
     userData: TestUser,
     createUser: boolean = true,
   ): Promise<string> {
-    throw new Error("Method not implemented.");
+    if (createUser) {
+      await this.prisma!.user.create({
+        data: {
+          clerkId: userData.userId,
+          email: userData.email,
+          lastUse: Date.now().toString(),
+        },
+      });
+    }
+
+    return userData.jwt;
   }
 
   async getEntitiesByIdFromDatabase(
@@ -62,11 +77,39 @@ export class PostgresTestApplicationHelper
   ): Promise<Environment[]> {
     throw new Error("Method not implemented.");
   }
-  async getAppFromDbByName(appName: string): Promise<Application | null> {
-    throw new Error("Method not implemented.");
+  async getAppFromDbByName(appName: string): Promise<
+    | (Omit<Application, "environments"> & {
+        environments: Pick<Environment, "name">[];
+      })
+    | null
+  > {
+    return this.prisma!.application.findFirst({
+      where: {
+        name: appName,
+      },
+      include: {
+        environments: {
+          select: {
+            tokens: false,
+            entities: false,
+            name: true,
+          },
+        },
+      },
+    });
   }
   async getEntityFromDbById(id: string): Promise<Entity | null> {
-    throw new Error("Method not implemented.");
+    const result = await this.prisma!.entity.findFirst({
+      where: {
+        id,
+      },
+    });
+    if (!result) return null;
+    return {
+      ...result,
+      model: result.model as Record<string, unknown>,
+      extras: result.extras as Record<string, unknown>,
+    };
   }
   async getUserAppsFromDbByEmail(email: string): Promise<string[]> {
     throw new Error("Method not implemented.");
@@ -75,10 +118,18 @@ export class PostgresTestApplicationHelper
     throw new Error("Method not implemented.");
   }
   async deleteAppByName(name: string): Promise<void> {
-    throw new Error("Method not implemented.");
+    await this.prisma!.application.delete({
+      where: {
+        name,
+      },
+    });
   }
   async deleteAppsByNames(names: string[]): Promise<void> {
-    throw new Error("Method not implemented.");
+    await this.prisma!.application.deleteMany({
+      where: {
+        name: { in: names },
+      },
+    });
   }
   async createAppWithEnvironmentEntitiesAndSubEntities({
     appName,

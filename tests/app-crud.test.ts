@@ -12,6 +12,7 @@ import {
 describe("All endpoints used for apps CRUD operations", async () => {
   const helper = createTestApplicationHelperFactory();
   let jwtToken = "";
+
   beforeAll(async () => {
     await helper.init();
     jwtToken = await helper.insertUser(defaultTestUser);
@@ -407,6 +408,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
         appForDeletion.name,
       );
       expect(environmentsForApp).toBeArrayOfSize(0);
+      // TODO verify which email should exist here?
       expect(
         await helper.getUserAppsFromDbByEmail("delete@test.com"),
       ).toBeArrayOfSize(0);

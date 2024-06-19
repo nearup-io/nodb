@@ -60,10 +60,8 @@ export class MongodbTestApplicationHelper
     userData: TestUser,
     createUser: boolean = true,
   ): Promise<string> {
-    const userModel = User;
-
     if (createUser) {
-      await userModel.create({
+      await User.create({
         clerkId: userData.userId,
         email: userData.email,
       });
