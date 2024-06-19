@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { TestApplicationHelper } from "../helpers/test-application-helper.ts";
+import { MongodbTestApplicationHelper } from "../helpers/mongodb-test-application-helper.ts";
 import { deepEqual } from "assert";
 import * as R from "ramda";
 import { defaultTestUser } from "../helpers/testUsers.ts";
 
 describe("DELETE /apps/:appName/:envName/:entityName", () => {
-  const helper = new TestApplicationHelper();
+  const helper = new MongodbTestApplicationHelper();
   let jwtToken = "";
 
   const deleteAppName = "memes-app-4";

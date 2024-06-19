@@ -16,7 +16,7 @@ import { BaseApplicationHelper } from "./base-application-helper.ts";
 import type { ITestApplicationHelper } from "./IApplicationHelper.ts";
 import { startApp } from "../../src/server.ts";
 
-export class TestApplicationHelper
+export class MongodbTestApplicationHelper
   extends BaseApplicationHelper
   implements ITestApplicationHelper
 {

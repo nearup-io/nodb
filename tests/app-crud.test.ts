@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { TestApplicationHelper } from "./helpers/test-application-helper.ts";
+import { MongodbTestApplicationHelper } from "./helpers/mongodb-test-application-helper.ts";
 import { type Application as AppType } from "../src/models/application.model.ts";
 import * as R from "ramda";
 import {
@@ -10,7 +10,7 @@ import {
 } from "./helpers/testUsers.ts";
 
 describe("All endpoints used for apps CRUD operations", async () => {
-  const helper = new TestApplicationHelper();
+  const helper = new MongodbTestApplicationHelper();
   let jwtToken = "";
   beforeAll(async () => {
     await helper.init();
