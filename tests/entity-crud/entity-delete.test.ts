@@ -2,14 +2,11 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { TestApplicationHelper } from "../helpers/test-application-helper.ts";
 import { deepEqual } from "assert";
 import * as R from "ramda";
+import { defaultTestUser } from "../helpers/testUsers.ts";
 
 describe("DELETE /apps/:appName/:envName/:entityName", async () => {
   const helper = new TestApplicationHelper();
-  const jwtToken = await helper.insertUser({
-    email: "random@random.com",
-    lastProvider: "",
-    applications: [],
-  });
+  const jwtToken = await helper.insertUser(defaultTestUser);
 
   const deleteAppName = "memes-app-4";
   const deleteEnvironmentName = "environment-4";
