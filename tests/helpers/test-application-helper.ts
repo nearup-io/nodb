@@ -1,6 +1,4 @@
-import type { Hono } from "hono";
 import { MongoClient } from "mongodb";
-import app from "../../src/app";
 import Entity, {
   type Entity as EntityType,
 } from "../../src/models/entity.model.ts";
@@ -14,13 +12,17 @@ import Application, {
 import User from "../../src/models/user.model.ts";
 import type { TestUser } from "./testUsers.ts";
 import * as R from "ramda";
+import { BaseApplicationHelper } from "./base-application-helper.ts";
+import type { ITestApplicationHelper } from "./IApplicationHelper.ts";
 
-export class TestApplicationHelper {
-  private readonly application: Hono;
+export class TestApplicationHelper
+  extends BaseApplicationHelper
+  implements ITestApplicationHelper
+{
   private readonly mongoClient: MongoClient;
   private readonly databaseName: string;
   constructor() {
-    this.application = app;
+    super();
     this.mongoClient = new MongoClient(Bun.env.MONGODB_URL!);
     this.databaseName = Bun.env
       .MONGODB_URL!.split("/")
@@ -49,11 +51,7 @@ export class TestApplicationHelper {
     }
   }
 
-  get app(): Hono {
-    return this.application;
-  }
-
-  public async insertUser(
+  async insertUser(
     userData: TestUser,
     createUser: boolean = true,
   ): Promise<string> {
@@ -69,100 +67,11 @@ export class TestApplicationHelper {
     return userData.jwt;
   }
 
-  public async stopApplication(): Promise<void> {
+  async stopApplication(): Promise<void> {
     await this.cleanup();
   }
 
-  public async executePostRequest({
-    url,
-    token,
-    body,
-  }: {
-    url: string;
-    token?: string;
-    body?: any;
-  }): Promise<Response> {
-    return this.app.request(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
-      },
-      ...(body && { body: JSON.stringify(body) }),
-    });
-  }
-
-  public async executePatchRequest({
-    url,
-    token,
-    body,
-  }: {
-    url: string;
-    token?: string;
-    body?: any;
-  }): Promise<Response> {
-    return this.app.request(url, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
-      },
-      ...(body && { body: JSON.stringify(body) }),
-    });
-  }
-
-  public async executePutRequest({
-    url,
-    token,
-    body,
-  }: {
-    url: string;
-    token?: string;
-    body?: any;
-  }): Promise<Response> {
-    return this.app.request(url, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
-      },
-      ...(body && { body: JSON.stringify(body) }),
-    });
-  }
-
-  public async executeGetRequest({
-    url,
-    token,
-  }: {
-    url: string;
-    token?: string;
-  }): Promise<Response> {
-    return this.app.request(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
-      },
-    });
-  }
-
-  public async executeDeleteRequest({
-    url,
-    token,
-  }: {
-    url: string;
-    token?: string;
-  }): Promise<Response> {
-    return this.app.request(url, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
-      },
-    });
-  }
-
-  public async getEntitiesByIdFromDatabase(
+  async getEntitiesByIdFromDatabase(
     ids: string[],
     sortByProp: string = "model.prop",
   ): Promise<EntityType[]> {
@@ -172,7 +81,7 @@ export class TestApplicationHelper {
       .lean();
   }
 
-  public async getEnvironmentFromDbByName(
+  async getEnvironmentFromDbByName(
     name: string,
   ): Promise<EnvironmentType | null> {
     const result = await Environment.findOne({ name }).select("-__v").lean();
@@ -181,7 +90,7 @@ export class TestApplicationHelper {
     return { id: result._id.toString(), ...R.omit(["_id"], result) };
   }
 
-  public async getEnvironmentsFromDbByAppName(
+  async getEnvironmentsFromDbByAppName(
     appName: string,
   ): Promise<EnvironmentType[]> {
     const environments = await Environment.find({ app: appName })
@@ -193,7 +102,7 @@ export class TestApplicationHelper {
     });
   }
 
-  public async getAppFromDbByName(appName: string): Promise<AppType | null> {
+  async getAppFromDbByName(appName: string): Promise<AppType | null> {
     const result = await Application.findOne({
       name: appName,
     })
@@ -204,11 +113,11 @@ export class TestApplicationHelper {
     return { id: result._id.toString(), ...R.omit(["_id"], result) };
   }
 
-  public async getEntityFromDbById(id: string): Promise<EntityType | null> {
+  async getEntityFromDbById(id: string): Promise<EntityType | null> {
     return Entity.findById(id).select("-__v").lean();
   }
 
-  public async getUserAppsFromDbByEmail(email: string): Promise<string[]> {
+  async getUserAppsFromDbByEmail(email: string): Promise<string[]> {
     const user = await User.findOne({ email })
       .select<{ applications: string[] }>("applications")
       .lean();
@@ -216,7 +125,7 @@ export class TestApplicationHelper {
     return user?.applications || [];
   }
 
-  public async getEnvironmentsFromAppName(name: string): Promise<string[]> {
+  async getEnvironmentsFromAppName(name: string): Promise<string[]> {
     const app = await Application.findOne({ name }).select("-__v").lean();
     if (!app) return [];
 
@@ -227,17 +136,17 @@ export class TestApplicationHelper {
     return environments.map((x) => x.name);
   }
 
-  public async deleteAppByName(name: string): Promise<void> {
+  async deleteAppByName(name: string): Promise<void> {
     await Application.findOneAndDelete({ name });
   }
 
-  public async deleteAppsByNames(names: string[]): Promise<void> {
+  async deleteAppsByNames(names: string[]): Promise<void> {
     await Application.deleteMany({
       name: { $in: names },
     });
   }
 
-  public async createAppWithEnvironmentEntitiesAndSubEntities({
+  async createAppWithEnvironmentEntitiesAndSubEntities({
     appName,
     token,
     environmentName,
