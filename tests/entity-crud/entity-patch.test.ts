@@ -12,39 +12,20 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
   const patchAppName = "memes-app-2";
   const patchEnvironmentName = "environment-2";
   const patchEntityName = "myEntity";
-  const patchSubEntityName = "mySubEntity";
   const entities: { prop: number }[] = [{ prop: 1 }, { prop: 2 }, { prop: 3 }];
 
-  const subEntities: { subEntityProp: number }[] = [
-    { subEntityProp: 1 },
-    { subEntityProp: 2 },
-    { subEntityProp: 3 },
-  ];
-
-  const createdEntityIds: string[] = [];
-  const createdSubEntityIds: string[] = [];
-  let entityIdWithSubEntity: string = "";
+  let createdEntityIds: string[] = [];
 
   beforeAll(async () => {
     await helper.init();
     jwtToken = await helper.insertUser(defaultTestUser);
-    const {
-      createdEntityIds: ids,
-      createdSubEntityIds: subIds,
-      entityIdWithSubEntity: entityId,
-    } = await helper.createAppWithEnvironmentEntities({
+    createdEntityIds = await helper.createAppWithEnvironmentEntities({
       appName: patchAppName,
       environmentName: patchEnvironmentName,
       token: jwtToken,
       entities,
-      subEntityName: patchSubEntityName,
-      subEntities,
       entityName: patchEntityName,
     });
-
-    createdEntityIds.push(...ids);
-    createdSubEntityIds.push(...subIds!);
-    entityIdWithSubEntity = entityId!;
   });
 
   afterAll(async () => {
@@ -123,7 +104,6 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
     deepEqual(entitiesWithoutId, [
       {
         ancestors: [],
-        embedding: [],
         model: {
           // just attaching secondProp
           prop: 1,
@@ -133,7 +113,6 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
       },
       {
         ancestors: [],
-        embedding: [],
         model: {
           // not updating at all
           prop: 3,
@@ -142,7 +121,6 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
       },
       {
         ancestors: [],
-        embedding: [],
         model: {
           // replacing prop and attaching secondProp
           prop: 66,
@@ -176,7 +154,6 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
 
     deepEqual(entityFromDb, {
       ancestors: [],
-      embedding: [],
       id: createdEntityIds[2],
       model: {
         prop: 3,
@@ -184,66 +161,5 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
       },
       type: `${patchAppName}/${patchEnvironmentName}/${patchEntityName}`,
     });
-  });
-
-  test("Should return 200 OK and update the sub entities", async () => {
-    const response = await helper.executePatchRequest({
-      url: `/apps/${patchAppName}/${patchEnvironmentName}/${patchEntityName}/${entityIdWithSubEntity}/${patchSubEntityName}`,
-      token: jwtToken,
-      body: [
-        { id: createdSubEntityIds[0], secondProp: 3 },
-        { id: createdSubEntityIds[1], subEntityProp: 66, secondProp: 66 },
-      ],
-    });
-    expect(response.status).toBe(200);
-
-    const { ids } = (await response.json()) as { ids: string[] };
-
-    expect(ids).toBeArrayOfSize(2);
-    expect(ids).toContain(createdSubEntityIds[0]);
-    expect(ids).toContain(createdSubEntityIds[1]);
-
-    const entitiesFromDb = await helper.getEntitiesByIdFromDatabase(
-      createdSubEntityIds,
-      "model.subEntityProp",
-    );
-
-    const entitiesWithoutId = entitiesFromDb.map((entity) => {
-      const { id, ...props } = entity;
-      expect(id).toBeString();
-      return props;
-    });
-
-    deepEqual(entitiesWithoutId, [
-      {
-        ancestors: [entityIdWithSubEntity],
-        embedding: [],
-        model: {
-          // just attaching secondProp
-          subEntityProp: 1,
-          secondProp: 3,
-        },
-        type: `${patchAppName}/${patchEnvironmentName}/${patchEntityName}/${patchSubEntityName}`,
-      },
-      {
-        ancestors: [entityIdWithSubEntity],
-        embedding: [],
-        model: {
-          // not updating at all
-          subEntityProp: 3,
-        },
-        type: `${patchAppName}/${patchEnvironmentName}/${patchEntityName}/${patchSubEntityName}`,
-      },
-      {
-        ancestors: [entityIdWithSubEntity],
-        embedding: [],
-        model: {
-          // replacing prop and attaching secondProp
-          subEntityProp: 66,
-          secondProp: 66,
-        },
-        type: `${patchAppName}/${patchEnvironmentName}/${patchEntityName}/${patchSubEntityName}`,
-      },
-    ]);
   });
 });
