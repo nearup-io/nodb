@@ -8,6 +8,7 @@ import { execSync } from "node:child_process";
 import { startApp } from "../../src/server.ts";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { Client } from "pg";
+import * as R from "ramda";
 
 export class PostgresTestApplicationHelper
   extends BaseApplicationHelper
@@ -98,7 +99,7 @@ export class PostgresTestApplicationHelper
       id: result.id,
       name: result.name,
       tokens: result.tokens,
-      entities: result.entities.map((x) => x.type.split("/").at(-1)!),
+      entities: R.uniq(result.entities.map((x) => x.type.split("/").at(-1)!)),
       description: result.description,
     };
   }
