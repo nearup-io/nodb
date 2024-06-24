@@ -6,14 +6,14 @@ import type { ITestApplicationHelper } from "./IApplicationHelper.ts";
 import type { TestUser } from "./testUsers.ts";
 import { execSync } from "node:child_process";
 import { startApp } from "../../src/server.ts";
-import { type PrismaClient as Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { Client } from "pg";
 
 export class PostgresTestApplicationHelper
   extends BaseApplicationHelper
   implements ITestApplicationHelper
 {
-  private prismaClient: Prisma | undefined;
+  private prismaClient: PrismaClient | undefined;
   private pgClient: Client;
 
   constructor() {
@@ -27,7 +27,7 @@ export class PostgresTestApplicationHelper
     });
   }
 
-  private get prisma(): Prisma {
+  private get prisma(): PrismaClient {
     return this.prismaClient!;
   }
 
@@ -72,9 +72,11 @@ export class PostgresTestApplicationHelper
 
   async getEntitiesByIdFromDatabase(
     ids: string[],
-    sortByProp: string,
+    sortByProp: string = "model.prop",
   ): Promise<Entity[]> {
-    throw new Error("Method not implemented.");
+    return this.prisma.$queryRaw<
+      Entity[]
+    >`SELECT id, type, model, ancestors FROM public."Entity" WHERE id IN (${Prisma.join(ids)}) ORDER BY ${sortByProp.replace(".", "->")} ASC`;
   }
   async getEnvironmentFromDbByName(name: string): Promise<Environment | null> {
     const result = await this.prisma.environment.findFirst({
@@ -182,28 +184,5 @@ export class PostgresTestApplicationHelper
         name: { in: names },
       },
     });
-  }
-  async createAppWithEnvironmentEntitiesAndSubEntities({
-    appName,
-    token,
-    environmentName,
-    entityName,
-    entities,
-    subEntityName,
-    subEntities,
-  }: {
-    appName: string;
-    environmentName: string;
-    token: string;
-    entityName: string;
-    entities: any[];
-    subEntityName?: string | undefined;
-    subEntities?: any[] | undefined;
-  }): Promise<{
-    createdEntityIds: string[];
-    createdSubEntityIds?: string[] | undefined;
-    entityIdWithSubEntity?: string | undefined;
-  }> {
-    throw new Error("Method not implemented.");
   }
 }

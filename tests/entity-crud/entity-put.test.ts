@@ -33,7 +33,7 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
       createdEntityIds: ids,
       createdSubEntityIds: subIds,
       entityIdWithSubEntity: entityId,
-    } = await helper.createAppWithEnvironmentEntitiesAndSubEntities({
+    } = await helper.createAppWithEnvironmentEntities({
       appName: putAppName,
       environmentName: putEnvironmentName,
       token: jwtToken,

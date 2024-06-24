@@ -5,7 +5,6 @@ import Entity, {
 import Environment, {
   type Environment as EnvironmentType,
 } from "../../src/models/environment.model.ts";
-import { expect } from "bun:test";
 import Application, {
   type Application as AppType,
 } from "../../src/models/application.model.ts";
@@ -79,7 +78,7 @@ export class MongodbTestApplicationHelper
     sortByProp: string = "model.prop",
   ): Promise<EntityType[]> {
     return Entity.find({ id: { $in: ids } })
-      .select(["-__v", "-_id"])
+      .select(["-__v", "-_id", "-_embedding"])
       .sort(sortByProp)
       .lean();
   }
@@ -147,76 +146,5 @@ export class MongodbTestApplicationHelper
     await Application.deleteMany({
       name: { $in: names },
     });
-  }
-
-  async createAppWithEnvironmentEntitiesAndSubEntities({
-    appName,
-    token,
-    environmentName,
-    entityName,
-    entities,
-    subEntityName,
-    subEntities,
-  }: {
-    appName: string;
-    environmentName: string;
-    token: string;
-    entityName: string;
-    entities: any[];
-    subEntityName?: string;
-    subEntities?: any[];
-  }): Promise<{
-    createdEntityIds: string[];
-    createdSubEntityIds?: string[];
-    entityIdWithSubEntity?: string;
-  }> {
-    const appResponse = await this.executePostRequest({
-      url: `/apps/${appName}`,
-      token,
-      body: {
-        image: "path/to/image.jpg",
-        description: "Memes app",
-      },
-    });
-    expect(appResponse.status).toBe(201);
-
-    const environmentResponse = await this.executePostRequest({
-      url: `/apps/${appName}/${environmentName}`,
-      token,
-      body: {
-        description: "This is an environment",
-      },
-    });
-    expect(environmentResponse.status).toBe(201);
-
-    const entityResponse = await this.executePostRequest({
-      url: `/apps/${appName}/${environmentName}/${entityName}`,
-      token,
-      body: entities,
-    });
-    expect(entityResponse.status).toBe(201);
-    const { ids } = (await entityResponse.json()) as { ids: string[] };
-
-    if (!!subEntityName && !!subEntities) {
-      const entityIdWithSubEntity = ids[2];
-      const subEntityResponse = await this.executePostRequest({
-        url: `/apps/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}`,
-        token,
-        body: subEntities,
-      });
-      expect(subEntityResponse.status).toBe(201);
-      const { ids: subEntityIds } = (await subEntityResponse.json()) as {
-        ids: string[];
-      };
-      return {
-        createdEntityIds: ids,
-        entityIdWithSubEntity: entityIdWithSubEntity,
-        createdSubEntityIds: subEntityIds,
-      };
-    }
-
-    return {
-      createdEntityIds: ids,
-    };
   }
 }

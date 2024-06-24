@@ -46,25 +46,11 @@ export interface ITestApplicationHelper {
   getEnvironmentsFromAppName(name: string): Promise<string[]>;
   deleteAppByName(name: string): Promise<void>;
   deleteAppsByNames(names: string[]): Promise<void>;
-  createAppWithEnvironmentEntitiesAndSubEntities({
-    appName,
-    token,
-    environmentName,
-    entityName,
-    entities,
-    subEntityName,
-    subEntities,
-  }: {
+  createAppWithEnvironmentEntities(props: {
     appName: string;
     environmentName: string;
     token: string;
     entityName: string;
     entities: any[];
-    subEntityName?: string;
-    subEntities?: any[];
-  }): Promise<{
-    createdEntityIds: string[];
-    createdSubEntityIds?: string[];
-    entityIdWithSubEntity?: string;
-  }>;
+  }): Promise<string[]>;
 }

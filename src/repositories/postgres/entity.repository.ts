@@ -200,7 +200,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     const result =
       await this.prisma.$queryRaw<(Entity & { totalCount: number })[]>(query);
 
-    console.log("result", result);
     return {
       totalCount: result[0]?.totalCount || 0,
       entities: result.map((entity) => R.omit(["totalCount"], entity)),

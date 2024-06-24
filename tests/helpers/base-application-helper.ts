@@ -1,4 +1,5 @@
 import type { Hono } from "hono";
+import { expect } from "bun:test";
 
 export abstract class BaseApplicationHelper {
   protected application:
@@ -99,5 +100,48 @@ export abstract class BaseApplicationHelper {
         ...(token && { Authorization: token }),
       },
     });
+  }
+
+  async createAppWithEnvironmentEntities({
+    appName,
+    token,
+    environmentName,
+    entityName,
+    entities,
+  }: {
+    appName: string;
+    environmentName: string;
+    token: string;
+    entityName: string;
+    entities: any[];
+  }): Promise<string[]> {
+    const appResponse = await this.executePostRequest({
+      url: `/apps/${appName}`,
+      token,
+      body: {
+        image: "path/to/image.jpg",
+        description: "Memes app",
+      },
+    });
+    expect(appResponse.status).toBe(201);
+
+    const environmentResponse = await this.executePostRequest({
+      url: `/apps/${appName}/${environmentName}`,
+      token,
+      body: {
+        description: "This is an environment",
+      },
+    });
+    expect(environmentResponse.status).toBe(201);
+
+    const entityResponse = await this.executePostRequest({
+      url: `/apps/${appName}/${environmentName}/${entityName}`,
+      token,
+      body: entities,
+    });
+    expect(entityResponse.status).toBe(201);
+    const { ids } = (await entityResponse.json()) as { ids: string[] };
+
+    return ids;
   }
 }
