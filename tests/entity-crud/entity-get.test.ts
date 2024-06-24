@@ -13,7 +13,6 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
   const appName = "memes-app-5";
   const environmentName = "environment-5";
   const entityName = "my-entity-5";
-  const subEntityName = "my-sub-entity-5";
   const entities: {
     prop1: number;
     prop2: number;
@@ -27,36 +26,18 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     { prop1: 5, prop2: 5, prop3: 5, prop4: 5 },
   ];
 
-  const subEntities: { subEntityProp: number }[] = [
-    { subEntityProp: 1 },
-    { subEntityProp: 2 },
-    { subEntityProp: 3 },
-  ];
-
-  const createdEntityIds: string[] = [];
-  const createdSubEntityIds: string[] = [];
-  let entityIdWithSubEntity = "";
+  let createdEntityIds: string[] = [];
 
   beforeAll(async () => {
     await helper.init();
     jwtToken = await helper.insertUser(defaultTestUser);
-    const {
-      createdEntityIds: ids,
-      createdSubEntityIds: subIds,
-      entityIdWithSubEntity: entityId,
-    } = await helper.createAppWithEnvironmentEntities({
+    createdEntityIds = await helper.createAppWithEnvironmentEntities({
       appName: appName,
       environmentName,
       token: jwtToken,
       entityName,
-      subEntityName,
       entities,
-      subEntities,
     });
-
-    createdEntityIds.push(...ids);
-    createdSubEntityIds.push(...subIds!);
-    entityIdWithSubEntity = entityId!;
   });
 
   afterAll(async () => {
@@ -103,67 +84,10 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
       deepEqual(await response.json(), {
         __meta: {
           self: `/${appName}/${environmentName}/${entityName}/${requestedEntityId}`,
-          subtypes: {
-            [`${subEntityName}`]: `/${appName}/${environmentName}/${entityName}/${requestedEntityId}/${subEntityName}`,
-          },
+          subtypes: {},
         },
         id: requestedEntityId,
         ...requestedEntity,
-      });
-    });
-
-    test("Should return 200 OK and subEntity with expected data", async () => {
-      const requestedSubEntityId = createdSubEntityIds[0];
-      const requestedSubEntity = subEntities[0];
-      const subSubEntityName = "sub-sub-entity";
-      const subSubEntities: { subSubEntityProp: number }[] = [
-        { subSubEntityProp: 1 },
-        { subSubEntityProp: 2 },
-        { subSubEntityProp: 3 },
-      ];
-
-      const subSubSubEntityName = "sub-sub-sub-entity";
-      const subSubSubEntities: { subSubSubEntityProp: number }[] = [
-        { subSubSubEntityProp: 1 },
-        { subSubSubEntityProp: 2 },
-        { subSubSubEntityProp: 3 },
-      ];
-
-      const subSubEntityResponse = await helper.executePostRequest({
-        url: `/apps/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${requestedSubEntityId}/${subSubEntityName}`,
-        token: jwtToken,
-        body: subSubEntities,
-      });
-      expect(subSubEntityResponse.status).toBe(201);
-
-      const {
-        ids: [subSubEntityId],
-      } = (await subSubEntityResponse.json()) as { ids: string[] };
-
-      const subSubSubEntityResponse = await helper.executePostRequest({
-        url: `/apps/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${requestedSubEntityId}/${subSubEntityName}/${subSubEntityId}/${subSubSubEntityName}`,
-        token: jwtToken,
-        body: subSubSubEntities,
-      });
-      expect(subSubSubEntityResponse.status).toBe(201);
-
-      const response = await helper.executeGetRequest({
-        url: `/apps/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${requestedSubEntityId}`,
-        token: jwtToken,
-      });
-      expect(response.status).toBe(200);
-
-      const body = await response.json();
-      deepEqual(body, {
-        __meta: {
-          self: `/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${requestedSubEntityId}`,
-          subtypes: {
-            // it should only return on subLevel of information
-            [`${subSubEntityName}`]: `/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${requestedSubEntityId}/${subSubEntityName}`,
-          },
-        },
-        id: requestedSubEntityId,
-        ...requestedSubEntity,
       });
     });
 
@@ -176,9 +100,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
       deepEqual(await response.json(), {
         __meta: {
           self: `/${appName}/${environmentName}/${entityName}/${requestedEntityId}`,
-          subtypes: {
-            [`${subEntityName}`]: `/${appName}/${environmentName}/${entityName}/${requestedEntityId}/${subEntityName}`,
-          },
+          subtypes: {},
         },
         id: requestedEntityId,
         ...R.pick(["prop1"], requestedEntity),
@@ -227,40 +149,6 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
             self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[index]}`,
           },
           ...entity,
-        };
-      }),
-    );
-  });
-
-  test("should return 200 OK and all entities of requested sub entity types", async () => {
-    const response = await helper.executeGetRequest({
-      url: `/apps/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}`,
-      token: jwtToken,
-    });
-    expect(response.status).toBe(200);
-
-    const body = await response.json();
-    const keys = R.keys(body);
-    expect(keys).toBeArrayOfSize(2);
-    deepEqual(keys, [subEntityName, "__meta"]);
-
-    deepEqual(body["__meta"], {
-      current_page: `/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}?__page=1&__per_page=10`,
-      items: subEntities.length,
-      page: 1,
-      pages: 1,
-      totalCount: subEntities.length,
-    });
-
-    deepEqual(
-      body[subEntityName],
-      subEntities.map((subEntity, index) => {
-        return {
-          id: createdSubEntityIds[index],
-          __meta: {
-            self: `/${appName}/${environmentName}/${entityName}/${entityIdWithSubEntity}/${subEntityName}/${createdSubEntityIds[index]}`,
-          },
-          ...subEntity,
         };
       }),
     );

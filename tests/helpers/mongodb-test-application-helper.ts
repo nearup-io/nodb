@@ -78,7 +78,7 @@ export class MongodbTestApplicationHelper
     sortByProp: string = "model.prop",
   ): Promise<EntityType[]> {
     return Entity.find({ id: { $in: ids } })
-      .select(["-__v", "-_id", "-_embedding"])
+      .select(["-__v", "-_id", "-embedding"])
       .sort(sortByProp)
       .lean();
   }

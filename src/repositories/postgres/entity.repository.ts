@@ -118,7 +118,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     )
     SELECT
             *,
-            (SELECT COUNT(*) FROM Data) AS totalCount
+            (SELECT COUNT(*) FROM Data) AS "totalCount"
     FROM Data`;
 
     const orderBy = sortBy?.length
@@ -201,7 +201,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       await this.prisma.$queryRaw<(Entity & { totalCount: number })[]>(query);
 
     return {
-      totalCount: result[0]?.totalCount || 0,
+      totalCount: result[0] ? Number(result[0]?.totalCount) : 0,
       entities: result.map((entity) => R.omit(["totalCount"], entity)),
     };
   }
