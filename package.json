@@ -8,7 +8,9 @@
     "e2e-app-tests": "bun test app-crud --env-file=.env.test",
     "e2e-env-tests": "bun test environment-crud --env-file=.env.test",
     "e2e-entity-tests": "bun test entity --env-file=.env.test",
-    "e2e-tests-all": "bun test --env-file=.env.test"
+    "e2e-tests-all": "bun test --env-file=.env.test",
+    "migrate": "npx prisma migrate dev",
+    "generate": "npx prisma generate"
   },
   "devDependencies": {
     "@types/bun": "latest",
