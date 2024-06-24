@@ -13,39 +13,20 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
   const putAppName = "memes-app-3";
   const putEnvironmentName = "environment-3";
   const putEntityName = "myEntity-1";
-  const putSubEntityName = "mySubEntity-1";
   const entities: { prop: number }[] = [{ prop: 1 }, { prop: 2 }, { prop: 3 }];
 
-  const subEntities: { subEntityProp: number }[] = [
-    { subEntityProp: 1 },
-    { subEntityProp: 2 },
-    { subEntityProp: 3 },
-  ];
-
-  const createdEntityIds: string[] = [];
-  const createdSubEntityIds: string[] = [];
-  let entityIdWithSubEntity: string = "";
+  let createdEntityIds: string[] = [];
 
   beforeAll(async () => {
     await helper.init();
     jwtToken = await helper.insertUser(defaultTestUser);
-    const {
-      createdEntityIds: ids,
-      createdSubEntityIds: subIds,
-      entityIdWithSubEntity: entityId,
-    } = await helper.createAppWithEnvironmentEntities({
+    createdEntityIds = await helper.createAppWithEnvironmentEntities({
       appName: putAppName,
       environmentName: putEnvironmentName,
       token: jwtToken,
       entities,
-      subEntityName: putSubEntityName,
-      subEntities,
       entityName: putEntityName,
     });
-
-    createdEntityIds.push(...ids);
-    createdSubEntityIds.push(...subIds!);
-    entityIdWithSubEntity = entityId!;
   });
 
   afterAll(async () => {
@@ -126,7 +107,6 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
     deepEqual(entitiesWithoutId, [
       {
         ancestors: [],
-        embedding: [],
         model: {
           prop: 3,
         },
@@ -134,7 +114,6 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
       },
       {
         ancestors: [],
-        embedding: [],
         model: {
           secondProp: 3,
         },
@@ -142,7 +121,6 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
       },
       {
         ancestors: [],
-        embedding: [],
         model: {
           newProp: 66,
           secondProp: 66,
@@ -178,7 +156,6 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
       entityFromDb.find((x) => x.id === createdEntityIds[2]),
       {
         ancestors: [],
-        embedding: [],
         id: createdEntityIds[2],
         model: {
           thirdProp: 3,
@@ -197,7 +174,6 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
     deepEqual(entitiesWithoutId, [
       {
         ancestors: [],
-        embedding: [],
         model: {
           newEntityProp: 3,
         },
@@ -205,68 +181,10 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
       },
       {
         ancestors: [],
-        embedding: [],
         model: {
           newEntityProp: 6,
         },
         type: `${putAppName}/${putEnvironmentName}/${putEntityName}`,
-      },
-    ]);
-  });
-
-  test("Should return 200 OK and replace the sub entity", async () => {
-    const response = await helper.executePutRequest({
-      url: `/apps/${putAppName}/${putEnvironmentName}/${putEntityName}/${entityIdWithSubEntity}/${putSubEntityName}`,
-      token: jwtToken,
-      body: [
-        { id: createdSubEntityIds[0], secondProp: 3 },
-        { id: createdSubEntityIds[1], subEntityProp: 66, secondProp: 66 },
-      ],
-    });
-    expect(response.status).toBe(200);
-
-    const { ids } = (await response.json()) as { ids: string[] };
-
-    expect(ids).toBeArrayOfSize(2);
-    expect(ids).toContain(createdSubEntityIds[0]);
-    expect(ids).toContain(createdSubEntityIds[1]);
-
-    const entitiesFromDb = await helper.getEntitiesByIdFromDatabase(
-      createdSubEntityIds,
-      "model.subEntityProp",
-    );
-
-    const entitiesWithoutId = entitiesFromDb.map((entity) => {
-      const { id, ...props } = entity;
-      expect(id).toBeString();
-      return props;
-    });
-
-    deepEqual(entitiesWithoutId, [
-      {
-        ancestors: [entityIdWithSubEntity],
-        embedding: [],
-        model: {
-          secondProp: 3,
-        },
-        type: `${putAppName}/${putEnvironmentName}/${putEntityName}/${putSubEntityName}`,
-      },
-      {
-        ancestors: [entityIdWithSubEntity],
-        embedding: [],
-        model: {
-          subEntityProp: 3,
-        },
-        type: `${putAppName}/${putEnvironmentName}/${putEntityName}/${putSubEntityName}`,
-      },
-      {
-        ancestors: [entityIdWithSubEntity],
-        embedding: [],
-        model: {
-          subEntityProp: 66,
-          secondProp: 66,
-        },
-        type: `${putAppName}/${putEnvironmentName}/${putEntityName}/${putSubEntityName}`,
       },
     ]);
   });

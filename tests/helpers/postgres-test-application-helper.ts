@@ -76,7 +76,7 @@ export class PostgresTestApplicationHelper
     sortByProp: string = "model.prop",
   ): Promise<Entity[]> {
     const [first, second] = sortByProp.split(".");
-    const orderBy = Prisma.sql`ORDER BY ${Prisma.raw(`${first}->'${second}'`)} ASC`;
+    const orderBy = Prisma.sql`ORDER BY ${Prisma.raw(`${first}->'${second}'`)} ASC NULLS FIRST`;
     return this.prisma.$queryRaw<
       Entity[]
     >`SELECT id, type, model, ancestors FROM public."Entity" WHERE id IN (${Prisma.join(ids)}) ${orderBy}`;
