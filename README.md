@@ -64,18 +64,7 @@ Before you can do a semantic search or RAG you must create vector search index f
 
 ## Tests
 
-Create `.env.test` file with the following content:
-
-```
-MONGODB_URL=...your url here...
-JWT_SECRET=...your secret here...
-```
-
-Then run:
-
-```bash
-bun e2e-tests
-```
+Check out our [wiki page](https://github.com/nearup-io/nodb/wiki/E2E-tests) for e2e tests
 
 #### Contact
 
