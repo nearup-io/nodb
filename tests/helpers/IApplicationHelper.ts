@@ -32,7 +32,9 @@ export interface ITestApplicationHelper {
     sortByProp?: string,
   ): Promise<EntityType[]>;
   getEnvironmentFromDbByName(name: string): Promise<EnvironmentType | null>;
-  getEnvironmentsFromDbByAppName(appName: string): Promise<EnvironmentType[]>;
+  getEnvironmentsFromDbByAppName(
+    appName: string,
+  ): Promise<Omit<EnvironmentType, "entities" | "tokens">[]>;
   getAppFromDbByName(appName: string): Promise<
     | (Omit<AppType, "environments"> & {
         environments: Pick<EnvironmentType, "name">[];

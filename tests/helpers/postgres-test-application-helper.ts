@@ -4,46 +4,53 @@ import type { Environment } from "../../src/models/environment.model.ts";
 import { BaseApplicationHelper } from "./base-application-helper.ts";
 import type { ITestApplicationHelper } from "./IApplicationHelper.ts";
 import type { TestUser } from "./testUsers.ts";
-import {
-  PostgreSqlContainer,
-  StartedPostgreSqlContainer,
-} from "@testcontainers/postgresql";
 import { execSync } from "node:child_process";
 import { startApp } from "../../src/server.ts";
 import { type PrismaClient as Prisma, PrismaClient } from "@prisma/client";
+import { Client } from "pg";
 
 export class PostgresTestApplicationHelper
   extends BaseApplicationHelper
   implements ITestApplicationHelper
 {
-  private container: StartedPostgreSqlContainer | undefined;
-  private prisma: Prisma | undefined;
+  private prismaClient: Prisma | undefined;
+  private pgClient: Client;
 
   constructor() {
     super();
+    this.pgClient = new Client({
+      user: "postgres",
+      host: "localhost",
+      database: "postgres", // Connect to the default 'postgres' database
+      password: "postgres",
+      port: 5432,
+    });
+  }
+
+  private get prisma(): Prisma {
+    return this.prismaClient!;
   }
 
   async init(): Promise<void> {
-    this.container = await new PostgreSqlContainer(
-      "postgres:16-alpine",
-    ).start();
-
+    await this.pgClient.connect();
+    await this.pgClient.query("CREATE DATABASE e2e_tests");
     // Set new database Url
-    const databaseUrl = `postgresql://${this.container.getUsername()}:${this.container.getPassword()}@${this.container.getHost()}:${this.container.getPort()}/${this.container.getDatabase()}`;
+    const databaseUrl = `postgresql://postgres:postgres@localhost:5432/e2e_tests`;
     // Execute Prisma migrations
-    execSync("npx prisma migrate dev", { env: { DATABASE_URL: databaseUrl } });
-    this.application = await startApp();
-    this.prisma = new PrismaClient({
+    execSync("npx prisma migrate dev", { env: { POSTGRES_URL: databaseUrl } });
+    this.application = await startApp({
+      postgresDatabaseUrl: databaseUrl,
+    });
+    this.prismaClient = new PrismaClient({
       datasourceUrl: databaseUrl,
     });
   }
 
   async stopApplication(): Promise<void> {
-    await this.container?.stop();
-  }
-
-  get port(): number {
-    return this.container!.getFirstMappedPort();
+    await this.prisma.$disconnect();
+    await this.application!.stopApp();
+    await this.pgClient.query("DROP DATABASE e2e_tests");
+    await this.pgClient.end();
   }
 
   async insertUser(
@@ -51,11 +58,11 @@ export class PostgresTestApplicationHelper
     createUser: boolean = true,
   ): Promise<string> {
     if (createUser) {
-      await this.prisma!.user.create({
+      await this.prisma.user.create({
         data: {
           clerkId: userData.userId,
           email: userData.email,
-          lastUse: Date.now().toString(),
+          lastUse: new Date(),
         },
       });
     }
@@ -74,8 +81,12 @@ export class PostgresTestApplicationHelper
   }
   async getEnvironmentsFromDbByAppName(
     appName: string,
-  ): Promise<Environment[]> {
-    throw new Error("Method not implemented.");
+  ): Promise<Omit<Environment, "entities" | "tokens">[]> {
+    return this.prisma.environment.findMany({
+      where: {
+        applicationName: appName,
+      },
+    });
   }
   async getAppFromDbByName(appName: string): Promise<
     | (Omit<Application, "environments"> & {
@@ -83,23 +94,26 @@ export class PostgresTestApplicationHelper
       })
     | null
   > {
-    return this.prisma!.application.findFirst({
+    return this.prisma.application.findFirst({
       where: {
         name: appName,
       },
-      include: {
+      select: {
+        id: true,
         environments: {
           select: {
-            tokens: false,
-            entities: false,
             name: true,
           },
         },
+        userId: false,
+        description: true,
+        image: true,
+        name: true,
       },
     });
   }
   async getEntityFromDbById(id: string): Promise<Entity | null> {
-    const result = await this.prisma!.entity.findFirst({
+    const result = await this.prismaClient!.entity.findFirst({
       where: {
         id,
       },
@@ -112,20 +126,30 @@ export class PostgresTestApplicationHelper
     };
   }
   async getUserAppsFromDbByEmail(email: string): Promise<string[]> {
-    throw new Error("Method not implemented.");
+    const result = await this.prisma.user.findFirst({
+      where: { email },
+      select: {
+        applications: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+    return result?.applications.map((x) => x.name) || [];
   }
   async getEnvironmentsFromAppName(name: string): Promise<string[]> {
     throw new Error("Method not implemented.");
   }
   async deleteAppByName(name: string): Promise<void> {
-    await this.prisma!.application.delete({
+    await this.prismaClient!.application.delete({
       where: {
         name,
       },
     });
   }
   async deleteAppsByNames(names: string[]): Promise<void> {
-    await this.prisma!.application.deleteMany({
+    await this.prismaClient!.application.deleteMany({
       where: {
         name: { in: names },
       },

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "NODE_ENV=development bun --hot src/app.ts",
     "start": "bun src/app.ts",
-    "e2e-app-tests": "bun test app-crud --env-file=.env.test",
+    "e2e-app-tests-mongodb": "bun test app-crud --env-file=.env.test",
+    "e2e-app-tests-postgres": "bun test app-crud --env-file=.env.postgres.test",
     "e2e-env-tests": "bun test environment-crud --env-file=.env.test",
     "e2e-entity-tests": "bun test entity --env-file=.env.test",
     "e2e-tests-all": "bun test --env-file=.env.test",
@@ -15,13 +16,13 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^20.14.2",
+    "@types/pg": "^8.11.6",
     "@types/ramda": "^0.29.12",
     "@types/react": "^18.2.74",
     "@types/react-dom": "^18.2.24",
+    "pg": "^8.12.0",
     "prettier": "3.2.5",
-    "prisma": "^5.15.0",
-    "@testcontainers/postgresql": "^10.9.0",
-    "testcontainers": "^10.9.0"
+    "prisma": "^5.15.0"
   },
   "peerDependencies": {
     "typescript": "^5.4.5"

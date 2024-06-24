@@ -10,13 +10,18 @@ import appsRoute from "./routes/applications.ts";
 import searchRoute from "./routes/search.ts";
 import ragRoute from "./routes/rag.ts";
 
-export const startApp = async (): Promise<Hono> => {
+export const startApp = async (props?: {
+  postgresDatabaseUrl?: string;
+}): Promise<{
+  app: Hono;
+  stopApp: () => Promise<void>;
+}> => {
   const app = new Hono();
   if (Bun.env.NODE_ENV === "development") {
     app.use(logger());
   }
 
-  const db = await initDbConnection();
+  const db = await initDbConnection(props);
   app.use(
     cors({
       origin: ["http://localhost:5173"],
@@ -34,5 +39,10 @@ export const startApp = async (): Promise<Hono> => {
   app.route("/search", searchRoute);
   app.route("/knowledgebase", ragRoute);
 
-  return app;
+  return {
+    app,
+    stopApp: async () => {
+      await db?.$disconnect();
+    },
+  };
 };

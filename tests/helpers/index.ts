@@ -4,6 +4,5 @@ export {
   testUser2,
   testUser3,
   testUser4,
-  testUser5,
   type TestUser,
 } from "./testUsers.ts";

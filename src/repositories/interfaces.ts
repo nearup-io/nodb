@@ -10,7 +10,11 @@ export interface IApplicationRepository {
     appName: string;
     clerkId: string;
   }): Promise<Application | null>;
-  getUserApplications(props: { clerkId: string }): Promise<Application[]>;
+  getUserApplications(props: { clerkId: string }): Promise<
+    (Omit<Application, "id" | "environments"> & {
+      environments: Omit<Environment, "id" | "description">[];
+    })[]
+  >;
   createApplication(props: {
     appName: string;
     clerkId: string;
@@ -21,7 +25,7 @@ export interface IApplicationRepository {
     oldAppName: string;
     clerkId: string;
     updateProps: {
-      newAppName?: string;
+      name?: string;
       description?: string;
       image?: string;
     };

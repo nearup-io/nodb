@@ -1,10 +1,15 @@
 import type { Hono } from "hono";
 
 export abstract class BaseApplicationHelper {
-  protected application: Hono | undefined;
+  protected application:
+    | {
+        app: Hono;
+        stopApp: () => Promise<void>;
+      }
+    | undefined;
 
   get app(): Hono {
-    return this.application!;
+    return this.application!.app;
   }
 
   public async executePostRequest({

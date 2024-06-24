@@ -89,11 +89,11 @@ class ApplicationRepository
       : null;
   }
 
-  public async getUserApplications({
-    clerkId,
-  }: {
-    clerkId: string;
-  }): Promise<Application[]> {
+  public async getUserApplications({ clerkId }: { clerkId: string }): Promise<
+    (Omit<Application, "id" | "environments"> & {
+      environments: Omit<Environment, "id" | "description">[];
+    })[]
+  > {
     const applications = await this.prisma.application.findMany({
       where: {
         userId: clerkId,
@@ -114,15 +114,12 @@ class ApplicationRepository
 
     return applications.map((app) => {
       return {
-        id: app.id,
         name: app.name,
         description: app.description,
         image: app.image,
         environments: app.environments.map((env) => {
           return {
-            id: env.id,
             name: env.name,
-            description: env.description,
             tokens: env.tokens.map((token) => {
               return {
                 key: token.key,
@@ -179,7 +176,7 @@ class ApplicationRepository
     oldAppName: string;
     clerkId: string;
     updateProps: {
-      newAppName?: string;
+      name?: string;
       description?: string;
       image?: string;
     };
@@ -187,8 +184,8 @@ class ApplicationRepository
     const doc = await this.prisma.application.update({
       where: { name: props.oldAppName },
       data: {
-        ...(props.updateProps.newAppName && {
-          name: props.updateProps.newAppName,
+        ...(props.updateProps.name && {
+          name: props.updateProps.name,
         }),
         ...(props.updateProps.description && {
           description: props.updateProps.description,

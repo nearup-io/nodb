@@ -21,9 +21,10 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
         ? Prisma.sql`'{${Prisma.join(entity.ancestors)}}'`
         : Prisma.sql`'{}'`;
       const extras = entity.extras ? Prisma.sql`${entity.extras}` : null;
-      const embedding = entity.embedding
-        ? Prisma.sql`${pgvector.toSql(entity.embedding)}::vector`
-        : null;
+      const embedding =
+        entity.embedding && entity.embedding.length > 0
+          ? Prisma.sql`${pgvector.toSql(entity.embedding)}::vector`
+          : null;
 
       return Prisma.sql`(${id}, ${entity.type}, ${model}, ${ancestors}, ${environmentId}, ${extras}, ${embedding})`;
     });

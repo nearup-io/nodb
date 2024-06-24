@@ -89,11 +89,11 @@ class ApplicationRepository
     return userApplications?.[0] || null;
   }
 
-  public async getUserApplications({
-    clerkId,
-  }: {
-    clerkId: string;
-  }): Promise<Application[]> {
+  public async getUserApplications({ clerkId }: { clerkId: string }): Promise<
+    (Omit<Application, "id" | "environments"> & {
+      environments: Omit<Environment, "id" | "description">[];
+    })[]
+  > {
     return this.userModel.aggregate<Application>([
       { $match: { clerkId } },
       { $limit: 1 },
@@ -188,7 +188,7 @@ class ApplicationRepository
     oldAppName: string;
     clerkId: string;
     updateProps: {
-      newAppName?: string;
+      name?: string;
       description?: string;
       image?: string;
     };
@@ -204,12 +204,12 @@ class ApplicationRepository
         if (!doc) return null;
 
         if (
-          props.oldAppName !== props.updateProps.newAppName &&
-          R.is(String, props.updateProps.newAppName)
+          props.oldAppName !== props.updateProps.name &&
+          R.is(String, props.updateProps.name)
         ) {
           await this.userModel.findOneAndUpdate(
             { clerkId: props.clerkId, applications: props.oldAppName },
-            { $set: { "applications.$": props.updateProps.newAppName } },
+            { $set: { "applications.$": props.updateProps.name } },
             { session },
           );
         }

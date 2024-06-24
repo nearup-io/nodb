@@ -95,7 +95,7 @@ export class MongodbTestApplicationHelper
 
   async getEnvironmentsFromDbByAppName(
     appName: string,
-  ): Promise<EnvironmentType[]> {
+  ): Promise<Omit<EnvironmentType, "entities" | "tokens">[]> {
     const environments = await Environment.find({ app: appName })
       .select("-__v")
       .lean();

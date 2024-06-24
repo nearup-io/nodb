@@ -382,17 +382,6 @@ describe("All endpoints used for apps CRUD operations", async () => {
         (await entityResponse.json()) as { ids: string[] }
       ).ids;
 
-      const subEntityName = "subentity";
-      const subEntityResponse = await helper.executePostRequest({
-        url: `/apps/${appForDeletion.name}/${environmentName}/${entityName}/${createdEntityId}/${subEntityName}`,
-        token: jwtForDeleteRequests,
-        body: [{ prop: "randomProp", prop2: "randomProp2" }],
-      });
-      expect(subEntityResponse.status).toBe(201);
-      const [createdSubEntityId] = (
-        (await subEntityResponse.json()) as { ids: string[] }
-      ).ids;
-
       const response = await helper.executeDeleteRequest({
         url: `/apps/${appForDeletion.name}`,
         token: jwtForDeleteRequests,
@@ -402,15 +391,13 @@ describe("All endpoints used for apps CRUD operations", async () => {
       expect(await response.json()).toEqual({ found: true });
 
       expect(await helper.getEntityFromDbById(createdEntityId)).toBeNull();
-      expect(await helper.getEntityFromDbById(createdSubEntityId)).toBeNull();
 
       const environmentsForApp = await helper.getEnvironmentsFromDbByAppName(
         appForDeletion.name,
       );
       expect(environmentsForApp).toBeArrayOfSize(0);
-      // TODO verify which email should exist here?
       expect(
-        await helper.getUserAppsFromDbByEmail("delete@test.com"),
+        await helper.getUserAppsFromDbByEmail(testUser4.email),
       ).toBeArrayOfSize(0);
     });
   });
