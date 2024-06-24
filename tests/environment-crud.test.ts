@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { type Environment as EnvironmentType } from "../src/models/environment.model.ts";
 import * as R from "ramda";
 import { createTestApplicationHelperFactory, defaultTestUser } from "./helpers";
+import { deepEqual } from "assert";
 
 describe("Environment entity CRUD", async () => {
   const helper = createTestApplicationHelperFactory();
@@ -460,13 +461,10 @@ describe("Environment entity CRUD", async () => {
 
       const body = (await getResponse.json()) as Omit<EnvironmentType, "app">;
 
-      expect(R.keys(body)).toStrictEqual([
-        "id",
-        "name",
-        "tokens",
-        "description",
-        "entities",
-      ]);
+      deepEqual(
+        R.keys(body).sort(),
+        ["id", "name", "description", "tokens", "entities"].sort(),
+      );
 
       const { id, tokens, ...props } = body;
 

@@ -77,7 +77,26 @@ export class PostgresTestApplicationHelper
     throw new Error("Method not implemented.");
   }
   async getEnvironmentFromDbByName(name: string): Promise<Environment | null> {
-    throw new Error("Method not implemented.");
+    const result = await this.prisma.environment.findFirst({
+      where: { name },
+      include: {
+        entities: {
+          select: {
+            type: true,
+          },
+        },
+        tokens: true,
+      },
+    });
+    if (!result) return null;
+
+    return {
+      id: result.id,
+      name: result.name,
+      tokens: result.tokens,
+      entities: result.entities.map((x) => x.type.split("/").at(-1)!),
+      description: result.description,
+    };
   }
   async getEnvironmentsFromDbByAppName(
     appName: string,
@@ -139,7 +158,16 @@ export class PostgresTestApplicationHelper
     return result?.applications.map((x) => x.name) || [];
   }
   async getEnvironmentsFromAppName(name: string): Promise<string[]> {
-    throw new Error("Method not implemented.");
+    const result = await this.prisma.environment.findMany({
+      where: {
+        applicationName: name,
+      },
+      select: {
+        name: true,
+      },
+    });
+
+    return result?.map((x) => x.name) || [];
   }
   async deleteAppByName(name: string): Promise<void> {
     await this.prismaClient!.application.delete({
