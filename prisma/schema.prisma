@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+  extensions = [vector]
+}
+
+
+model User {
+  clerkId String @id
+  email String @unique
+  applications Application[]
+  lastUse DateTime
+}
+
+model Application {
+  id String @id @default(dbgenerated("gen_random_uuid()"))
+  // TODO this should be unique on like (user + name)
+  name String @unique
+  user    User     @relation(fields: [userId], references: [clerkId], onDelete: Cascade)
+  userId  String
+  environments Environment[]
+  image String?
+  description String?
+}
+
+model Environment {
+  id String @id @default(dbgenerated("gen_random_uuid()"))
+  name String
+  entities Entity[]
+  description String?
+  tokens Token[]
+  // TODO this one should refer to the id and not the name
+  application Application @relation(fields: [applicationName], references: [name], onDelete: Cascade)
+  applicationName String
+
+  @@unique([name, applicationName])
+}
+
+model Token {
+  key String @id
+  permission Permission
+  environment Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  environmentId String
+}
+
+model Entity {
+  id String @id @default(dbgenerated("gen_random_uuid()"))
+  type String
+  model Json
+  ancestors String[] @default([])
+  environment Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  environmentId String
+  embedding Unsupported("vector(1536)")?
+  extras Json?
+
+  @@index([type])
+}
+
+enum Permission {
+  ALL
+  READ_ONLY
+}

@@ -1,34 +1,55 @@
 import { createFactory } from "hono/factory";
 import Context from "./context.ts";
 import {
-  APPLICATION_MONGO_DB_REPOSITORY,
-  ENTITY_MONGO_DB_REPOSITORY,
-  ENVIRONMENT_MONGO_DB_REPOSITORY,
-  USER_MONGO_DB_REPOSITORY,
+  APPLICATION_REPOSITORY,
+  ENTITY_REPOSITORY,
+  ENVIRONMENT_REPOSITORY,
+  USER_REPOSITORY,
 } from "../utils/const.ts";
 import {
-  ApplicationRepository,
-  EntityRepository,
-  EnvironmentRepository,
-  UserRepository,
+  ApplicationRepository as MongoApplicationRepository,
+  EntityRepository as MongoEntityRepository,
+  EnvironmentRepository as MongoEnvironmentRepository,
+  UserRepository as MongoUserRepository,
 } from "../repositories/mongodb";
+import {
+  ApplicationRepository as PgApplicationRepository,
+  EntityRepository as PgEntityRepository,
+  EnvironmentRepository as PgEnvironmentRepository,
+  UserRepository as PgUserRepository,
+} from "../repositories/postgres";
+import type { PrismaClient } from "@prisma/client";
 
 const factory = createFactory();
 
-const middleware = factory.createMiddleware(async (c, next) => {
-  const context = new Context();
-  context.register(
-    APPLICATION_MONGO_DB_REPOSITORY,
-    new ApplicationRepository(),
-  );
-  context.register(
-    ENVIRONMENT_MONGO_DB_REPOSITORY,
-    new EnvironmentRepository(),
-  );
-  context.register(ENTITY_MONGO_DB_REPOSITORY, new EntityRepository());
-  context.register(USER_MONGO_DB_REPOSITORY, new UserRepository());
-  c.set("context", context);
-  await next();
-});
+const middleware = (prismaClient: PrismaClient | undefined) =>
+  factory.createMiddleware(async (c, next) => {
+    const context = new Context();
+    if (prismaClient) {
+      context.register(
+        APPLICATION_REPOSITORY,
+        new PgApplicationRepository(prismaClient),
+      );
+      context.register(
+        ENVIRONMENT_REPOSITORY,
+        new PgEnvironmentRepository(prismaClient),
+      );
+      context.register(ENTITY_REPOSITORY, new PgEntityRepository(prismaClient));
+      context.register(USER_REPOSITORY, new PgUserRepository(prismaClient));
+    } else {
+      context.register(
+        APPLICATION_REPOSITORY,
+        new MongoApplicationRepository(),
+      );
+      context.register(
+        ENVIRONMENT_REPOSITORY,
+        new MongoEnvironmentRepository(),
+      );
+      context.register(ENTITY_REPOSITORY, new MongoEntityRepository());
+      context.register(USER_REPOSITORY, new MongoUserRepository());
+    }
+    c.set("context", context);
+    await next();
+  });
 
 export default middleware;

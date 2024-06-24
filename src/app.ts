@@ -4,18 +4,18 @@ import appsRoute from "./routes/applications";
 import ragRoute from "./routes/rag";
 import searchRoute from "./routes/search";
 import usersRoute from "./routes/users.ts";
-import mongoConnect from "./connections/mongodb.ts";
 import authMiddleware from "./middlewares/auth.middleware.ts";
 import contextMiddleware from "./middlewares/context.middleware.ts";
 import { clerkMiddleware } from "@hono/clerk-auth";
 import { cors } from "hono/cors";
+import initDbConnection from "./connections/initDbConnection.ts";
 
 const app = new Hono();
 if (Bun.env.NODE_ENV === "development") {
   app.use(logger());
 }
 
-await mongoConnect();
+const db = await initDbConnection();
 app.use(
   cors({
     origin: ["http://localhost:5173"],
@@ -23,7 +23,7 @@ app.use(
   }),
 );
 app.use("*", clerkMiddleware());
-app.use(contextMiddleware);
+app.use(contextMiddleware(db));
 
 app.route("/users", usersRoute);
 

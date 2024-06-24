@@ -1,9 +1,11 @@
 import * as R from "ramda";
 import { type Application } from "../models/application.model";
-import { APPLICATION_MONGO_DB_REPOSITORY, httpError } from "../utils/const";
+import { APPLICATION_REPOSITORY, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 import type Context from "../middlewares/context.ts";
 import type { IApplicationRepository } from "../repositories/interfaces.ts";
+import { type Environment } from "../models/environment.model.ts";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 const getApplication = async ({
   context,
@@ -13,9 +15,13 @@ const getApplication = async ({
   context: Context;
   appName: string;
   clerkId: string;
-}): Promise<Application> => {
+}): Promise<
+  Omit<Application, "environments"> & {
+    environments: Pick<Environment, "id" | "name" | "description">[];
+  }
+> => {
   const repository = context.get<IApplicationRepository>(
-    APPLICATION_MONGO_DB_REPOSITORY,
+    APPLICATION_REPOSITORY,
   );
 
   const application = await repository.getApplication({ appName, clerkId });
@@ -33,7 +39,7 @@ const getUserApplications = async ({
   clerkId: string;
 }): Promise<Application[]> => {
   const repository = context.get<IApplicationRepository>(
-    APPLICATION_MONGO_DB_REPOSITORY,
+    APPLICATION_REPOSITORY,
   );
 
   return repository.getUserApplications({ clerkId });
@@ -53,7 +59,7 @@ const createApplication = async ({
   appDescription: string;
 }): Promise<void> => {
   const repository = context.get<IApplicationRepository>(
-    APPLICATION_MONGO_DB_REPOSITORY,
+    APPLICATION_REPOSITORY,
   );
 
   try {
@@ -64,7 +70,9 @@ const createApplication = async ({
       appDescription,
     });
   } catch (e: any) {
-    if (e.code === 11000) {
+    if (e instanceof PrismaClientKnownRequestError && e.code === "P2002") {
+      throw new ServiceError(httpError.APPNAME_EXISTS);
+    } else if (e.code === 11000) {
       throw new ServiceError(httpError.APPNAME_EXISTS);
     } else {
       console.log("Error creating app", e);
@@ -80,9 +88,9 @@ const updateApplication = async (props: {
   clerkId: string;
   description?: string;
   image?: string;
-}): Promise<Application | null> => {
+}): Promise<Omit<Application, "environments"> | null> => {
   const repository = props.context.get<IApplicationRepository>(
-    APPLICATION_MONGO_DB_REPOSITORY,
+    APPLICATION_REPOSITORY,
   );
 
   const updateProps = R.pickBy(R.pipe(R.isNil, R.not), {
@@ -92,14 +100,15 @@ const updateApplication = async (props: {
   }) as { name?: string; description?: string; image?: string };
 
   try {
-    const result = await repository.updateApplication({
+    return repository.updateApplication({
       oldAppName: props.oldAppName,
       clerkId: props.clerkId,
       updateProps,
     });
-
-    return result;
   } catch (e) {
+    if (e instanceof PrismaClientKnownRequestError && e.code === "P2001") {
+      return null; // app does not exist prisma error
+    }
     console.log("Error updating app", e);
     throw new ServiceError(httpError.UNKNOWN);
   }
@@ -113,13 +122,21 @@ const deleteApplication = async ({
   context: Context;
   appName: string;
   clerkId: string;
-}): Promise<Application | null> => {
+}): Promise<Omit<Application, "environments"> | null> => {
   const repository = context.get<IApplicationRepository>(
-    APPLICATION_MONGO_DB_REPOSITORY,
+    APPLICATION_REPOSITORY,
   );
+  const application = await repository.getApplication({ appName, clerkId });
+  if (!application) {
+    throw new ServiceError(httpError.APP_DOESNT_EXIST);
+  }
 
   try {
-    return repository.deleteApplication({ appName, clerkId });
+    return repository.deleteApplication({
+      appName,
+      clerkId,
+      dbAppId: application.id,
+    });
   } catch (e) {
     console.error("Error deleting application", e);
     throw new ServiceError(httpError.APP_CANT_DELETE);

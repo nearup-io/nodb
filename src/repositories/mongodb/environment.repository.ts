@@ -1,10 +1,10 @@
 import { type Environment } from "../../models/environment.model.ts";
-import BaseRepository from "./base-repository.ts";
-import { httpError, Permissions } from "../../utils/const.ts";
+import BaseRepository from "./base.repository.ts";
+import { Permissions } from "../../utils/const.ts";
 import generateToken from "../../utils/backend-token.ts";
-import { ServiceError } from "../../utils/service-errors.ts";
 import { ObjectId } from "mongodb";
 import type { IEnvironmentRepository } from "../interfaces.ts";
+import * as R from "ramda";
 
 class EnvironmentRepository
   extends BaseRepository
@@ -20,7 +20,7 @@ class EnvironmentRepository
   }: {
     envName: string;
     appName: string;
-  }): Promise<Environment | undefined> {
+  }): Promise<Environment | null> {
     const applicationEnvironments =
       await this.applicationModel.aggregate<Environment>([
         {
@@ -43,12 +43,19 @@ class EnvironmentRepository
             name: "$environments.name",
             tokens: "$environments.tokens",
             description: "$environments.description",
-            _id: "$environments._id",
+            id: "$environments._id",
             entities: "$environments.entities",
+            _id: 0,
           },
         },
       ]);
-    return applicationEnvironments[0];
+    if (!applicationEnvironments[0]) return null;
+
+    const environment = applicationEnvironments[0];
+    return {
+      id: environment.id.toString(),
+      ...R.omit(["id"], environment),
+    };
   }
 
   public async createEnvironment({
@@ -60,25 +67,36 @@ class EnvironmentRepository
     appName: string;
     description?: string;
   }): Promise<Environment> {
-    const environment = await this.environmentModel.create({
-      name: envName,
-      tokens: [
+    return this.transaction(async (session) => {
+      const [environment] = await this.environmentModel.create(
+        [
+          {
+            name: envName,
+            tokens: [
+              {
+                key: generateToken(),
+                permission: Permissions.ALL,
+              },
+            ],
+            entities: [],
+            description,
+          },
+        ],
         {
-          key: generateToken(),
-          permission: Permissions.ALL,
+          session,
         },
-      ],
-      entities: [],
-      description,
+      );
+      await this.applicationModel.updateOne(
+        { name: appName },
+        { $addToSet: { environments: environment._id } },
+        { upsert: true, session },
+      );
+
+      return {
+        id: environment._id.toString(),
+        ...R.omit(["_id"], environment),
+      };
     });
-
-    await this.applicationModel.updateOne(
-      { name: appName },
-      { $addToSet: { environments: environment._id } },
-      { upsert: true },
-    );
-
-    return environment;
   }
 
   public async deleteEnvironment({
@@ -91,14 +109,6 @@ class EnvironmentRepository
     environmentDbId: string;
   }): Promise<void> {
     const environmentObjectId = new ObjectId(environmentDbId);
-    const environment = await this.findEnvironment({
-      appName,
-      envName,
-    });
-    if (!environment) {
-      throw new ServiceError(httpError.ENV_DOESNT_EXIST);
-    }
-
     await this.transaction(async (session) => {
       await this.entityModel.deleteMany(
         { type: { $regex: `${appName}/${envName}/` } },

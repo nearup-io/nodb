@@ -1,4 +1,4 @@
-import BaseRepository from "./base-repository.ts";
+import BaseRepository from "./base.repository.ts";
 import { type User } from "../../models/user.model.ts";
 import type { IUserRepository } from "../interfaces.ts";
 
@@ -15,7 +15,7 @@ class UserRepository extends BaseRepository implements IUserRepository {
     clerkId: string;
     appName: string;
     email: string;
-  }): Promise<User> {
+  }): Promise<Omit<User, "applications">> {
     return this.userModel.create({
       clerkId,
       email,
@@ -26,7 +26,7 @@ class UserRepository extends BaseRepository implements IUserRepository {
     clerkId,
   }: {
     clerkId: string;
-  }): Promise<User | null> {
+  }): Promise<Omit<User, "applications"> | null> {
     return this.userModel.findOneAndUpdate(
       { clerkId },
       {
@@ -36,7 +36,9 @@ class UserRepository extends BaseRepository implements IUserRepository {
     );
   }
 
-  public async findUserClerkId(id: string): Promise<User | null> {
+  public async findUserClerkId(
+    id: string,
+  ): Promise<Omit<User, "applications"> | null> {
     return this.userModel.findOne({ clerkId: id });
   }
 }

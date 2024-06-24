@@ -85,15 +85,15 @@ describe("Environment entity CRUD", async () => {
       )) as Omit<EnvironmentType, "app"> | null;
       expect(environment).not.toBeNull();
       expect(R.keys(environment!)).toEqual([
-        "_id",
+        "id",
         "name",
         "tokens",
         "entities",
         "description",
       ]);
 
-      const { _id, tokens, ...props } = environment!;
-      expect(_id).toBeDefined();
+      const { id, tokens, ...props } = environment!;
+      expect(id).toBeDefined();
       expect(tokens).toBeArray();
       const [firstToken] = tokens;
       expect(firstToken.key).toBeString();
@@ -300,15 +300,15 @@ describe("Environment entity CRUD", async () => {
       )) as Omit<EnvironmentType, "app"> | null;
       expect(environment).not.toBeNull();
       expect(R.keys(environment!)).toEqual([
-        "_id",
+        "id",
         "name",
         "tokens",
         "entities",
         "description",
       ]);
 
-      const { _id, tokens, ...props } = environment!;
-      expect(_id).toBeDefined();
+      const { id, tokens, ...props } = environment!;
+      expect(id).toBeDefined();
       expect(tokens).toBeArray();
       const [firstToken] = tokens;
       expect(firstToken.key).toBeString();
@@ -461,16 +461,16 @@ describe("Environment entity CRUD", async () => {
       const body = (await getResponse.json()) as Omit<EnvironmentType, "app">;
 
       expect(R.keys(body)).toStrictEqual([
+        "id",
         "name",
         "tokens",
         "description",
-        "_id",
         "entities",
       ]);
 
-      const { _id, tokens, ...props } = body;
+      const { id, tokens, ...props } = body;
 
-      expect(_id).toBeString();
+      expect(id).toBeString();
       expect(tokens).toBeArray();
 
       const [firstToken] = tokens;

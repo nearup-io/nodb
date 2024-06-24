@@ -1,5 +1,5 @@
 import { type PipelineStage } from "mongoose";
-import BaseRepository from "./base-repository.ts";
+import BaseRepository from "./base.repository.ts";
 import { type Entity } from "../../models/entity.model.ts";
 import { ObjectId } from "mongodb";
 import type { EntityQueryMeta, SortBy } from "../../utils/types.ts";
@@ -138,7 +138,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     parentId?: string;
     ancestors: string[];
     entityTypes: string[];
-  }): Promise<EntityAggregateResult[]> {
+  }): Promise<EntityAggregateResult> {
     const modelFilters = this.toModelFilters(propFilters);
     const aggregateQuery = this.getAggregateQuery({
       modelFilters,
@@ -151,7 +151,9 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       ancestors,
     });
 
-    return this.entityModel.aggregate<EntityAggregateResult>(aggregateQuery);
+    const result =
+      await this.entityModel.aggregate<EntityAggregateResult>(aggregateQuery);
+    return result[0] ? result[0] : { totalCount: 0, entities: [] };
   }
 
   public async searchEntities({
@@ -164,8 +166,8 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     vectorIndex: string;
     limit: number;
     entityType?: string;
-  }): Promise<Entity[]> {
-    return this.entityModel.aggregate([
+  }): Promise<Record<string, unknown>[]> {
+    return this.entityModel.aggregate<Record<string, unknown>>([
       {
         $vectorSearch: {
           index: vectorIndex,
@@ -199,7 +201,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     ids: string[];
     type: string;
     ancestors: string[];
-  }): Promise<Entity[]> {
+  }): Promise<Omit<Entity, "embedding">[]> {
     return this.entityModel.find({
       id: { $in: ids },
       type,
@@ -333,10 +335,9 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     entityTypes: string[];
     dbEnvironmentId: string;
   }): Promise<Entity | null> {
-    const entity = await this.entityModel.findOne({ id: entityId });
-    if (!entity) return null;
-
-    await this.transaction(async (session) => {
+    return this.transaction<Entity | null>(async (session) => {
+      const entity = await this.entityModel.findOne({ id: entityId });
+      if (!entity) return null;
       await this.entityModel.deleteOne({ id: entityId }, { session });
       await this.entityModel.deleteMany(
         {
@@ -365,9 +366,9 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
           { session },
         );
       }
-    });
 
-    return entity;
+      return entity;
+    });
   }
 }
 

@@ -9,13 +9,13 @@ export interface IApplicationRepository {
   getApplication(props: {
     appName: string;
     clerkId: string;
-  }): Promise<Application | undefined>;
+  }): Promise<Application | null>;
   getUserApplications(props: { clerkId: string }): Promise<Application[]>;
   createApplication(props: {
     appName: string;
     clerkId: string;
-    image: string;
-    appDescription: string;
+    image?: string;
+    appDescription?: string;
   }): Promise<void>;
   updateApplication(props: {
     oldAppName: string;
@@ -25,18 +25,19 @@ export interface IApplicationRepository {
       description?: string;
       image?: string;
     };
-  }): Promise<Application | null>;
+  }): Promise<Omit<Application, "environments"> | null>;
   deleteApplication(props: {
     appName: string;
     clerkId: string;
-  }): Promise<Application | null>;
+    dbAppId: string;
+  }): Promise<Omit<Application, "environments"> | null>;
 }
 
 export interface IEnvironmentRepository {
   findEnvironment(props: {
     envName: string;
     appName: string;
-  }): Promise<Environment | undefined>;
+  }): Promise<Environment | null>;
   createEnvironment(props: {
     envName: string;
     appName: string;
@@ -69,18 +70,18 @@ export interface IEntityRepository {
     parentId?: string;
     ancestors: string[];
     entityTypes: string[];
-  }): Promise<EntityAggregateResult[]>;
+  }): Promise<EntityAggregateResult>;
   searchEntities(props: {
     embedding: number[];
     vectorIndex: string;
     limit: number;
     entityType?: string;
-  }): Promise<Entity[]>;
+  }): Promise<Record<string, unknown>[]>;
   findEntitiesByIdsTypeAndAncestors(props: {
     ids: string[];
     type: string;
     ancestors: string[];
-  }): Promise<Entity[]>;
+  }): Promise<Omit<Entity, "embedding">[]>;
   createOrOverwriteEntities(props: {
     entityTypes: string[];
     dbEnvironmentId: string;
@@ -118,7 +119,9 @@ export interface IUserRepository {
     clerkId: string;
     appName: string;
     email: string;
-  }): Promise<User>;
-  updateUserLastUse(props: { clerkId: string }): Promise<User | null>;
-  findUserClerkId(id: string): Promise<User | null>;
+  }): Promise<Omit<User, "applications">>;
+  updateUserLastUse(props: {
+    clerkId: string;
+  }): Promise<Omit<User, "applications"> | null>;
+  findUserClerkId(id: string): Promise<Omit<User, "applications"> | null>;
 }

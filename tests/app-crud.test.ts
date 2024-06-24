@@ -101,8 +101,8 @@ describe("All endpoints used for apps CRUD operations", async () => {
       expect(await response.json()).toEqual({ success: "success" });
       const dbResult = await helper.getAppFromDbByName(appName);
       expect(dbResult).not.toBeNull();
-      const { _id, environments, ...otherProps } = dbResult!;
-      expect(_id).not.toBeUndefined();
+      const { id, environments, ...otherProps } = dbResult!;
+      expect(id).not.toBeUndefined();
       // one environment is automatically created
       expect(environments).toBeArray();
       expect(environments.length).toEqual(1);
@@ -207,8 +207,8 @@ describe("All endpoints used for apps CRUD operations", async () => {
       expect(await patchResponse.json()).toEqual({ found: true });
       const dbResult = await helper.getAppFromDbByName("new-app-name");
       expect(dbResult).not.toBeNull();
-      const { _id, environments, ...otherProps } = dbResult!;
-      expect(_id).not.toBeUndefined();
+      const { id, environments, ...otherProps } = dbResult!;
+      expect(id).not.toBeUndefined();
       // one environment is automatically created
       expect(environments).toBeArray();
       expect(environments.length).toEqual(1);
@@ -223,7 +223,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
   });
 
   describe("GET requests", async () => {
-    const apps: Omit<AppType, "_id" | "environments">[] = [
+    const apps: Omit<AppType, "id" | "environments">[] = [
       {
         name: "app-name-1",
         image: "path/to/image-1.jpg",
@@ -344,7 +344,7 @@ describe("All endpoints used for apps CRUD operations", async () => {
     });
 
     test("should remove all environments, entities and remove the app from the user", async () => {
-      const appForDeletion: Omit<AppType, "_id" | "environments"> = {
+      const appForDeletion: Omit<AppType, "id" | "environments"> = {
         name: "app-name-1",
         image: "path/to/image-1.jpg",
         description: "description 1",

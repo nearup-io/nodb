@@ -6,7 +6,7 @@ import {
   getOpenaiCompletion,
 } from "../utils/ai-utils.ts";
 import generateToken from "../utils/backend-token";
-import { ENTITY_MONGO_DB_REPOSITORY, httpError, llms } from "../utils/const";
+import { ENTITY_REPOSITORY, httpError, llms } from "../utils/const";
 import {
   entityMetaResponse,
   getAncestors,
@@ -45,9 +45,7 @@ const searchEntities = async ({
   limit?: number;
   entityType?: string;
 }) => {
-  const entityRepository = context.get<IEntityRepository>(
-    ENTITY_MONGO_DB_REPOSITORY,
-  );
+  const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
   const embedding = await getEmbedding(query);
 
   return entityRepository.searchEntities({
@@ -69,9 +67,7 @@ const searchAiEntities = async ({
   limit?: number;
   entityType?: string;
 }) => {
-  const entityRepository = context.get<IEntityRepository>(
-    ENTITY_MONGO_DB_REPOSITORY,
-  );
+  const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
   const embedding = await getEmbedding(query);
   try {
@@ -136,9 +132,7 @@ export const getEntities = async ({
   const ancestors = getAncestors(xpathEntitySegments);
   const entityTypes = getEntityTypes(xpathEntitySegments);
 
-  const entityRepository = context.get<IEntityRepository>(
-    ENTITY_MONGO_DB_REPOSITORY,
-  );
+  const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
   const fromDb = await entityRepository.getEntities({
     propFilters,
@@ -152,10 +146,7 @@ export const getEntities = async ({
   });
 
   const entityName = entityTypes.at(-1)!;
-  const { totalCount, entities } = fromDb.at(0) || {
-    entities: [],
-    totalCount: 0,
-  };
+  const { totalCount, entities } = fromDb;
   if (!entities || R.isEmpty(entities)) {
     return { [entityName]: [] };
   }
@@ -214,9 +205,7 @@ const getSingleEntity = async ({
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
   const entityTypes = getEntityTypes(xpathEntitySegments);
-  const entityRepository = context.get<IEntityRepository>(
-    ENTITY_MONGO_DB_REPOSITORY,
-  );
+  const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
   const entity = await entityRepository.getSingleEntity({
     entityId,
     appName,
@@ -312,15 +301,13 @@ const createOrOverwriteEntities = async ({
     });
   }
 
-  const entityRepository = context.get<IEntityRepository>(
-    ENTITY_MONGO_DB_REPOSITORY,
-  );
+  const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
   try {
     return await entityRepository.createOrOverwriteEntities({
       entitiesIdsToBeReplaced,
       entityTypes,
-      dbEnvironmentId: environment._id.toString(),
+      dbEnvironmentId: environment.id,
       insertEntities,
     });
   } catch (e) {
@@ -348,16 +335,14 @@ const deleteRootAndUpdateEnv = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const entityRepository = context.get<IEntityRepository>(
-    ENTITY_MONGO_DB_REPOSITORY,
-  );
+  const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
   try {
     return entityRepository.deleteRootAndUpdateEnv({
       appName,
       envName,
       entityName,
-      dbEnvironmentId: environment._id.toString(),
+      dbEnvironmentId: environment.id,
     });
   } catch (e) {
     console.error("Error deleting entities", e);
@@ -391,16 +376,14 @@ const deleteSubEntitiesAndUpdateEnv = async ({
     (_: any, i: number) => i % 2 !== 0,
   );
 
-  const entityRepository = context.get<IEntityRepository>(
-    ENTITY_MONGO_DB_REPOSITORY,
-  );
+  const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
   try {
     return entityRepository.deleteSubEntitiesAndUpdateEnv({
       appName,
       envName,
       entityTypes,
-      dbEnvironmentId: environment._id.toString(),
+      dbEnvironmentId: environment.id,
       ancestors,
     });
   } catch (e) {
@@ -432,16 +415,14 @@ const deleteSingleEntityAndUpdateEnv = async ({
   const entityTypes = getEntityTypes(xpathEntitySegments);
   const entityId = R.last(xpathEntitySegments)!;
 
-  const entityRepository = context.get<IEntityRepository>(
-    ENTITY_MONGO_DB_REPOSITORY,
-  );
+  const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
   try {
     return entityRepository.deleteSingleEntityAndUpdateEnv({
       appName,
       envName,
       entityTypes,
       entityId,
-      dbEnvironmentId: environment._id.toString(),
+      dbEnvironmentId: environment.id,
     });
   } catch (e) {
     console.log("Error deleting entity", e);
@@ -470,9 +451,7 @@ const replaceEntities = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const entityRepository = context.get<IEntityRepository>(
-    ENTITY_MONGO_DB_REPOSITORY,
-  );
+  const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
   const entityTypes = getEntityTypes(xpathEntitySegments);
   const ancestors = getAncestors(xpathEntitySegments);
@@ -544,9 +523,7 @@ const updateEntities = async ({
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
 
-  const entityRepository = context.get<IEntityRepository>(
-    ENTITY_MONGO_DB_REPOSITORY,
-  );
+  const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
   const entityTypes = getEntityTypes(xpathEntitySegments);
   const ancestors = getAncestors(xpathEntitySegments);
   const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);

@@ -4,7 +4,7 @@ import { type Application } from "../../models/application.model.ts";
 import { type Environment } from "../../models/environment.model.ts";
 import generateToken from "../../utils/backend-token.ts";
 import { defaultNodbEnv, Permissions } from "../../utils/const.ts";
-import BaseRepository from "./base-repository.ts";
+import BaseRepository from "./base.repository.ts";
 import type { IApplicationRepository } from "../interfaces.ts";
 
 class ApplicationRepository
@@ -15,11 +15,9 @@ class ApplicationRepository
     super();
   }
 
-  private async getEnvironmentsByAppName(
-    appName: string,
-  ): Promise<Environment[]> {
+  private async getEnvironmentsByAppId(appId: string): Promise<Environment[]> {
     return this.applicationModel.aggregate<Environment>([
-      { $match: { name: appName } },
+      { $match: { _id: appId } },
       {
         $lookup: {
           from: "environments",
@@ -35,7 +33,7 @@ class ApplicationRepository
           tokens: "$environments.tokens",
           entities: "$environments.entities",
           description: "$environments.description",
-          _id: "$environments._id",
+          id: "$environments._id",
         },
       },
     ]);
@@ -47,8 +45,8 @@ class ApplicationRepository
   }: {
     appName: string;
     clerkId: string;
-  }): Promise<Application | undefined> {
-    const userApplications = await this.userModel.aggregate([
+  }): Promise<Application | null> {
+    const userApplications = await this.userModel.aggregate<Application>([
       {
         $match: {
           $and: [{ clerkId }, { $expr: { $in: [appName, "$applications"] } }],
@@ -77,17 +75,18 @@ class ApplicationRepository
       },
       {
         $project: {
+          id: "$applications._id",
           name: "$applications.name",
           image: "$applications.image",
           description: "$applications.description",
+          "environments.id": "$environments._id",
           "environments.name": 1,
           "environments.tokens": 1,
           "environments.description": 1,
-          _id: 0,
         },
       },
     ]);
-    return userApplications?.[0];
+    return userApplications?.[0] || null;
   }
 
   public async getUserApplications({
@@ -146,8 +145,8 @@ class ApplicationRepository
   }: {
     appName: string;
     clerkId: string;
-    image: string;
-    appDescription: string;
+    image?: string;
+    appDescription?: string;
   }): Promise<void> {
     await this.transaction<void>(async (session) => {
       const environment = await this.environmentModel.create(
@@ -193,16 +192,18 @@ class ApplicationRepository
       description?: string;
       image?: string;
     };
-  }): Promise<Application | null> {
-    const result = await this.transaction<Application | null>(
+  }): Promise<Omit<Application, "environments"> | null> {
+    return this.transaction<Omit<Application, "environments"> | null>(
       async (session) => {
         const doc = await this.applicationModel.findOneAndUpdate(
           { name: props.oldAppName },
           { ...props.updateProps },
           { session },
         );
+
+        if (!doc) return null;
+
         if (
-          doc &&
           props.oldAppName !== props.updateProps.newAppName &&
           R.is(String, props.updateProps.newAppName)
         ) {
@@ -212,47 +213,53 @@ class ApplicationRepository
             { session },
           );
         }
-        return doc;
+
+        return {
+          id: doc._id.toString(),
+          ...R.omit(["_id"], doc),
+        };
       },
     );
-    return result;
   }
 
   public async deleteApplication({
-    appName,
     clerkId,
+    dbAppId,
+    appName,
   }: {
     appName: string;
+    dbAppId: string;
     clerkId: string;
-  }): Promise<Application | null> {
-    const envs = await this.getEnvironmentsByAppName(appName);
+  }): Promise<Omit<Application, "environments"> | null> {
+    const envs = await this.getEnvironmentsByAppId(dbAppId);
 
     return this.transaction<Application | null>(async (session) => {
-      const app = await this.applicationModel.findOneAndDelete<Application>(
-        { name: appName },
+      const app = await this.applicationModel.findOneAndDelete(
+        { _id: dbAppId },
         { session },
       );
-      if (app && app._id) {
-        await this.environmentModel.deleteMany(
-          {
-            _id: { $in: envs.map((e) => e._id) },
-          },
-          { session },
-        );
-        await this.userModel.findOneAndUpdate(
-          { clerkId },
-          {
-            $pull: { applications: appName },
-          },
-          { session },
-        );
-        await this.entityModel.deleteMany(
-          { type: { $regex: `^${appName}/` } },
-          { session },
-        );
-        await session.commitTransaction();
-      }
-      return app;
+
+      if (!app || !app._id) return null;
+
+      await this.environmentModel.deleteMany(
+        {
+          _id: { $in: envs.map((e) => e.id) },
+        },
+        { session },
+      );
+      await this.userModel.findOneAndUpdate(
+        { clerkId },
+        {
+          $pull: { applications: appName },
+        },
+        { session },
+      );
+      await this.entityModel.deleteMany(
+        { type: { $regex: `^${appName}/` } },
+        { session },
+      );
+
+      return { id: app._id, ...R.omit(["_id"], app) };
     });
   }
 }

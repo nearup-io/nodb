@@ -44,6 +44,7 @@ app.post("/auth", async (c) => {
         message: e.explicitMessage,
       });
     } else {
+      console.log(e);
       throw new HTTPException(500, {
         message: httpError.UNKNOWN,
       });
