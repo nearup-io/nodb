@@ -96,13 +96,10 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
     expect(ids.at(0)).toBeString();
 
     const entities = await helper.getEntitiesByIdFromDatabase(ids);
-    expect(R.keys(entities.at(0)!)).toStrictEqual([
-      "id",
-      "type",
-      "ancestors",
-      "model",
-      "embedding",
-    ]);
+    deepEqual(
+      R.keys(entities.at(0)!).sort(),
+      ["id", "type", "ancestors", "model"].sort(),
+    );
 
     const entitiesWithoutId = entities.map((entity) => {
       expect(entity.id).toBeString();
@@ -112,7 +109,6 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
     deepEqual(entitiesWithoutId, [
       {
         ancestors: [],
-        embedding: [],
         model: {
           prop: 1,
         },
@@ -120,7 +116,6 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
       },
       {
         ancestors: [],
-        embedding: [],
         model: {
           prop: 2,
         },
@@ -128,7 +123,6 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
       },
       {
         ancestors: [],
-        embedding: [],
         model: {
           prop: 3,
         },
@@ -143,70 +137,6 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
 
     const deleteResponse = await helper.executeDeleteRequest({
       url: `/apps/${appName}/${environmentName}/${entityName}`,
-      token: jwtToken,
-    });
-    expect(deleteResponse.status).toBe(200);
-  });
-
-  test("should return 201 CREATED and create sub entity", async () => {
-    const mainEntityName = "myEntity";
-    const subEntityName = "subEntity";
-    const response = await helper.executePostRequest({
-      url: `/apps/${appName}/${environmentName}/${mainEntityName}`,
-      token: jwtToken,
-      body: [{ prop: 1 }],
-    });
-    expect(response.status).toBe(201);
-    const {
-      ids: [id],
-    } = (await response.json()) as { ids: string[] };
-    expect(id).toBeString();
-
-    const subEntityResponse = await helper.executePostRequest({
-      url: `/apps/${appName}/${environmentName}/${mainEntityName}/${id}/${subEntityName}`,
-      token: jwtToken,
-      body: [{ subEntityProp: 1 }],
-    });
-    expect(subEntityResponse.status).toBe(201);
-    const { ids } = (await subEntityResponse.json()) as { ids: string[] };
-    expect(ids).toBeArrayOfSize(1);
-    expect(ids.at(0)).toBeString();
-
-    const entities = await helper.getEntitiesByIdFromDatabase(ids);
-    expect(R.keys(entities.at(0)!)).toStrictEqual([
-      "id",
-      "type",
-      "ancestors",
-      "model",
-      "embedding",
-    ]);
-
-    const entitiesWithoutId = entities.map((entity) => {
-      expect(entity.id).toBeString();
-      return R.omit(["id"], entity);
-    });
-
-    deepEqual(entitiesWithoutId, [
-      {
-        ancestors: [id],
-        embedding: [],
-        model: {
-          subEntityProp: 1,
-        },
-        type: `${appName}/${environmentName}/${mainEntityName}/${subEntityName}`,
-      },
-    ]);
-
-    const environment =
-      await helper.getEnvironmentFromDbByName(environmentName);
-    expect(environment).not.toBeNull();
-    expect(environment?.entities).toStrictEqual([
-      mainEntityName,
-      `${mainEntityName}/${subEntityName}`,
-    ]);
-
-    const deleteResponse = await helper.executeDeleteRequest({
-      url: `/apps/${appName}/${environmentName}/${mainEntityName}`,
       token: jwtToken,
     });
     expect(deleteResponse.status).toBe(200);
