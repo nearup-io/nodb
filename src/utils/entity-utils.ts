@@ -59,5 +59,3 @@ export const throwIfNoParent = async (parentId: string) => {
 
 export const getEntityTypes = (xpathEntitySegments: string[]): string[] =>
   xpathEntitySegments.filter((_: any, i: number) => i % 2 === 0);
-export const getAncestors = (xpathEntitySegments: string[]): string[] =>
-  xpathEntitySegments.filter((_: any, i: number) => i % 2 !== 0);

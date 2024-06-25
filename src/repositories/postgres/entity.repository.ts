@@ -17,19 +17,16 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     const values = entities.map((entity) => {
       const id = Prisma.sql`${entity.id}`;
       const model = Prisma.sql`${entity.model}`;
-      const ancestors = entity.ancestors?.length
-        ? Prisma.sql`'{${Prisma.join(entity.ancestors)}}'`
-        : Prisma.sql`'{}'`;
       const extras = entity.extras ? Prisma.sql`${entity.extras}` : null;
       const embedding =
         entity.embedding && entity.embedding.length > 0
           ? Prisma.sql`${pgvector.toSql(entity.embedding)}::vector`
           : null;
 
-      return Prisma.sql`(${id}, ${entity.type}, ${model}, ${ancestors}, ${environmentId}, ${extras}, ${embedding})`;
+      return Prisma.sql`(${id}, ${entity.type}, ${model}, ${environmentId}, ${extras}, ${embedding})`;
     });
 
-    return Prisma.sql`INSERT INTO "public"."Entity" (id, type, model, ancestors, "environmentId", extras, embedding) VALUES
+    return Prisma.sql`INSERT INTO "public"."Entity" (id, type, model, "environmentId", extras, embedding) VALUES
     ${Prisma.join(values)}
     RETURNING id`;
   }
@@ -162,7 +159,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       extras: entity.extras
         ? (entity.extras as Record<string, unknown>)
         : undefined,
-      ancestors: entity.ancestors,
     };
   }
 
@@ -229,7 +225,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     return entities.map((entity) => ({ id: entity.id, ...entity.model }));
   }
 
-  public async findEntitiesByIdsTypeAndAncestors({
+  public async findEntitiesByIdsType({
     ids,
     ancestors,
     type,

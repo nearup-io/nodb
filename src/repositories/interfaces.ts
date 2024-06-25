@@ -71,8 +71,6 @@ export interface IEntityRepository {
     paginationQuery: { skip: number; limit: number };
     appName: string;
     envName: string;
-    parentId?: string;
-    ancestors: string[];
     entityTypes: string[];
   }): Promise<EntityAggregateResult>;
   searchEntities(props: {
@@ -81,10 +79,9 @@ export interface IEntityRepository {
     limit: number;
     entityType?: string;
   }): Promise<Record<string, unknown>[]>;
-  findEntitiesByIdsTypeAndAncestors(props: {
+  findEntitiesByIdsType(props: {
     ids: string[];
     type: string;
-    ancestors: string[];
   }): Promise<Omit<Entity, "embedding">[]>;
   createOrOverwriteEntities(props: {
     entityTypes: string[];
@@ -100,13 +97,6 @@ export interface IEntityRepository {
     appName: string;
     envName: string;
     entityName: string;
-    dbEnvironmentId: string;
-  }): Promise<{ done: number }>;
-  deleteSubEntitiesAndUpdateEnv(props: {
-    appName: string;
-    envName: string;
-    entityTypes: string[];
-    ancestors: string[];
     dbEnvironmentId: string;
   }): Promise<{ done: number }>;
   deleteSingleEntityAndUpdateEnv(props: {

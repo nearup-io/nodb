@@ -17,10 +17,6 @@ export const EntitySchema = new Schema(
       type: Object,
       required: false,
     },
-    ancestors: {
-      type: [{ type: String }],
-      required: false,
-    },
     model: {
       type: Object,
       required: false,
@@ -38,7 +34,6 @@ export type Entity = {
   type: string;
   model: Record<string, unknown>;
   extras?: Record<string, unknown>;
-  ancestors?: string[] | null;
   embedding?: number[] | null;
 };
 

@@ -9,7 +9,6 @@ import generateToken from "../utils/backend-token";
 import { ENTITY_REPOSITORY, httpError, llms } from "../utils/const";
 import {
   entityMetaResponse,
-  getAncestors,
   getEntityTypes,
   getPaginationNumbers,
   isTypePathCorrect,
@@ -127,9 +126,6 @@ export const getEntities = async ({
     page: metaFilters?.page,
     perPage: metaFilters?.perPage,
   });
-  const parentId =
-    xpathEntitySegments.length > 1 ? R.nth(-2, xpathEntitySegments) : undefined;
-  const ancestors = getAncestors(xpathEntitySegments);
   const entityTypes = getEntityTypes(xpathEntitySegments);
 
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
@@ -140,8 +136,6 @@ export const getEntities = async ({
     entityTypes,
     appName,
     envName,
-    parentId,
-    ancestors,
     paginationQuery,
   });
 
@@ -269,7 +263,6 @@ const createOrOverwriteEntities = async ({
   }
   const parentIdFromXpath = R.nth(-2, xpathEntitySegments);
   const entityTypes = getEntityTypes(xpathEntitySegments);
-  const ancestors = getAncestors(xpathEntitySegments);
   if (xpathEntitySegments.length > 1 && parentIdFromXpath) {
     await throwIfNoParent(parentIdFromXpath);
     const isPathOk = environment.entities
@@ -296,7 +289,6 @@ const createOrOverwriteEntities = async ({
       id,
       model: { ...entityWithoutId },
       type: `${appName}/${envName}/${entityTypes.join("/")}`,
-      ancestors,
       embedding,
     });
   }
@@ -347,49 +339,6 @@ const deleteRootAndUpdateEnv = async ({
   } catch (e) {
     console.error("Error deleting entities", e);
     throw new ServiceError(httpError.ENTITIES_CANT_DELETE);
-  }
-};
-
-const deleteSubEntitiesAndUpdateEnv = async ({
-  context,
-  appName,
-  envName,
-  xpathEntitySegments,
-}: {
-  context: Context;
-  appName: string;
-  envName: string;
-  xpathEntitySegments: string[];
-}): Promise<{ done: number }> => {
-  const environment = await findEnvironment({
-    context,
-    appName,
-    envName,
-  });
-  if (!environment) {
-    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
-  }
-  const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0,
-  );
-  const ancestors = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 !== 0,
-  );
-
-  const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
-
-  try {
-    return entityRepository.deleteSubEntitiesAndUpdateEnv({
-      appName,
-      envName,
-      entityTypes,
-      dbEnvironmentId: environment.id,
-      ancestors,
-    });
-  } catch (e) {
-    console.error("Error deleting entities", e);
-    throw new ServiceError(httpError.ENTITIES_CANT_DELETE);
-  } finally {
   }
 };
 
@@ -454,15 +403,12 @@ const replaceEntities = async ({
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
   const entityTypes = getEntityTypes(xpathEntitySegments);
-  const ancestors = getAncestors(xpathEntitySegments);
   const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
 
-  const dbExistingDocuments =
-    await entityRepository.findEntitiesByIdsTypeAndAncestors({
-      ids: documentIds,
-      type: `${appName}/${envName}/${entityTypes.join("/")}`,
-      ancestors,
-    });
+  const dbExistingDocuments = await entityRepository.findEntitiesByIdsType({
+    ids: documentIds,
+    type: `${appName}/${envName}/${entityTypes.join("/")}`,
+  });
 
   if (
     R.isEmpty(dbExistingDocuments) &&
@@ -485,7 +431,6 @@ const replaceEntities = async ({
       id,
       model: { ...entityWithoutId },
       type: `${appName}/${envName}/${entityTypes.join("/")}`,
-      ancestors,
       embedding,
     });
   }
@@ -525,14 +470,11 @@ const updateEntities = async ({
 
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
   const entityTypes = getEntityTypes(xpathEntitySegments);
-  const ancestors = getAncestors(xpathEntitySegments);
   const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
-  const dbExistingDocuments =
-    await entityRepository.findEntitiesByIdsTypeAndAncestors({
-      ids: documentIds,
-      type: `${appName}/${envName}/${entityTypes.join("/")}`,
-      ancestors,
-    });
+  const dbExistingDocuments = await entityRepository.findEntitiesByIdsType({
+    ids: documentIds,
+    type: `${appName}/${envName}/${entityTypes.join("/")}`,
+  });
   if (R.isEmpty(dbExistingDocuments)) {
     throw new ServiceError(httpError.ENTITY_NOT_FOUND);
   }
@@ -554,7 +496,6 @@ const updateEntities = async ({
       id: entity.id,
       model: { ...entity.model, ...propsToBeReplaced },
       type: entity.type,
-      ancestors: entity.ancestors,
       embedding,
     });
   }
@@ -631,7 +572,6 @@ export {
   replaceEntities,
   updateEntities,
   deleteRootAndUpdateEnv,
-  deleteSubEntitiesAndUpdateEnv,
   deleteSingleEntityAndUpdateEnv,
   searchEntities,
   searchAiEntities,

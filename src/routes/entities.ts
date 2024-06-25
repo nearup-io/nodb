@@ -6,7 +6,6 @@ import {
   createOrOverwriteEntities,
   deleteRootAndUpdateEnv,
   deleteSingleEntityAndUpdateEnv,
-  deleteSubEntitiesAndUpdateEnv,
   getEntities,
   getSingleEntity,
   replaceEntities,
@@ -140,15 +139,6 @@ app.delete("/*", async (c) => {
         appName,
         envName,
         entityName,
-      });
-      return c.json({ deleted: res.done });
-    } else if (pathRestSegments.length % 2 === 0) {
-      // delete sub entities
-      const res = await deleteSubEntitiesAndUpdateEnv({
-        context,
-        appName,
-        envName,
-        xpathEntitySegments,
       });
       return c.json({ deleted: res.done });
     } else {

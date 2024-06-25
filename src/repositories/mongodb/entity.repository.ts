@@ -52,8 +52,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     paginationQuery: { skip, limit },
     appName,
     envName,
-    parentId,
-    ancestors,
     entityTypes,
   }: {
     modelFilters: Record<string, unknown>;
@@ -61,8 +59,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     paginationQuery: { skip: number; limit: number };
     appName: string;
     envName: string;
-    parentId?: string;
-    ancestors: string[];
     entityTypes: string[];
   }): PipelineStage[] => {
     const paginationQuery = [{ $skip: skip }, { $limit: limit }];
@@ -73,7 +69,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     return [
       {
         $match: {
-          ancestors: parentId === undefined ? [] : ancestors,
           type: {
             $regex: new RegExp(
               `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`,
@@ -126,8 +121,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     paginationQuery,
     appName,
     envName,
-    parentId,
-    ancestors,
     entityTypes,
   }: {
     propFilters: Record<string, unknown>;
@@ -135,8 +128,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     paginationQuery: { skip: number; limit: number };
     appName: string;
     envName: string;
-    parentId?: string;
-    ancestors: string[];
     entityTypes: string[];
   }): Promise<EntityAggregateResult> {
     const modelFilters = this.toModelFilters(propFilters);
@@ -147,8 +138,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       paginationQuery,
       appName,
       envName,
-      parentId,
-      ancestors,
     });
 
     const result =
@@ -193,19 +182,16 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     ]);
   }
 
-  public async findEntitiesByIdsTypeAndAncestors({
+  public async findEntitiesByIdsType({
     ids,
-    ancestors,
     type,
   }: {
     ids: string[];
     type: string;
-    ancestors: string[];
   }): Promise<Omit<Entity, "embedding">[]> {
     return this.entityModel.find({
       id: { $in: ids },
       type,
-      ancestors,
     });
   }
 
