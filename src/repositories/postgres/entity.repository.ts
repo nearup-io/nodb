@@ -242,7 +242,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       where: {
         id: { in: ids },
         ancestors: {
-          // TODO verify that hasEvery is what we need here
           hasEvery: ancestors,
         },
         type,

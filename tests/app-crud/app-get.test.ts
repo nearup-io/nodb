@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import {
   createTestApplicationHelperFactory,
   defaultTestUser,
-  testUser3,
+  testUser2,
 } from "../helpers";
 import * as R from "ramda";
 import { type Application } from "../../src/models/application.model";
@@ -84,7 +84,7 @@ describe("App endpoint GET", async () => {
     });
 
     test("Should return 200 OK and empty array when the user does not have any apps", async () => {
-      const token = await helper.insertUser(testUser3);
+      const token = await helper.insertUser(testUser2);
 
       const response = await helper.executeGetRequest({
         url: "/apps/all",
