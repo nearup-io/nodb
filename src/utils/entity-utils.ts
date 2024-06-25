@@ -1,14 +1,3 @@
-import * as R from "ramda";
-import Entity from "../models/entity.model";
-import { httpError } from "./const";
-import { ServiceError } from "./service-errors";
-
-export const isTypePathCorrect = (envEntities: string[], xpath: string) => {
-  const xpathSegments = xpath.split("/");
-  const typePath = xpathSegments.filter((_, i) => i % 2 === 0);
-  return envEntities.includes(R.dropLast(1, typePath).join("/"));
-};
-
 export const getPaginationNumbers = ({
   page,
   perPage,
@@ -47,15 +36,3 @@ export const entityMetaResponse = ({
       }
     : undefined;
 };
-
-export const throwIfNoParent = async (parentId: string) => {
-  const parent = await Entity.findOne({
-    id: parentId,
-  });
-  if (!parent) {
-    throw new ServiceError(httpError.ENTITY_NO_PARENT);
-  }
-};
-
-export const getEntityTypes = (xpathEntitySegments: string[]): string[] =>
-  xpathEntitySegments.filter((_: any, i: number) => i % 2 === 0);

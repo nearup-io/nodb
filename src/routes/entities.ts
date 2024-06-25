@@ -12,7 +12,7 @@ import {
 } from "../services/entity.service";
 import { type User } from "../models/user.model.ts";
 import { httpError } from "../utils/const";
-import { asyncTryJson, getCommonEntityRouteProps } from "../utils/route-utils";
+import { asyncTryJson } from "../utils/route-utils";
 import { entityQueryValidator } from "../utils/route-validators";
 import { RoutingError, ServiceError } from "../utils/service-errors";
 import type { EntityRequestDto, PostEntityRequestDto } from "../utils/types.ts";
@@ -31,12 +31,8 @@ const app = new Hono<
 
 app.get("/", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
-  const { xpathEntitySegments } = getCommonEntityRouteProps(
-    c.req.path,
-    c.req.param(),
-  );
-
   const context = c.get("context");
+
   try {
     const result = await getEntities({
       context,
@@ -71,12 +67,11 @@ app.get("/", entityQueryValidator(), async (c) => {
 
 app.get("/:entityId", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
-  const { xpath } = getCommonEntityRouteProps(c.req.path, c.req.param());
-
   const context = c.get("context");
+
   try {
     const entity = await getSingleEntity({
-      xpath,
+      xpath: c.req.path,
       context,
       requestParams: c.req.param(),
       metaFilters: q.meta,
@@ -199,7 +194,7 @@ app.delete("/:entityId", async (c) => {
   }
 });
 
-app.put("/*", async (c) => {
+app.put("/", async (c) => {
   const { appName, envName, entityName } = c.req.param();
 
   const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());

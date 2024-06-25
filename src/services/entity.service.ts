@@ -208,7 +208,7 @@ const getSingleEntity = async ({
     __meta: !metaFilters.hasMeta
       ? undefined
       : {
-          self: `/${xpath}`,
+          self: xpath.replace("/apps", ""),
         },
   };
 };
