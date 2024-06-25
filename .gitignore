@@ -178,4 +178,5 @@ dist
 requests.http
 
 # Tests
-.env.test
+.env.mongo.test
+.env.postgres.test

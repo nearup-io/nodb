@@ -37,7 +37,11 @@ const getUserApplications = async ({
 }: {
   context: Context;
   clerkId: string;
-}): Promise<Application[]> => {
+}): Promise<
+  (Omit<Application, "id" | "environments"> & {
+    environments: Omit<Environment, "id" | "description">[];
+  })[]
+> => {
   const repository = context.get<IApplicationRepository>(
     APPLICATION_REPOSITORY,
   );
@@ -100,14 +104,17 @@ const updateApplication = async (props: {
   }) as { name?: string; description?: string; image?: string };
 
   try {
-    return repository.updateApplication({
+    return await repository.updateApplication({
       oldAppName: props.oldAppName,
       clerkId: props.clerkId,
       updateProps,
     });
   } catch (e) {
-    if (e instanceof PrismaClientKnownRequestError && e.code === "P2001") {
-      return null; // app does not exist prisma error
+    if (
+      e instanceof PrismaClientKnownRequestError &&
+      ["P2001", "P2025"].includes(e.code)
+    ) {
+      return null; // app does not exist prisma errors
     }
     console.log("Error updating app", e);
     throw new ServiceError(httpError.UNKNOWN);

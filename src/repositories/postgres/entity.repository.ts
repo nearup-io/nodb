@@ -21,9 +21,10 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
         ? Prisma.sql`'{${Prisma.join(entity.ancestors)}}'`
         : Prisma.sql`'{}'`;
       const extras = entity.extras ? Prisma.sql`${entity.extras}` : null;
-      const embedding = entity.embedding
-        ? Prisma.sql`${pgvector.toSql(entity.embedding)}::vector`
-        : null;
+      const embedding =
+        entity.embedding && entity.embedding.length > 0
+          ? Prisma.sql`${pgvector.toSql(entity.embedding)}::vector`
+          : null;
 
       return Prisma.sql`(${id}, ${entity.type}, ${model}, ${ancestors}, ${environmentId}, ${extras}, ${embedding})`;
     });
@@ -117,7 +118,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     )
     SELECT
             *,
-            (SELECT COUNT(*) FROM Data) AS totalCount
+            (SELECT COUNT(*) FROM Data) AS "totalCount"
     FROM Data`;
 
     const orderBy = sortBy?.length
@@ -199,9 +200,8 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     const result =
       await this.prisma.$queryRaw<(Entity & { totalCount: number })[]>(query);
 
-    console.log("result", result);
     return {
-      totalCount: result[0]?.totalCount || 0,
+      totalCount: result[0] ? Number(result[0]?.totalCount) : 0,
       entities: result.map((entity) => R.omit(["totalCount"], entity)),
     };
   }
@@ -242,7 +242,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       where: {
         id: { in: ids },
         ancestors: {
-          // TODO verify that hasEvery is what we need here
           hasEvery: ancestors,
         },
         type,

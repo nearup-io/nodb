@@ -25,20 +25,27 @@ abstract class BaseRepository {
 
   protected async transaction<T>(
     callback: (session: mongoose.mongo.ClientSession) => Promise<T>,
+    maxRetries: number = 3,
   ): Promise<T> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-      const result = await callback(session);
-      await session.commitTransaction();
-      return result;
-    } catch (e) {
-      await session.abortTransaction();
-      throw e;
-    } finally {
-      await session.endSession();
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const session = await mongoose.startSession();
+      try {
+        session.startTransaction();
+        const result = await callback(session);
+        await session.commitTransaction();
+        return result; // Success, exit the function
+      } catch (error) {
+        await session.abortTransaction();
+        if (attempt === maxRetries) throw error;
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.pow(2, attempt) * 1000),
+        ); // Exponential backoff
+      } finally {
+        await session.endSession();
+      }
     }
+
+    throw new Error("Transaction failed after too many retries");
   }
 }
 
