@@ -9,7 +9,6 @@ import generateToken from "../utils/backend-token";
 import { ENTITY_REPOSITORY, httpError, llms } from "../utils/const";
 import {
   entityMetaResponse,
-  getEntityTypes,
   getPaginationNumbers,
 } from "../utils/entity-utils";
 import { ServiceError } from "../utils/service-errors";
@@ -107,14 +106,12 @@ const searchAiEntities = async ({
 
 export const getEntities = async ({
   context,
-  xpathEntitySegments,
   propFilters,
   metaFilters,
   rawQuery,
-  routeParams: { appName, envName },
+  routeParams: { appName, envName, entityName },
 }: {
   context: Context;
-  xpathEntitySegments: string[];
   propFilters: Record<string, unknown>;
   metaFilters: EntityQueryMeta;
   rawQuery: Record<string, string>;
@@ -124,20 +121,18 @@ export const getEntities = async ({
     page: metaFilters?.page,
     perPage: metaFilters?.perPage,
   });
-  const entityTypes = getEntityTypes(xpathEntitySegments);
 
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
   const fromDb = await entityRepository.getEntities({
     propFilters,
     metaFilters,
-    entityTypes,
+    entityName,
     appName,
     envName,
     paginationQuery,
   });
 
-  const entityName = entityTypes.at(-1)!;
   const { totalCount, entities } = fromDb;
   if (!entities || R.isEmpty(entities)) {
     return { [entityName]: [] };
@@ -149,7 +144,7 @@ export const getEntities = async ({
       paginationQuery,
       appName,
       envName,
-      xpathEntitySegments,
+      entityName,
       totalCount,
       entityCount: entities.length,
     }),
@@ -160,7 +155,7 @@ export const getEntities = async ({
     ...R.pick(metaFilters?.only || R.keys(entity.model), entity.model),
     __meta: entityMetaResponse({
       hasMeta: metaFilters?.hasMeta,
-      xpathEntitySegments,
+      entityName,
       appName,
       envName,
       id: entity.id,
@@ -175,18 +170,14 @@ export const getEntities = async ({
 
 const getSingleEntity = async ({
   context,
-  requestParams: { appName, envName },
+  requestParams: { appName, envName, entityName, entityId },
   metaFilters,
-  entityId,
-  xpathEntitySegments,
   xpath,
 }: {
   context: Context;
   xpath: string;
-  requestParams: EntityRouteParams;
+  requestParams: EntityRouteParams & { entityId: string };
   metaFilters: EntityQueryMeta;
-  entityId: string;
-  xpathEntitySegments: string[];
 }) => {
   const environment = await findEnvironment({
     appName,
@@ -196,13 +187,12 @@ const getSingleEntity = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const entityTypes = getEntityTypes(xpathEntitySegments);
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
   const entity = await entityRepository.getSingleEntity({
     entityId,
     appName,
     envName,
-    entityTypes,
+    entityName,
   });
   if (!entity) {
     throw new ServiceError(httpError.ENTITY_NOT_FOUND);
@@ -219,21 +209,6 @@ const getSingleEntity = async ({
       ? undefined
       : {
           self: `/${xpath}`,
-          subtypes: environment.entities
-            ?.filter((x) => x.includes(`${entityTypes.join("/")}/`))
-            .reduce<Record<string, string>>((acc, curr) => {
-              const lastEntityType = entityTypes.at(-1)!;
-              const splitEntityType = curr.split("/");
-              const index = splitEntityType.findIndex(
-                (x) => x === lastEntityType,
-              );
-              // this is used to restrict the subTypes information to only 1 layer
-              if (splitEntityType.length - 2 !== index) return acc;
-
-              const subEntityName = splitEntityType.at(-1)!;
-              acc[subEntityName] = `/${xpath}/${subEntityName}`;
-              return acc;
-            }, {}),
         },
   };
 };
@@ -500,12 +475,12 @@ const generatePaginationMetadata = ({
   rawQuery,
   appName,
   envName,
-  xpathEntitySegments,
+  entityName,
   paginationQuery: { skip, limit },
   totalCount,
   entityCount,
 }: {
-  xpathEntitySegments: string[];
+  entityName: string;
   appName: string;
   envName: string;
   rawQuery: Record<string, string>;
@@ -524,7 +499,7 @@ const generatePaginationMetadata = ({
   const nextPage = currentPage + 1 > totalPages ? undefined : currentPage + 1;
   const previousPage = currentPage - 1 < 1 ? undefined : currentPage - 1;
 
-  const baseUrl = `/${appName}/${envName}/${xpathEntitySegments.join("/")}`;
+  const baseUrl = `/${appName}/${envName}/${entityName}`;
   return {
     totalCount,
     items: entityCount,

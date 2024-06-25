@@ -52,14 +52,14 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     paginationQuery: { skip, limit },
     appName,
     envName,
-    entityTypes,
+    entityName,
   }: {
     modelFilters: Record<string, unknown>;
     metaFilters?: EntityQueryMeta;
     paginationQuery: { skip: number; limit: number };
     appName: string;
     envName: string;
-    entityTypes: string[];
+    entityName: string;
   }): PipelineStage[] => {
     const paginationQuery = [{ $skip: skip }, { $limit: limit }];
     const sortQuery = this.getSortDbQuery(metaFilters?.sortBy);
@@ -70,9 +70,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       {
         $match: {
           type: {
-            $regex: new RegExp(
-              `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`,
-            ),
+            $regex: new RegExp(`\\b(${appName}/${envName}/${entityName})\\b`),
           },
           ...modelFilters,
         },
@@ -96,21 +94,19 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
 
   public async getSingleEntity({
     entityId,
-    entityTypes,
+    entityName,
     appName,
     envName,
   }: {
     entityId: string;
-    entityTypes: string[];
+    entityName: string;
     appName: string;
     envName: string;
   }): Promise<Entity | null> {
     return this.entityModel.findOne({
       id: entityId,
       type: {
-        $regex: new RegExp(
-          `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`,
-        ),
+        $regex: new RegExp(`\\b(${appName}/${envName}/${entityName})\\b`),
       },
     });
   }
@@ -121,20 +117,20 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     paginationQuery,
     appName,
     envName,
-    entityTypes,
+    entityName,
   }: {
     propFilters: Record<string, unknown>;
     metaFilters?: EntityQueryMeta;
     paginationQuery: { skip: number; limit: number };
     appName: string;
     envName: string;
-    entityTypes: string[];
+    entityName: string;
   }): Promise<EntityAggregateResult> {
     const modelFilters = this.toModelFilters(propFilters);
     const aggregateQuery = this.getAggregateQuery({
       modelFilters,
       metaFilters,
-      entityTypes,
+      entityName,
       paginationQuery,
       appName,
       envName,

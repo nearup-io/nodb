@@ -30,20 +30,20 @@ export const getPaginationNumbers = ({
 
 export const entityMetaResponse = ({
   hasMeta,
-  xpathEntitySegments,
+  entityName,
   appName,
   envName,
   id,
 }: {
   hasMeta?: boolean;
-  xpathEntitySegments: string[];
+  entityName: string;
   appName: string;
   envName: string;
   id: string;
 }) => {
   return hasMeta
     ? {
-        self: `/${appName}/${envName}/${xpathEntitySegments.join("/")}/${id}`,
+        self: `/${appName}/${envName}/${entityName}/${id}`,
       }
     : undefined;
 };

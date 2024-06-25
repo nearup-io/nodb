@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { BlankSchema } from "hono/types";
-import * as R from "ramda";
 import {
   createOrOverwriteEntities,
   deleteRootAndUpdateEnv,
@@ -13,11 +12,7 @@ import {
 } from "../services/entity.service";
 import { type User } from "../models/user.model.ts";
 import { httpError } from "../utils/const";
-import {
-  asyncTryJson,
-  getCommonEntityRouteProps,
-  isEntitiesList,
-} from "../utils/route-utils";
+import { asyncTryJson, getCommonEntityRouteProps } from "../utils/route-utils";
 import { entityQueryValidator } from "../utils/route-validators";
 import { RoutingError, ServiceError } from "../utils/service-errors";
 import type { EntityRequestDto, PostEntityRequestDto } from "../utils/types.ts";
@@ -34,34 +29,59 @@ const app = new Hono<
   "/:appName/:envName/:entityName"
 >();
 
-app.get("/*", entityQueryValidator(), async (c) => {
+app.get("/", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
-  const { xpath, pathRestSegments, xpathEntitySegments } =
-    getCommonEntityRouteProps(c.req.path, c.req.param());
+  const { xpathEntitySegments } = getCommonEntityRouteProps(
+    c.req.path,
+    c.req.param(),
+  );
 
   const context = c.get("context");
   try {
-    if (isEntitiesList(pathRestSegments)) {
-      const result = await getEntities({
-        context,
-        xpathEntitySegments,
-        propFilters: q.props,
-        metaFilters: q.meta,
-        routeParams: c.req.param(),
-        rawQuery: c.req.query(),
-      });
-      return c.json(result);
+    const result = await getEntities({
+      context,
+      propFilters: q.props,
+      metaFilters: q.meta,
+      routeParams: c.req.param(),
+      rawQuery: c.req.query(),
+    });
+    return c.json(result);
+  } catch (error) {
+    if (error instanceof ServiceError) {
+      if (
+        [httpError.ENV_DOESNT_EXIST, httpError.ENTITY_NOT_FOUND].includes(
+          error.explicitMessage,
+        )
+      ) {
+        throw new HTTPException(404, {
+          message: error.explicitMessage,
+        });
+      } else {
+        throw new HTTPException(400, {
+          message: error.explicitMessage,
+        });
+      }
     } else {
-      const entity = await getSingleEntity({
-        xpath,
-        context,
-        requestParams: c.req.param(),
-        xpathEntitySegments,
-        metaFilters: q.meta,
-        entityId: R.last(pathRestSegments)!,
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
       });
-      return c.json(entity);
     }
+  }
+});
+
+app.get("/:entityId", entityQueryValidator(), async (c) => {
+  const q = c.req.valid("query");
+  const { xpath } = getCommonEntityRouteProps(c.req.path, c.req.param());
+
+  const context = c.get("context");
+  try {
+    const entity = await getSingleEntity({
+      xpath,
+      context,
+      requestParams: c.req.param(),
+      metaFilters: q.meta,
+    });
+    return c.json(entity);
   } catch (error) {
     if (error instanceof ServiceError) {
       if (

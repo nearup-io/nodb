@@ -61,7 +61,7 @@ export interface IEnvironmentRepository {
 export interface IEntityRepository {
   getSingleEntity(props: {
     entityId: string;
-    entityTypes: string[];
+    entityName: string;
     appName: string;
     envName: string;
   }): Promise<Entity | null>;
@@ -71,7 +71,7 @@ export interface IEntityRepository {
     paginationQuery: { skip: number; limit: number };
     appName: string;
     envName: string;
-    entityTypes: string[];
+    entityName: string;
   }): Promise<EntityAggregateResult>;
   searchEntities(props: {
     embedding: number[];
