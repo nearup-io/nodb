@@ -96,10 +96,7 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
     expect(ids.at(0)).toBeString();
 
     const entities = await helper.getEntitiesByIdFromDatabase(ids);
-    deepEqual(
-      R.keys(entities.at(0)!).sort(),
-      ["id", "type", "ancestors", "model"].sort(),
-    );
+    deepEqual(R.keys(entities.at(0)!).sort(), ["id", "type", "model"].sort());
 
     const entitiesWithoutId = entities.map((entity) => {
       expect(entity.id).toBeString();
@@ -108,21 +105,18 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
 
     deepEqual(entitiesWithoutId, [
       {
-        ancestors: [],
         model: {
           prop: 1,
         },
         type: `${appName}/${environmentName}/${entityName}`,
       },
       {
-        ancestors: [],
         model: {
           prop: 2,
         },
         type: `${appName}/${environmentName}/${entityName}`,
       },
       {
-        ancestors: [],
         model: {
           prop: 3,
         },

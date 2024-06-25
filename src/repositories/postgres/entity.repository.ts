@@ -32,37 +32,27 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
   }
 
   private toModelSelectSql(fields?: string[]): Sql {
-    const defaultFields = Prisma.sql`id, type, ancestors, extras`;
+    const defaultFields = Prisma.sql`id, type, extras`;
 
     const jsonFields = fields?.length
-      ? // TODO can I get rid of Prisma.raw here?
-        Prisma.sql`${defaultFields}, jsonb_strip_nulls(jsonb_build_object(${Prisma.raw(fields.map((field) => `'${field}', model->'${field}'`).join(","))})) AS model`
+      ? Prisma.sql`${defaultFields}, jsonb_strip_nulls(jsonb_build_object(${Prisma.raw(fields.map((field) => `'${field}', model->'${field}'`).join(","))})) AS model`
       : Prisma.sql`${defaultFields}, model`;
     return Prisma.sql`SELECT ${jsonFields} FROM public."Entity"`;
   }
 
   private generateSqlQueryWhereClause({
     propFilters,
-    ancestors,
-    parentId,
     appName,
     envName,
     entityTypes,
   }: {
     propFilters: Record<string, unknown>;
-    ancestors: string[];
-    parentId?: string;
     appName: string;
     envName: string;
     entityTypes: string[];
   }): Sql {
     const type = `${appName}/${envName}/${entityTypes.join("/")}%`;
     const typeSql = Prisma.sql`type LIKE ${type}`;
-
-    const ancestorSql =
-      parentId && ancestors.length
-        ? Prisma.sql`'AND ancestors = {${ancestors.map((value) => `'${value}'`).join(",")}}'`
-        : Prisma.empty;
 
     const propFilterKeys = R.keys(propFilters);
     const modelFilterSql = propFilterKeys.length
@@ -76,7 +66,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
         )}`
       : Prisma.empty;
 
-    return Prisma.sql`WHERE ${typeSql} ${ancestorSql} ${modelFilterSql}`;
+    return Prisma.sql`WHERE ${typeSql} ${modelFilterSql}`;
   }
 
   private getAggregateQuery({
@@ -85,8 +75,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     paginationQuery: { skip, limit },
     appName,
     envName,
-    parentId,
-    ancestors,
     entityTypes,
     sortBy,
   }: {
@@ -95,18 +83,14 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     onlyProps?: string[];
     appName: string;
     envName: string;
-    parentId?: string;
-    ancestors: string[];
     entityTypes: string[];
     sortBy?: SortBy[];
   }): Sql {
     const whereClause = this.generateSqlQueryWhereClause({
       propFilters,
-      ancestors,
       appName,
       envName,
       entityTypes,
-      parentId,
     });
 
     const query = Prisma.sql`WITH Data AS (
@@ -168,8 +152,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     paginationQuery,
     appName,
     envName,
-    parentId,
-    ancestors,
     entityTypes,
   }: {
     propFilters: Record<string, unknown>;
@@ -177,8 +159,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     paginationQuery: { skip: number; limit: number };
     appName: string;
     envName: string;
-    parentId?: string;
-    ancestors: string[];
     entityTypes: string[];
   }): Promise<EntityAggregateResult> {
     const query = this.getAggregateQuery({
@@ -188,8 +168,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       paginationQuery,
       appName,
       envName,
-      parentId,
-      ancestors,
       sortBy: metaFilters?.sortBy,
     });
 
@@ -227,19 +205,14 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
 
   public async findEntitiesByIdsType({
     ids,
-    ancestors,
     type,
   }: {
     ids: string[];
     type: string;
-    ancestors: string[];
   }): Promise<Omit<Entity, "embedding">[]> {
     const entities = await this.prisma.entity.findMany({
       where: {
         id: { in: ids },
-        ancestors: {
-          hasEvery: ancestors,
-        },
         type,
       },
     });
@@ -251,7 +224,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
         extras: entity.extras
           ? (entity.extras as Record<string, unknown>)
           : undefined,
-        ancestors: entity.ancestors,
       };
     });
   }
@@ -328,23 +300,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     });
 
     return { done: deleted.count };
-  }
-
-  public async deleteSubEntitiesAndUpdateEnv({
-    ancestors,
-    appName,
-    envName,
-    entityTypes,
-    dbEnvironmentId,
-  }: {
-    appName: string;
-    envName: string;
-    entityTypes: string[];
-    ancestors: string[];
-    dbEnvironmentId: string;
-  }): Promise<{ done: number }> {
-    // TODO this method should be removed as we don't want to support sub entities
-    throw new Error("method not implemented");
   }
 
   public async deleteSingleEntityAndUpdateEnv({

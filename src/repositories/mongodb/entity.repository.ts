@@ -178,7 +178,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
           },
         },
       },
-      { $unset: ["_id", "ancestors", "model", "type", "embedding", "__v"] },
+      { $unset: ["_id", "model", "type", "embedding", "__v"] },
     ]);
   }
 
@@ -268,46 +268,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     });
   }
 
-  public async deleteSubEntitiesAndUpdateEnv({
-    ancestors,
-    appName,
-    envName,
-    entityTypes,
-    dbEnvironmentId,
-  }: {
-    appName: string;
-    envName: string;
-    entityTypes: string[];
-    ancestors: string[];
-    dbEnvironmentId: string;
-  }): Promise<{ done: number }> {
-    return this.transaction<{ done: number }>(async (session) => {
-      const entities = await this.entityModel.deleteMany(
-        {
-          ancestors: { $all: ancestors },
-          type: {
-            $regex: new RegExp(
-              `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`,
-            ),
-          },
-        },
-        { session },
-      );
-      await this.environmentModel.findOneAndUpdate(
-        { _id: new ObjectId(dbEnvironmentId) },
-        {
-          $pull: {
-            entities: {
-              $regex: new RegExp(`\\b(${entityTypes.join("/")})\\b`),
-            },
-          },
-        },
-        { session },
-      );
-      return { done: entities.deletedCount };
-    });
-  }
-
   public async deleteSingleEntityAndUpdateEnv({
     entityId,
     appName,
@@ -325,12 +285,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       const entity = await this.entityModel.findOne({ id: entityId });
       if (!entity) return null;
       await this.entityModel.deleteOne({ id: entityId }, { session });
-      await this.entityModel.deleteMany(
-        {
-          ancestors: { $elemMatch: { $eq: entityId } },
-        },
-        { session },
-      );
       // if deleted the last one of its type
       const entityCheck = await this.entityModel.find(
         {

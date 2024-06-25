@@ -83,7 +83,7 @@ export class PostgresTestApplicationHelper
     const orderBy = Prisma.sql`ORDER BY ${Prisma.raw(`${first}->'${second}'`)} ASC NULLS FIRST`;
     return this.prisma.$queryRaw<
       Entity[]
-    >`SELECT id, type, model, ancestors FROM public."Entity" WHERE id IN (${Prisma.join(ids)}) ${orderBy}`;
+    >`SELECT id, type, model FROM public."Entity" WHERE id IN (${Prisma.join(ids)}) ${orderBy}`;
   }
   async getEnvironmentFromDbByName(name: string): Promise<Environment | null> {
     const result = await this.prisma.environment.findFirst({

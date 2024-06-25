@@ -106,21 +106,18 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
 
     deepEqual(entitiesWithoutId, [
       {
-        ancestors: [],
         model: {
           prop: 3,
         },
         type: `${putAppName}/${putEnvironmentName}/${putEntityName}`,
       },
       {
-        ancestors: [],
         model: {
           secondProp: 3,
         },
         type: `${putAppName}/${putEnvironmentName}/${putEntityName}`,
       },
       {
-        ancestors: [],
         model: {
           newProp: 66,
           secondProp: 66,
@@ -155,7 +152,6 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
     deepEqual(
       entityFromDb.find((x) => x.id === createdEntityIds[2]),
       {
-        ancestors: [],
         id: createdEntityIds[2],
         model: {
           thirdProp: 3,
@@ -173,14 +169,12 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
 
     deepEqual(entitiesWithoutId, [
       {
-        ancestors: [],
         model: {
           newEntityProp: 3,
         },
         type: `${putAppName}/${putEnvironmentName}/${putEntityName}`,
       },
       {
-        ancestors: [],
         model: {
           newEntityProp: 6,
         },

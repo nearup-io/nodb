@@ -103,7 +103,6 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
 
     deepEqual(entitiesWithoutId, [
       {
-        ancestors: [],
         model: {
           // just attaching secondProp
           prop: 1,
@@ -112,7 +111,6 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
         type: `${patchAppName}/${patchEnvironmentName}/${patchEntityName}`,
       },
       {
-        ancestors: [],
         model: {
           // not updating at all
           prop: 3,
@@ -120,7 +118,6 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
         type: `${patchAppName}/${patchEnvironmentName}/${patchEntityName}`,
       },
       {
-        ancestors: [],
         model: {
           // replacing prop and attaching secondProp
           prop: 66,
@@ -153,7 +150,6 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
     ]);
 
     deepEqual(entityFromDb, {
-      ancestors: [],
       id: createdEntityIds[2],
       model: {
         prop: 3,
