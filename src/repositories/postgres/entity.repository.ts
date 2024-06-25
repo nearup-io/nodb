@@ -44,14 +44,14 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     propFilters,
     appName,
     envName,
-    entityTypes,
+    entityName,
   }: {
     propFilters: Record<string, unknown>;
     appName: string;
     envName: string;
-    entityTypes: string[];
+    entityName: string;
   }): Sql {
-    const type = `${appName}/${envName}/${entityTypes.join("/")}%`;
+    const type = `${appName}/${envName}/${entityName}%`;
     const typeSql = Prisma.sql`type LIKE ${type}`;
 
     const propFilterKeys = R.keys(propFilters);
@@ -75,7 +75,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     paginationQuery: { skip, limit },
     appName,
     envName,
-    entityTypes,
+    entityName,
     sortBy,
   }: {
     propFilters: Record<string, unknown>;
@@ -83,14 +83,14 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     onlyProps?: string[];
     appName: string;
     envName: string;
-    entityTypes: string[];
+    entityName: string;
     sortBy?: SortBy[];
   }): Sql {
     const whereClause = this.generateSqlQueryWhereClause({
       propFilters,
       appName,
       envName,
-      entityTypes,
+      entityName,
     });
 
     const query = Prisma.sql`WITH Data AS (
@@ -116,12 +116,12 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
 
   public async getSingleEntity({
     entityId,
-    entityTypes,
+    entityName,
     appName,
     envName,
   }: {
     entityId: string;
-    entityTypes: string[];
+    entityName: string;
     appName: string;
     envName: string;
   }): Promise<Entity | null> {
@@ -131,7 +131,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
         type: {
           // TODO why do we need the type here?
           // ids should be unique,
-          startsWith: `${appName}/${envName}/${entityTypes.join("/")}`,
+          startsWith: `${appName}/${envName}/${entityName}`,
         },
       },
     });
@@ -152,19 +152,19 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     paginationQuery,
     appName,
     envName,
-    entityTypes,
+    entityName,
   }: {
     propFilters: Record<string, unknown>;
     metaFilters?: EntityQueryMeta;
     paginationQuery: { skip: number; limit: number };
     appName: string;
     envName: string;
-    entityTypes: string[];
+    entityName: string;
   }): Promise<EntityAggregateResult> {
     const query = this.getAggregateQuery({
       propFilters,
       onlyProps: metaFilters?.only,
-      entityTypes,
+      entityName,
       paginationQuery,
       appName,
       envName,
@@ -233,7 +233,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     insertEntities,
     entitiesIdsToBeReplaced,
   }: {
-    entityTypes: string[];
+    entityName: string;
     dbEnvironmentId: string;
     insertEntities: Entity[];
     entitiesIdsToBeReplaced: string[];
@@ -308,7 +308,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     entityId: string;
     appName: string;
     envName: string;
-    entityTypes: string[];
+    entityName: string;
     dbEnvironmentId: string;
   }): Promise<Entity | null> {
     const entity = await this.prisma.entity.delete({
