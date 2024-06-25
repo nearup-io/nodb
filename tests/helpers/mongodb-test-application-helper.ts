@@ -23,9 +23,11 @@ export class MongodbTestApplicationHelper
   private readonly databaseName: string;
   constructor() {
     super();
-    this.mongoClient = new MongoClient(Bun.env.MONGODB_URL!);
-    this.databaseName = Bun.env
-      .MONGODB_URL!.split("/")
+    if (!Bun.env.MONGODB_URL) {
+      throw new Error("Missing Mongodb url env variable");
+    }
+    this.mongoClient = new MongoClient(Bun.env.MONGODB_URL);
+    this.databaseName = Bun.env.MONGODB_URL.split("/")
       .at(-1)!
       .split("?")
       .at(0)!;

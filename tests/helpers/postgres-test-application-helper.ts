@@ -16,15 +16,19 @@ export class PostgresTestApplicationHelper
 {
   private prismaClient: PrismaClient | undefined;
   private pgClient: Client;
+  private readonly dbName: string;
 
   constructor() {
     super();
+    const defaultDb = Bun.env.DEFAULT_POSTGRES_DATABASE_URL;
+    const testDatabaseUrl = Bun.env.POSTGRES_URL;
+
+    if (!defaultDb || !testDatabaseUrl) {
+      throw new Error("Missing default db environment variable");
+    }
+    this.dbName = testDatabaseUrl.split("/").at(-1)!;
     this.pgClient = new Client({
-      user: "postgres",
-      host: "localhost",
-      database: "postgres", // Connect to the default 'postgres' database
-      password: "postgres",
-      port: 5432,
+      connectionString: defaultDb,
     });
   }
 
@@ -34,23 +38,23 @@ export class PostgresTestApplicationHelper
 
   async init(): Promise<void> {
     await this.pgClient.connect();
-    await this.pgClient.query("CREATE DATABASE e2e_tests");
-    // Set new database Url
-    const databaseUrl = `postgresql://postgres:postgres@localhost:5432/e2e_tests`;
+    await this.pgClient.query(`CREATE DATABASE ${this.dbName}`);
     // Execute Prisma migrations
-    execSync("npx prisma migrate dev", { env: { POSTGRES_URL: databaseUrl } });
+    execSync("npx prisma migrate dev", {
+      env: { POSTGRES_URL: Bun.env.POSTGRES_URL! },
+    });
     this.application = await startApp({
-      postgresDatabaseUrl: databaseUrl,
+      postgresDatabaseUrl: Bun.env.POSTGRES_URL!,
     });
     this.prismaClient = new PrismaClient({
-      datasourceUrl: databaseUrl,
+      datasourceUrl: Bun.env.POSTGRES_URL!,
     });
   }
 
   async stopApplication(): Promise<void> {
     await this.prisma.$disconnect();
     await this.application!.stopApp();
-    await this.pgClient.query("DROP DATABASE e2e_tests");
+    await this.pgClient.query(`DROP DATABASE ${this.dbName}`);
     await this.pgClient.end();
   }
 
