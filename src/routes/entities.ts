@@ -85,8 +85,8 @@ app.get("/*", entityQueryValidator(), async (c) => {
   }
 });
 
-app.post("/*", async (c) => {
-  const { appName, envName } = c.req.param();
+app.post("/", async (c) => {
+  const { appName, envName, entityName } = c.req.param();
 
   const body = (await asyncTryJson(c.req.json())) as PostEntityRequestDto[];
   if (!Array.isArray(body)) {
@@ -95,19 +95,11 @@ app.post("/*", async (c) => {
     });
   }
   try {
-    const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
-      c.req.path,
-      c.req.param(),
-    );
-
-    if (!isEntitiesList(pathRestSegments)) {
-      throw new RoutingError(httpError.ENTITY_PATH_CREATION);
-    }
     const ids = await createOrOverwriteEntities({
       context: c.get("context"),
       appName,
       envName,
-      xpathEntitySegments,
+      entityName,
       bodyEntities: body,
     });
     c.status(201);
@@ -125,33 +117,49 @@ app.post("/*", async (c) => {
   }
 });
 
-app.delete("/*", async (c) => {
+app.delete("/", async (c) => {
   const { appName, envName, entityName } = c.req.param();
-  const { pathRestSegments, xpathEntitySegments } = getCommonEntityRouteProps(
-    c.req.path,
-    c.req.param(),
-  );
   const context = c.get("context");
   try {
-    if (R.isEmpty(pathRestSegments)) {
-      const res = await deleteRootAndUpdateEnv({
-        context,
-        appName,
-        envName,
-        entityName,
-      });
-      return c.json({ deleted: res.done });
+    const res = await deleteRootAndUpdateEnv({
+      context,
+      appName,
+      envName,
+      entityName,
+    });
+    return c.json({ deleted: res.done });
+  } catch (error) {
+    if (error instanceof ServiceError) {
+      if (error.explicitMessage === httpError.ENV_DOESNT_EXIST) {
+        throw new HTTPException(404, {
+          message: error.explicitMessage,
+        });
+      } else {
+        throw new HTTPException(400, {
+          message: error.explicitMessage,
+        });
+      }
     } else {
-      // delete single entity
-      const res = await deleteSingleEntityAndUpdateEnv({
-        context,
-        appName,
-        envName,
-        xpathEntitySegments,
+      throw new HTTPException(500, {
+        message: httpError.UNKNOWN,
       });
-
-      return c.json({ deleted: !!res });
     }
+  }
+});
+
+app.delete("/:entityId", async (c) => {
+  const { appName, envName, entityName, entityId } = c.req.param();
+  const context = c.get("context");
+  try {
+    const res = await deleteSingleEntityAndUpdateEnv({
+      context,
+      appName,
+      envName,
+      entityName,
+      entityId,
+    });
+
+    return c.json({ deleted: !!res });
   } catch (error) {
     if (error instanceof ServiceError) {
       if (error.explicitMessage === httpError.ENV_DOESNT_EXIST) {
@@ -172,11 +180,8 @@ app.delete("/*", async (c) => {
 });
 
 app.put("/*", async (c) => {
-  const { appName, envName } = c.req.param();
-  const { xpathEntitySegments } = getCommonEntityRouteProps(
-    c.req.path,
-    c.req.param(),
-  );
+  const { appName, envName, entityName } = c.req.param();
+
   const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
   if (!Array.isArray(bodyEntities)) {
     throw new HTTPException(400, {
@@ -188,7 +193,7 @@ app.put("/*", async (c) => {
       context: c.get("context"),
       appName,
       envName,
-      xpathEntitySegments,
+      entityName,
       bodyEntities,
     });
 
@@ -206,12 +211,8 @@ app.put("/*", async (c) => {
   }
 });
 
-app.patch("/*", async (c) => {
-  const { appName, envName } = c.req.param();
-  const { xpathEntitySegments } = getCommonEntityRouteProps(
-    c.req.path,
-    c.req.param(),
-  );
+app.patch("/", async (c) => {
+  const { appName, envName, entityName } = c.req.param();
   const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
   if (!Array.isArray(bodyEntities)) {
     throw new HTTPException(400, {
@@ -223,7 +224,7 @@ app.patch("/*", async (c) => {
       context: c.get("context"),
       appName,
       envName,
-      xpathEntitySegments,
+      entityName,
       bodyEntities,
     });
 

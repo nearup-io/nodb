@@ -70,7 +70,7 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
         token: jwtToken,
         body: [{ prop: "value" }],
       });
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(404);
     });
 
     test("when environment does not exist", async () => {

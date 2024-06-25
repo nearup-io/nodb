@@ -196,12 +196,12 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
   }
 
   public async createOrOverwriteEntities({
-    entityTypes,
+    entityName,
     dbEnvironmentId,
     insertEntities,
     entitiesIdsToBeReplaced,
   }: {
-    entityTypes: string[];
+    entityName: string;
     dbEnvironmentId: string;
     insertEntities: Entity[];
     entitiesIdsToBeReplaced: string[];
@@ -213,7 +213,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       );
       await this.environmentModel.findOneAndUpdate(
         { _id: new ObjectId(dbEnvironmentId) },
-        { $addToSet: { entities: entityTypes.join("/") } },
+        { $addToSet: { entities: entityName } },
         { session },
       );
       await this.entityModel.insertMany(insertEntities, { session });
@@ -271,14 +271,14 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
   public async deleteSingleEntityAndUpdateEnv({
     entityId,
     appName,
-    entityTypes,
+    entityName,
     envName,
     dbEnvironmentId,
   }: {
     entityId: string;
     appName: string;
     envName: string;
-    entityTypes: string[];
+    entityName: string;
     dbEnvironmentId: string;
   }): Promise<Entity | null> {
     return this.transaction<Entity | null>(async (session) => {
@@ -288,7 +288,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       // if deleted the last one of its type
       const entityCheck = await this.entityModel.find(
         {
-          type: { $regex: `${appName}/${envName}/${entityTypes.join("/")}` },
+          type: { $regex: `${appName}/${envName}/${entityName}` },
         },
         null,
         { session },
@@ -298,9 +298,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
           { _id: new ObjectId(dbEnvironmentId) },
           {
             $pull: {
-              entities: {
-                $regex: new RegExp(`\\b(${entityTypes.join("/")})\\b`),
-              },
+              entities: entityName,
             },
           },
           { session },
