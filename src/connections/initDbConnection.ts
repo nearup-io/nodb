@@ -1,17 +1,15 @@
 import createPrismaClient from "./postgresdb.ts";
-import mongoConnect from "./mongodb.ts";
 import type { PrismaClient } from "@prisma/client";
 
 async function initDbConnection(props?: {
   postgresDatabaseUrl?: string;
-}): Promise<PrismaClient | undefined> {
+}): Promise<PrismaClient> {
   if (!!props?.postgresDatabaseUrl || !!Bun.env.POSTGRES_URL) {
     return createPrismaClient(
       props?.postgresDatabaseUrl ?? Bun.env.POSTGRES_URL!,
     );
-  } else {
-    await mongoConnect();
   }
+  throw new Error("POSTGRES URL MISSING");
 }
 
 export default initDbConnection;
