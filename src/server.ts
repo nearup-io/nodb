@@ -42,7 +42,8 @@ export const startApp = async (props?: {
   return {
     app,
     stopApp: async () => {
-      await db?.$disconnect();
+      await db.$disconnect();
+      console.log("Disconnected from app database");
     },
   };
 };

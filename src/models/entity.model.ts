@@ -1,34 +1,3 @@
-import mongoose, { Schema } from "mongoose";
-
-export const EntitySchema = new Schema(
-  {
-    id: {
-      type: String,
-      required: true,
-      unique: true,
-      index: true,
-    },
-    type: {
-      type: String,
-      required: true,
-      index: true,
-    },
-    extras: {
-      type: Object,
-      required: false,
-    },
-    model: {
-      type: Object,
-      required: false,
-    },
-    embedding: {
-      type: [{ type: Number }],
-      required: false,
-    },
-  },
-  { _id: false },
-);
-
 export type Entity = {
   id: string;
   type: string;
@@ -36,6 +5,3 @@ export type Entity = {
   extras?: Record<string, unknown>;
   embedding?: number[] | null;
 };
-
-const Entity = mongoose.model("Entity", EntitySchema);
-export default Entity;

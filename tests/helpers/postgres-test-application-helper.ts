@@ -49,6 +49,7 @@ export class PostgresTestApplicationHelper
     this.prismaClient = new PrismaClient({
       datasourceUrl: Bun.env.POSTGRES_URL!,
     });
+    console.log("Database created...");
   }
 
   async stopApplication(): Promise<void> {
@@ -56,6 +57,7 @@ export class PostgresTestApplicationHelper
     await this.application!.stopApp();
     await this.pgClient.query(`DROP DATABASE ${this.dbName}`);
     await this.pgClient.end();
+    console.log("Database dropped...");
   }
 
   async insertUser(
