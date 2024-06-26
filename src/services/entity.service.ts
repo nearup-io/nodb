@@ -9,11 +9,7 @@ import generateToken from "../utils/backend-token";
 import { ENTITY_REPOSITORY, httpError, llms } from "../utils/const";
 import {
   entityMetaResponse,
-  getAncestors,
-  getEntityTypes,
   getPaginationNumbers,
-  isTypePathCorrect,
-  throwIfNoParent,
 } from "../utils/entity-utils";
 import { ServiceError } from "../utils/service-errors";
 import type {
@@ -110,14 +106,12 @@ const searchAiEntities = async ({
 
 export const getEntities = async ({
   context,
-  xpathEntitySegments,
   propFilters,
   metaFilters,
   rawQuery,
-  routeParams: { appName, envName },
+  routeParams: { appName, envName, entityName },
 }: {
   context: Context;
-  xpathEntitySegments: string[];
   propFilters: Record<string, unknown>;
   metaFilters: EntityQueryMeta;
   rawQuery: Record<string, string>;
@@ -127,25 +121,18 @@ export const getEntities = async ({
     page: metaFilters?.page,
     perPage: metaFilters?.perPage,
   });
-  const parentId =
-    xpathEntitySegments.length > 1 ? R.nth(-2, xpathEntitySegments) : undefined;
-  const ancestors = getAncestors(xpathEntitySegments);
-  const entityTypes = getEntityTypes(xpathEntitySegments);
 
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
   const fromDb = await entityRepository.getEntities({
     propFilters,
     metaFilters,
-    entityTypes,
+    entityName,
     appName,
     envName,
-    parentId,
-    ancestors,
     paginationQuery,
   });
 
-  const entityName = entityTypes.at(-1)!;
   const { totalCount, entities } = fromDb;
   if (!entities || R.isEmpty(entities)) {
     return { [entityName]: [] };
@@ -157,7 +144,7 @@ export const getEntities = async ({
       paginationQuery,
       appName,
       envName,
-      xpathEntitySegments,
+      entityName,
       totalCount,
       entityCount: entities.length,
     }),
@@ -168,7 +155,7 @@ export const getEntities = async ({
     ...R.pick(metaFilters?.only || R.keys(entity.model), entity.model),
     __meta: entityMetaResponse({
       hasMeta: metaFilters?.hasMeta,
-      xpathEntitySegments,
+      entityName,
       appName,
       envName,
       id: entity.id,
@@ -183,18 +170,14 @@ export const getEntities = async ({
 
 const getSingleEntity = async ({
   context,
-  requestParams: { appName, envName },
+  requestParams: { appName, envName, entityName, entityId },
   metaFilters,
-  entityId,
-  xpathEntitySegments,
   xpath,
 }: {
   context: Context;
   xpath: string;
-  requestParams: EntityRouteParams;
+  requestParams: EntityRouteParams & { entityId: string };
   metaFilters: EntityQueryMeta;
-  entityId: string;
-  xpathEntitySegments: string[];
 }) => {
   const environment = await findEnvironment({
     appName,
@@ -204,13 +187,12 @@ const getSingleEntity = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const entityTypes = getEntityTypes(xpathEntitySegments);
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
   const entity = await entityRepository.getSingleEntity({
     entityId,
     appName,
     envName,
-    entityTypes,
+    entityName,
   });
   if (!entity) {
     throw new ServiceError(httpError.ENTITY_NOT_FOUND);
@@ -226,22 +208,7 @@ const getSingleEntity = async ({
     __meta: !metaFilters.hasMeta
       ? undefined
       : {
-          self: `/${xpath}`,
-          subtypes: environment.entities
-            ?.filter((x) => x.includes(`${entityTypes.join("/")}/`))
-            .reduce<Record<string, string>>((acc, curr) => {
-              const lastEntityType = entityTypes.at(-1)!;
-              const splitEntityType = curr.split("/");
-              const index = splitEntityType.findIndex(
-                (x) => x === lastEntityType,
-              );
-              // this is used to restrict the subTypes information to only 1 layer
-              if (splitEntityType.length - 2 !== index) return acc;
-
-              const subEntityName = splitEntityType.at(-1)!;
-              acc[subEntityName] = `/${xpath}/${subEntityName}`;
-              return acc;
-            }, {}),
+          self: xpath.replace("/apps", ""),
         },
   };
 };
@@ -250,13 +217,13 @@ const createOrOverwriteEntities = async ({
   context,
   appName,
   envName,
-  xpathEntitySegments,
+  entityName,
   bodyEntities,
 }: {
   context: Context;
   appName: string;
   envName: string;
-  xpathEntitySegments: string[];
+  entityName: string;
   bodyEntities: PostEntityRequestDto[];
 }): Promise<string[]> => {
   const environment = await findEnvironment({
@@ -267,18 +234,6 @@ const createOrOverwriteEntities = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const parentIdFromXpath = R.nth(-2, xpathEntitySegments);
-  const entityTypes = getEntityTypes(xpathEntitySegments);
-  const ancestors = getAncestors(xpathEntitySegments);
-  if (xpathEntitySegments.length > 1 && parentIdFromXpath) {
-    await throwIfNoParent(parentIdFromXpath);
-    const isPathOk = environment.entities
-      ? isTypePathCorrect(environment.entities, xpathEntitySegments.join("/"))
-      : true;
-    if (!isPathOk) {
-      throw new ServiceError(httpError.ENTITY_PATH);
-    }
-  }
   const entitiesIdsToBeReplaced: string[] = bodyEntities
     .filter((entity) => !!entity.id)
     .map((entity) => entity.id!);
@@ -286,7 +241,7 @@ const createOrOverwriteEntities = async ({
   for (let bodyEntity of bodyEntities) {
     const embeddingInput = {
       ...bodyEntity,
-      __vector_title: R.last(entityTypes),
+      __vector_title: entityName,
     };
     const input = JSON.stringify(embeddingInput);
     const embedding = await getEmbedding(input);
@@ -295,8 +250,7 @@ const createOrOverwriteEntities = async ({
     insertEntities.push({
       id,
       model: { ...entityWithoutId },
-      type: `${appName}/${envName}/${entityTypes.join("/")}`,
-      ancestors,
+      type: `${appName}/${envName}/${entityName}`,
       embedding,
     });
   }
@@ -306,7 +260,7 @@ const createOrOverwriteEntities = async ({
   try {
     return await entityRepository.createOrOverwriteEntities({
       entitiesIdsToBeReplaced,
-      entityTypes,
+      entityName,
       dbEnvironmentId: environment.id,
       insertEntities,
     });
@@ -350,59 +304,18 @@ const deleteRootAndUpdateEnv = async ({
   }
 };
 
-const deleteSubEntitiesAndUpdateEnv = async ({
-  context,
-  appName,
-  envName,
-  xpathEntitySegments,
-}: {
-  context: Context;
-  appName: string;
-  envName: string;
-  xpathEntitySegments: string[];
-}): Promise<{ done: number }> => {
-  const environment = await findEnvironment({
-    context,
-    appName,
-    envName,
-  });
-  if (!environment) {
-    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
-  }
-  const entityTypes = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 === 0,
-  );
-  const ancestors = xpathEntitySegments.filter(
-    (_: any, i: number) => i % 2 !== 0,
-  );
-
-  const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
-
-  try {
-    return entityRepository.deleteSubEntitiesAndUpdateEnv({
-      appName,
-      envName,
-      entityTypes,
-      dbEnvironmentId: environment.id,
-      ancestors,
-    });
-  } catch (e) {
-    console.error("Error deleting entities", e);
-    throw new ServiceError(httpError.ENTITIES_CANT_DELETE);
-  } finally {
-  }
-};
-
 const deleteSingleEntityAndUpdateEnv = async ({
   context,
   appName,
   envName,
-  xpathEntitySegments,
+  entityName,
+  entityId,
 }: {
   context: Context;
   appName: string;
   envName: string;
-  xpathEntitySegments: string[];
+  entityName: string;
+  entityId: string;
 }): Promise<Entity | null> => {
   const environment = await findEnvironment({
     context,
@@ -412,15 +325,13 @@ const deleteSingleEntityAndUpdateEnv = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST);
   }
-  const entityTypes = getEntityTypes(xpathEntitySegments);
-  const entityId = R.last(xpathEntitySegments)!;
 
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
   try {
     return entityRepository.deleteSingleEntityAndUpdateEnv({
       appName,
       envName,
-      entityTypes,
+      entityName,
       entityId,
       dbEnvironmentId: environment.id,
     });
@@ -434,13 +345,13 @@ const replaceEntities = async ({
   context,
   appName,
   envName,
-  xpathEntitySegments,
+  entityName,
   bodyEntities,
 }: {
   context: Context;
   appName: string;
   envName: string;
-  xpathEntitySegments: string[];
+  entityName: string;
   bodyEntities: EntityRequestDto[];
 }) => {
   const environment = await findEnvironment({
@@ -453,16 +364,12 @@ const replaceEntities = async ({
   }
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
-  const entityTypes = getEntityTypes(xpathEntitySegments);
-  const ancestors = getAncestors(xpathEntitySegments);
   const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
 
-  const dbExistingDocuments =
-    await entityRepository.findEntitiesByIdsTypeAndAncestors({
-      ids: documentIds,
-      type: `${appName}/${envName}/${entityTypes.join("/")}`,
-      ancestors,
-    });
+  const dbExistingDocuments = await entityRepository.findEntitiesByIdsType({
+    ids: documentIds,
+    type: `${appName}/${envName}/${entityName}`,
+  });
 
   if (
     R.isEmpty(dbExistingDocuments) &&
@@ -475,7 +382,7 @@ const replaceEntities = async ({
   for (let bodyEntity of bodyEntities) {
     const embeddingInput = {
       ...R.omit(["id"], bodyEntity),
-      __vector_title: R.last(entityTypes),
+      __vector_title: entityName,
     };
     const input = JSON.stringify(embeddingInput);
     const embedding = await getEmbedding(input);
@@ -484,8 +391,7 @@ const replaceEntities = async ({
     entitiesToBeInserted.push({
       id,
       model: { ...entityWithoutId },
-      type: `${appName}/${envName}/${entityTypes.join("/")}`,
-      ancestors,
+      type: `${appName}/${envName}/${entityName}`,
       embedding,
     });
   }
@@ -505,13 +411,13 @@ const updateEntities = async ({
   context,
   appName,
   envName,
-  xpathEntitySegments,
+  entityName,
   bodyEntities,
 }: {
   context: Context;
   appName: string;
   envName: string;
-  xpathEntitySegments: string[];
+  entityName: string;
   bodyEntities: EntityRequestDto[];
 }) => {
   const environment = await findEnvironment({
@@ -524,15 +430,11 @@ const updateEntities = async ({
   }
 
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
-  const entityTypes = getEntityTypes(xpathEntitySegments);
-  const ancestors = getAncestors(xpathEntitySegments);
   const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
-  const dbExistingDocuments =
-    await entityRepository.findEntitiesByIdsTypeAndAncestors({
-      ids: documentIds,
-      type: `${appName}/${envName}/${entityTypes.join("/")}`,
-      ancestors,
-    });
+  const dbExistingDocuments = await entityRepository.findEntitiesByIdsType({
+    ids: documentIds,
+    type: `${appName}/${envName}/${entityName}`,
+  });
   if (R.isEmpty(dbExistingDocuments)) {
     throw new ServiceError(httpError.ENTITY_NOT_FOUND);
   }
@@ -545,7 +447,7 @@ const updateEntities = async ({
     )!;
     const embeddingInput = {
       ...{ ...entity.model, ...propsToBeReplaced },
-      __vector_title: R.last(entityTypes),
+      __vector_title: entityName,
     };
     const input = JSON.stringify(embeddingInput);
     const embedding = await getEmbedding(input);
@@ -554,7 +456,6 @@ const updateEntities = async ({
       id: entity.id,
       model: { ...entity.model, ...propsToBeReplaced },
       type: entity.type,
-      ancestors: entity.ancestors,
       embedding,
     });
   }
@@ -574,12 +475,12 @@ const generatePaginationMetadata = ({
   rawQuery,
   appName,
   envName,
-  xpathEntitySegments,
+  entityName,
   paginationQuery: { skip, limit },
   totalCount,
   entityCount,
 }: {
-  xpathEntitySegments: string[];
+  entityName: string;
   appName: string;
   envName: string;
   rawQuery: Record<string, string>;
@@ -598,7 +499,7 @@ const generatePaginationMetadata = ({
   const nextPage = currentPage + 1 > totalPages ? undefined : currentPage + 1;
   const previousPage = currentPage - 1 < 1 ? undefined : currentPage - 1;
 
-  const baseUrl = `/${appName}/${envName}/${xpathEntitySegments.join("/")}`;
+  const baseUrl = `/${appName}/${envName}/${entityName}`;
   return {
     totalCount,
     items: entityCount,
@@ -631,7 +532,6 @@ export {
   replaceEntities,
   updateEntities,
   deleteRootAndUpdateEnv,
-  deleteSubEntitiesAndUpdateEnv,
   deleteSingleEntityAndUpdateEnv,
   searchEntities,
   searchAiEntities,

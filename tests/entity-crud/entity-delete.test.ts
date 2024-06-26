@@ -92,7 +92,6 @@ describe("DELETE /apps/:appName/:envName/:entityName", () => {
 
     expect(entitiesFromDb).toBeArrayOfSize(1);
     deepEqual(R.omit(["id"], entitiesFromDb[0]), {
-      ancestors: [],
       model: {
         prop: 2,
       },

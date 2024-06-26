@@ -61,7 +61,7 @@ export interface IEnvironmentRepository {
 export interface IEntityRepository {
   getSingleEntity(props: {
     entityId: string;
-    entityTypes: string[];
+    entityName: string;
     appName: string;
     envName: string;
   }): Promise<Entity | null>;
@@ -71,9 +71,7 @@ export interface IEntityRepository {
     paginationQuery: { skip: number; limit: number };
     appName: string;
     envName: string;
-    parentId?: string;
-    ancestors: string[];
-    entityTypes: string[];
+    entityName: string;
   }): Promise<EntityAggregateResult>;
   searchEntities(props: {
     embedding: number[];
@@ -81,13 +79,12 @@ export interface IEntityRepository {
     limit: number;
     entityType?: string;
   }): Promise<Record<string, unknown>[]>;
-  findEntitiesByIdsTypeAndAncestors(props: {
+  findEntitiesByIdsType(props: {
     ids: string[];
     type: string;
-    ancestors: string[];
   }): Promise<Omit<Entity, "embedding">[]>;
   createOrOverwriteEntities(props: {
-    entityTypes: string[];
+    entityName: string;
     dbEnvironmentId: string;
     insertEntities: Entity[];
     entitiesIdsToBeReplaced: string[];
@@ -102,18 +99,11 @@ export interface IEntityRepository {
     entityName: string;
     dbEnvironmentId: string;
   }): Promise<{ done: number }>;
-  deleteSubEntitiesAndUpdateEnv(props: {
-    appName: string;
-    envName: string;
-    entityTypes: string[];
-    ancestors: string[];
-    dbEnvironmentId: string;
-  }): Promise<{ done: number }>;
   deleteSingleEntityAndUpdateEnv(props: {
     entityId: string;
     appName: string;
     envName: string;
-    entityTypes: string[];
+    entityName: string;
     dbEnvironmentId: string;
   }): Promise<Entity | null>;
 }

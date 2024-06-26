@@ -52,18 +52,14 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     paginationQuery: { skip, limit },
     appName,
     envName,
-    parentId,
-    ancestors,
-    entityTypes,
+    entityName,
   }: {
     modelFilters: Record<string, unknown>;
     metaFilters?: EntityQueryMeta;
     paginationQuery: { skip: number; limit: number };
     appName: string;
     envName: string;
-    parentId?: string;
-    ancestors: string[];
-    entityTypes: string[];
+    entityName: string;
   }): PipelineStage[] => {
     const paginationQuery = [{ $skip: skip }, { $limit: limit }];
     const sortQuery = this.getSortDbQuery(metaFilters?.sortBy);
@@ -73,11 +69,8 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     return [
       {
         $match: {
-          ancestors: parentId === undefined ? [] : ancestors,
           type: {
-            $regex: new RegExp(
-              `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`,
-            ),
+            $regex: new RegExp(`\\b(${appName}/${envName}/${entityName})\\b`),
           },
           ...modelFilters,
         },
@@ -101,21 +94,19 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
 
   public async getSingleEntity({
     entityId,
-    entityTypes,
+    entityName,
     appName,
     envName,
   }: {
     entityId: string;
-    entityTypes: string[];
+    entityName: string;
     appName: string;
     envName: string;
   }): Promise<Entity | null> {
     return this.entityModel.findOne({
       id: entityId,
       type: {
-        $regex: new RegExp(
-          `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`,
-        ),
+        $regex: new RegExp(`\\b(${appName}/${envName}/${entityName})\\b`),
       },
     });
   }
@@ -126,29 +117,23 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     paginationQuery,
     appName,
     envName,
-    parentId,
-    ancestors,
-    entityTypes,
+    entityName,
   }: {
     propFilters: Record<string, unknown>;
     metaFilters?: EntityQueryMeta;
     paginationQuery: { skip: number; limit: number };
     appName: string;
     envName: string;
-    parentId?: string;
-    ancestors: string[];
-    entityTypes: string[];
+    entityName: string;
   }): Promise<EntityAggregateResult> {
     const modelFilters = this.toModelFilters(propFilters);
     const aggregateQuery = this.getAggregateQuery({
       modelFilters,
       metaFilters,
-      entityTypes,
+      entityName,
       paginationQuery,
       appName,
       envName,
-      parentId,
-      ancestors,
     });
 
     const result =
@@ -189,33 +174,30 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
           },
         },
       },
-      { $unset: ["_id", "ancestors", "model", "type", "embedding", "__v"] },
+      { $unset: ["_id", "model", "type", "embedding", "__v"] },
     ]);
   }
 
-  public async findEntitiesByIdsTypeAndAncestors({
+  public async findEntitiesByIdsType({
     ids,
-    ancestors,
     type,
   }: {
     ids: string[];
     type: string;
-    ancestors: string[];
   }): Promise<Omit<Entity, "embedding">[]> {
     return this.entityModel.find({
       id: { $in: ids },
       type,
-      ancestors,
     });
   }
 
   public async createOrOverwriteEntities({
-    entityTypes,
+    entityName,
     dbEnvironmentId,
     insertEntities,
     entitiesIdsToBeReplaced,
   }: {
-    entityTypes: string[];
+    entityName: string;
     dbEnvironmentId: string;
     insertEntities: Entity[];
     entitiesIdsToBeReplaced: string[];
@@ -227,7 +209,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
       );
       await this.environmentModel.findOneAndUpdate(
         { _id: new ObjectId(dbEnvironmentId) },
-        { $addToSet: { entities: entityTypes.join("/") } },
+        { $addToSet: { entities: entityName } },
         { session },
       );
       await this.entityModel.insertMany(insertEntities, { session });
@@ -282,73 +264,27 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     });
   }
 
-  public async deleteSubEntitiesAndUpdateEnv({
-    ancestors,
-    appName,
-    envName,
-    entityTypes,
-    dbEnvironmentId,
-  }: {
-    appName: string;
-    envName: string;
-    entityTypes: string[];
-    ancestors: string[];
-    dbEnvironmentId: string;
-  }): Promise<{ done: number }> {
-    return this.transaction<{ done: number }>(async (session) => {
-      const entities = await this.entityModel.deleteMany(
-        {
-          ancestors: { $all: ancestors },
-          type: {
-            $regex: new RegExp(
-              `\\b(${appName}/${envName}/${entityTypes.join("/")})\\b`,
-            ),
-          },
-        },
-        { session },
-      );
-      await this.environmentModel.findOneAndUpdate(
-        { _id: new ObjectId(dbEnvironmentId) },
-        {
-          $pull: {
-            entities: {
-              $regex: new RegExp(`\\b(${entityTypes.join("/")})\\b`),
-            },
-          },
-        },
-        { session },
-      );
-      return { done: entities.deletedCount };
-    });
-  }
-
   public async deleteSingleEntityAndUpdateEnv({
     entityId,
     appName,
-    entityTypes,
+    entityName,
     envName,
     dbEnvironmentId,
   }: {
     entityId: string;
     appName: string;
     envName: string;
-    entityTypes: string[];
+    entityName: string;
     dbEnvironmentId: string;
   }): Promise<Entity | null> {
     return this.transaction<Entity | null>(async (session) => {
       const entity = await this.entityModel.findOne({ id: entityId });
       if (!entity) return null;
       await this.entityModel.deleteOne({ id: entityId }, { session });
-      await this.entityModel.deleteMany(
-        {
-          ancestors: { $elemMatch: { $eq: entityId } },
-        },
-        { session },
-      );
       // if deleted the last one of its type
       const entityCheck = await this.entityModel.find(
         {
-          type: { $regex: `${appName}/${envName}/${entityTypes.join("/")}` },
+          type: { $regex: `${appName}/${envName}/${entityName}` },
         },
         null,
         { session },
@@ -358,9 +294,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
           { _id: new ObjectId(dbEnvironmentId) },
           {
             $pull: {
-              entities: {
-                $regex: new RegExp(`\\b(${entityTypes.join("/")})\\b`),
-              },
+              entities: entityName,
             },
           },
           { session },

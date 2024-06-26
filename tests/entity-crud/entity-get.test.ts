@@ -84,7 +84,6 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
       deepEqual(await response.json(), {
         __meta: {
           self: `/${appName}/${environmentName}/${entityName}/${requestedEntityId}`,
-          subtypes: {},
         },
         id: requestedEntityId,
         ...requestedEntity,
@@ -100,7 +99,6 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
       deepEqual(await response.json(), {
         __meta: {
           self: `/${appName}/${environmentName}/${entityName}/${requestedEntityId}`,
-          subtypes: {},
         },
         id: requestedEntityId,
         ...R.pick(["prop1"], requestedEntity),
