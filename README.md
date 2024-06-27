@@ -64,7 +64,7 @@ Before you can do a semantic search or RAG you must create vector search index f
 
 ## Tests
 
-Check out our [wiki page](https://github.com/nearup-io/nodb/wiki/E2E-tests) for e2e tests
+Check out our [wiki page](https://github.com/nearup-io/nodb/wiki/E2E-tests-%E2%80%90-postgres) for e2e tests
 
 #### Contact
 
