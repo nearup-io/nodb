@@ -1,3 +1,5 @@
 import { startApp } from "./server.ts";
 
-await startApp();
+const {app} = await startApp();
+
+export default app;
