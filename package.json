@@ -3,7 +3,7 @@
   "module": "src/app.ts",
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development bun --hot src/app.ts",
+    "dev": "cross-env NODE_ENV=development bun --hot src/app.ts",
     "start": "bun src/app.ts",
     "e2e-app-tests-postgres": "bun test app --env-file=.env.postgres.test",
     "e2e-env-tests-postgres": "bun test environment --env-file=.env.postgres.test",
@@ -19,6 +19,7 @@
     "@types/ramda": "^0.29.12",
     "@types/react": "^18.2.74",
     "@types/react-dom": "^18.2.24",
+    "cross-env": "^7.0.3",
     "pg": "^8.12.0",
     "prettier": "3.2.5",
     "prisma": "^5.15.0"
@@ -30,6 +31,7 @@
     "@anthropic-ai/sdk": "^0.22.0",
     "@clerk/backend": "^1.2.1",
     "@hono/clerk-auth": "^2.0.0",
+    "@hono/node-server": "^1.11.4",
     "@langchain/openai": "^0.0.28",
     "@prisma/client": "5.15.0",
     "assert": "^2.1.0",
