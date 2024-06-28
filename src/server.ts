@@ -22,6 +22,8 @@ export const startApp = async (props?: {
   }
 
   const db = await initDbConnection(props);
+  await db.$connect();
+  console.log("connected to database");
   app.use(
     cors({
       origin: ["http://localhost:5173"],
