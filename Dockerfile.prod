@@ -1,7 +1,8 @@
-FROM oven/bun:latest
+FROM node:20
 
 WORKDIR /usr/src/app
 
+RUN npm install -g bun
 COPY package*.json bun.lockb ./
 RUN bun install --frozen-lockfile
 RUN bun generate
@@ -9,4 +10,4 @@ COPY . .
 
 ENV NODE_ENV production
 
-CMD ["bun", "start"]
+CMD ["bun", "migrate-and-start:prod"]
