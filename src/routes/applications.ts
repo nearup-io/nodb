@@ -22,13 +22,18 @@ const app = new Hono<{
 
 app.get("/all", async (c) => {
   const user = c.get("user");
-
-  const apps = await getUserApplications({
-    context: c.get("context"),
-    clerkId: user.clerkId,
-  });
-
-  return c.json(apps);
+  try {
+    const apps = await getUserApplications({
+      context: c.get("context"),
+      clerkId: user.clerkId,
+    });
+    return c.json(apps);
+  } catch (e) {
+    console.log(e);
+    throw new HTTPException(500, {
+      message: "Unknown error",
+    });
+  }
 });
 
 app.get("/:appName", async (c) => {
