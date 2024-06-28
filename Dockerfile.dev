@@ -1,12 +1,13 @@
-FROM oven/bun:latest
+FROM node:20
 
 WORKDIR /usr/src/app
 
+RUN npm install -g bun
 COPY package*.json bun.lockb ./
 RUN bun install
 RUN bun generate
 COPY . .
 
-ENV NODE_ENV production
+ENV NODE_ENV development
 
-CMD ["bun", "dev"]
+CMD ["bun", "migrate-and-start:dev"]

@@ -10,7 +10,9 @@
     "e2e-entity-tests-postgres": "bun test entity --env-file=.env.postgres.test",
     "e2e-tests-all-postgres": "bun test --env-file=.env.postgres.test",
     "migrate": "npx prisma migrate dev",
-    "generate": "npx prisma generate"
+    "generate": "npx prisma generate",
+    "migrate-and-start:dev": "npx prisma migrate dev && bun run dev",
+    "migrate-and-start:prod": "npx prisma migrate deploy && bun run start"
   },
   "devDependencies": {
     "@types/bun": "latest",
