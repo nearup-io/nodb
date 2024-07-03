@@ -1,4 +1,4 @@
-type Token = {
+export type Token = {
   key: string;
   permission: "ALL" | "READ_ONLY";
 };

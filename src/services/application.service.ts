@@ -4,9 +4,8 @@ import { APPLICATION_REPOSITORY, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 import type Context from "../middlewares/context.ts";
 import type { IApplicationRepository } from "../repositories/interfaces.ts";
-import { type Environment } from "../models/environment.model.ts";
+import { type Environment, type Token } from "../models/environment.model.ts";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import type { Token } from "@prisma/client";
 
 const getApplication = async ({
   context,
@@ -56,12 +55,14 @@ const createApplication = async ({
   clerkId,
   image,
   appDescription,
+  environmentName,
 }: {
   context: Context;
   appName: string;
   clerkId?: string;
   image: string;
   appDescription: string;
+  environmentName?: string;
 }): Promise<{
   applicationName: string;
   environmentName: string;
@@ -72,12 +73,14 @@ const createApplication = async ({
   );
 
   try {
-    return repository.createApplication({
+    const result = await repository.createApplication({
       appName,
       clerkId,
       image,
       appDescription,
+      environmentName,
     });
+    return result;
   } catch (e: any) {
     if (e instanceof PrismaClientKnownRequestError && e.code === "P2002") {
       throw new ServiceError(httpError.APPNAME_EXISTS);

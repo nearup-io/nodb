@@ -1,5 +1,6 @@
 import type { User } from "../models/user.model.ts";
 import type Context from "../middlewares/context.ts";
+import { type Context as HonoContext } from "hono";
 import {
   APPLICATION_REPOSITORY,
   httpError,
@@ -10,8 +11,9 @@ import type {
   IUserRepository,
 } from "../repositories/interfaces.ts";
 import { ServiceError } from "../utils/service-errors.ts";
-import { type User as ClerkUser } from "@clerk/backend";
+import { type ClerkClient, type User as ClerkUser } from "@clerk/backend";
 import generateAppName from "../utils/app-name.ts";
+import { getAuth } from "@hono/clerk-auth";
 
 const findUserByClerkId = async ({
   id,
@@ -64,4 +66,17 @@ const createOrFetchUser = async ({
   return createdUser;
 };
 
-export { createOrFetchUser, findUserByClerkId };
+const getUserFromClerk = async (
+  clerkClient: ClerkClient,
+  c: HonoContext,
+): Promise<ClerkUser | undefined> => {
+  const auth = getAuth(c);
+  if (!auth?.userId) return;
+
+  const clerkUser = await clerkClient.users.getUser(auth.userId);
+  if (!clerkUser) return;
+
+  return clerkUser;
+};
+
+export { createOrFetchUser, findUserByClerkId, getUserFromClerk };

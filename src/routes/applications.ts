@@ -12,6 +12,8 @@ import { ServiceError } from "../utils/service-errors";
 import envsRoute from "./environments";
 import type Context from "../middlewares/context.ts";
 import { type User } from "../models/user.model.ts";
+import authMiddleware from "../middlewares/auth.middleware.ts";
+import { getUserFromClerk } from "../services/user.service.ts";
 
 const app = new Hono<{
   Variables: {
@@ -19,6 +21,45 @@ const app = new Hono<{
     context: Context;
   };
 }>();
+
+app.post("/:appName", async (c) => {
+  const appName = c.req.param("appName");
+  const body = await c.req.json();
+  if (appName.length < APPNAME_MIN_LENGTH) {
+    throw new HTTPException(400, {
+      message: `App name must be at least ${APPNAME_MIN_LENGTH} characters long`,
+    });
+  }
+  if (!APPNAME_REGEX.test(appName)) {
+    throw new HTTPException(400, {
+      message: `App name follow hyphenated-url-pattern`,
+    });
+  }
+  const clerkClient = c.get("clerk");
+  const user = await getUserFromClerk(clerkClient, c);
+  try {
+    const application = await createApplication({
+      context: c.get("context"),
+      appName,
+      image: body.image || "",
+      clerkId: user?.id,
+      appDescription: body.description || "",
+      environmentName: body.environmentName,
+    });
+    c.status(201);
+    return c.json(application);
+  } catch (err) {
+    if (err instanceof ServiceError) {
+      throw new HTTPException(400, { message: err.explicitMessage });
+    } else {
+      throw new HTTPException(500, {
+        message: "Unknown error",
+      });
+    }
+  }
+});
+
+app.use(authMiddleware);
 
 app.get("/all", async (c) => {
   const user = c.get("user");
@@ -55,42 +96,6 @@ app.get("/:appName", async (c) => {
     } else {
       throw new HTTPException(500, {
         message: "Couldn't fetch application",
-      });
-    }
-  }
-});
-
-app.post("/:appName", async (c) => {
-  const appName = c.req.param("appName");
-  const body = await c.req.json();
-  if (appName.length < APPNAME_MIN_LENGTH) {
-    throw new HTTPException(400, {
-      message: `App name must be at least ${APPNAME_MIN_LENGTH} characters long`,
-    });
-  }
-  if (!APPNAME_REGEX.test(appName)) {
-    throw new HTTPException(400, {
-      message: `App name follow hyphenated-url-pattern`,
-    });
-  }
-  const user = c.get("user");
-
-  try {
-    await createApplication({
-      context: c.get("context"),
-      appName,
-      image: body.image || "",
-      clerkId: user.clerkId,
-      appDescription: body.description || "",
-    });
-    c.status(201);
-    return c.json({ success: "success" });
-  } catch (err) {
-    if (err instanceof ServiceError) {
-      throw new HTTPException(400, { message: err.explicitMessage });
-    } else {
-      throw new HTTPException(500, {
-        message: "Unknown error",
       });
     }
   }

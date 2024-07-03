@@ -1,8 +1,11 @@
 import { type Application } from "../../models/application.model.ts";
-import { type Environment } from "../../models/environment.model.ts";
+import {
+  type Environment,
+  type Token,
+} from "../../models/environment.model.ts";
 import BaseRepository from "./base.repository.ts";
 import type { IApplicationRepository } from "../interfaces.ts";
-import type { PrismaClient, Token } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 import * as R from "ramda";
 import { defaultNodbEnv, Permissions } from "../../utils/const.ts";
 import generateToken from "../../utils/backend-token.ts";
@@ -140,11 +143,13 @@ class ApplicationRepository
     clerkId,
     image,
     appDescription,
+    environmentName,
   }: {
     appName: string;
     clerkId?: string;
     image: string;
     appDescription: string;
+    environmentName?: string;
   }): Promise<{
     applicationName: string;
     environmentName: string;
@@ -152,7 +157,7 @@ class ApplicationRepository
   }> {
     const result = await this.prisma.environment.create({
       data: {
-        name: defaultNodbEnv,
+        name: environmentName || defaultNodbEnv,
         tokens: {
           create: {
             key: generateToken(),
@@ -183,7 +188,10 @@ class ApplicationRepository
     return {
       environmentName: result.name,
       applicationName: result.applicationName,
-      tokens: result.tokens,
+      tokens: result.tokens.map((x) => ({
+        key: x.key,
+        permission: x.permission,
+      })),
     };
   }
 

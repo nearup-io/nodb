@@ -34,10 +34,9 @@ export const startApp = async (props?: {
   app.use(contextMiddleware(db));
 
   app.route("/users", usersRoute);
+  app.route("/apps", appsRoute);
 
   app.use(authMiddleware);
-
-  app.route("/apps", appsRoute);
   app.route("/search", searchRoute);
   app.route("/knowledgebase", ragRoute);
 

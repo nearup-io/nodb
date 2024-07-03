@@ -1,10 +1,9 @@
 import { type Application } from "../models/application.model.ts";
-import { type Environment } from "../models/environment.model.ts";
+import { type Environment, type Token } from "../models/environment.model.ts";
 import { type Entity } from "../models/entity.model.ts";
 import { type User } from "../models/user.model.ts";
 import type { EntityQueryMeta } from "../utils/types.ts";
 import type { EntityAggregateResult } from "../services/entity.service.ts";
-import type { Token } from "@prisma/client";
 
 export interface IApplicationRepository {
   getApplication(props: {
@@ -21,6 +20,7 @@ export interface IApplicationRepository {
     clerkId?: string;
     image?: string;
     appDescription?: string;
+    environmentName?: string;
   }): Promise<{
     applicationName: string;
     environmentName: string;
