@@ -4,6 +4,7 @@ import { type Entity } from "../models/entity.model.ts";
 import { type User } from "../models/user.model.ts";
 import type { EntityQueryMeta } from "../utils/types.ts";
 import type { EntityAggregateResult } from "../services/entity.service.ts";
+import type { Token } from "@prisma/client";
 
 export interface IApplicationRepository {
   getApplication(props: {
@@ -17,10 +18,14 @@ export interface IApplicationRepository {
   >;
   createApplication(props: {
     appName: string;
-    clerkId: string;
+    clerkId?: string;
     image?: string;
     appDescription?: string;
-  }): Promise<void>;
+  }): Promise<{
+    applicationName: string;
+    environmentName: string;
+    tokens: Token[];
+  }>;
   updateApplication(props: {
     oldAppName: string;
     clerkId: string;

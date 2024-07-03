@@ -6,6 +6,7 @@ import type Context from "../middlewares/context.ts";
 import type { IApplicationRepository } from "../repositories/interfaces.ts";
 import { type Environment } from "../models/environment.model.ts";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import type { Token } from "@prisma/client";
 
 const getApplication = async ({
   context,
@@ -58,16 +59,20 @@ const createApplication = async ({
 }: {
   context: Context;
   appName: string;
-  clerkId: string;
+  clerkId?: string;
   image: string;
   appDescription: string;
-}): Promise<void> => {
+}): Promise<{
+  applicationName: string;
+  environmentName: string;
+  tokens: Token[];
+}> => {
   const repository = context.get<IApplicationRepository>(
     APPLICATION_REPOSITORY,
   );
 
   try {
-    await repository.createApplication({
+    return repository.createApplication({
       appName,
       clerkId,
       image,
