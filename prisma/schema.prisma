@@ -28,8 +28,8 @@ model Application {
   id String @id @default(dbgenerated("gen_random_uuid()"))
   // TODO this should be unique on like (user + name)
   name String @unique
-  user    User     @relation(fields: [userId], references: [clerkId], onDelete: Cascade)
-  userId  String
+  user   User?     @relation(fields: [userId], references: [clerkId], onDelete: Cascade)
+  userId  String?
   environments Environment[]
   image String?
   description String?
