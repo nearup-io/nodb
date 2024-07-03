@@ -51,8 +51,8 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     envName: string;
     entityName: string;
   }): Sql {
-    const type = `${appName}/${envName}/${entityName}%`;
-    const typeSql = Prisma.sql`type LIKE ${type}`;
+    const type = `${appName}/${envName}/${entityName}`;
+    const typeSql = Prisma.sql`type = ${type}`;
 
     const propFilterKeys = R.keys(propFilters);
     const modelFilterSql = propFilterKeys.length
