@@ -4,12 +4,14 @@ import {
   APPLICATION_REPOSITORY,
   ENTITY_REPOSITORY,
   ENVIRONMENT_REPOSITORY,
+  TOKEN_REPOSITORY,
   USER_REPOSITORY,
 } from "../utils/const.ts";
 import {
   ApplicationRepository as PgApplicationRepository,
   EntityRepository as PgEntityRepository,
   EnvironmentRepository as PgEnvironmentRepository,
+  TokenRepository as PgTokenRepository,
   UserRepository as PgUserRepository,
 } from "../repositories/postgres";
 import type { PrismaClient } from "@prisma/client";
@@ -29,6 +31,7 @@ const middleware = (prismaClient: PrismaClient) =>
     );
     context.register(ENTITY_REPOSITORY, new PgEntityRepository(prismaClient));
     context.register(USER_REPOSITORY, new PgUserRepository(prismaClient));
+    context.register(TOKEN_REPOSITORY, new PgTokenRepository(prismaClient));
 
     c.set("context", context);
     await next();

@@ -94,8 +94,7 @@ export const httpError = {
 export const defaultNodbEnv = "dev";
 
 export const APPLICATION_REPOSITORY = "APPLICATION_REPOSITORY";
-
 export const ENVIRONMENT_REPOSITORY = "ENVIRONMENT_REPOSITORY";
-
 export const ENTITY_REPOSITORY = "ENTITY_REPOSITORY";
 export const USER_REPOSITORY = "USER_REPOSITORY";
+export const TOKEN_REPOSITORY = "TOKEN_REPOSITORY";

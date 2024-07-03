@@ -124,3 +124,7 @@ export interface IUserRepository {
   }): Promise<Omit<User, "applications"> | null>;
   findUserClerkId(id: string): Promise<Omit<User, "applications"> | null>;
 }
+
+export interface ITokenRepository {
+  getAllTokens(props: { app: string; env: string }): Promise<Token[]>;
+}

@@ -39,6 +39,7 @@ export const startApp = async (props?: {
   app.use(authMiddleware);
   app.route("/search", searchRoute);
   app.route("/knowledgebase", ragRoute);
+  app.route("/tokens");
 
   return {
     app,
