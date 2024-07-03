@@ -128,11 +128,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     const entity = await this.prisma.entity.findFirst({
       where: {
         id: entityId,
-        type: {
-          // TODO why do we need the type here?
-          // ids should be unique,
-          startsWith: `${appName}/${envName}/${entityName}`,
-        },
+        type: `${appName}/${envName}/${entityName}`,
       },
     });
     if (!entity) return null;
@@ -293,9 +289,7 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
   }): Promise<{ done: number }> {
     const deleted = await this.prisma.entity.deleteMany({
       where: {
-        type: {
-          startsWith: `${appName}/${envName}/${entityName}`,
-        },
+        type: `${appName}/${envName}/${entityName}`,
       },
     });
 
