@@ -1,3 +1,5 @@
+import type { TokenPermission } from "../models/token.model.ts";
+
 export type EntityRouteParams = {
   appName: string;
   envName: string;
@@ -42,4 +44,13 @@ export type Pagination = {
   last_page?: string;
   previous_page?: string;
   next_page?: string;
+};
+
+export type BackendTokenPermissions = {
+  applicationName: string;
+  applicationId: string;
+  environmentName: string;
+  environmentId: string;
+  token: string;
+  permission: TokenPermission;
 };

@@ -1,7 +1,8 @@
 import BaseRepository from "./base.repository.ts";
 import type { PrismaClient } from "@prisma/client";
 import type { ITokenRepository } from "../interfaces.ts";
-import type { Token, TokenPermission } from "../../models/token.model.ts";
+import type { Token } from "../../models/token.model.ts";
+import type { BackendTokenPermissions } from "../../utils/types.ts";
 
 class TokenRepository extends BaseRepository implements ITokenRepository {
   constructor(prisma: PrismaClient) {
@@ -32,14 +33,11 @@ class TokenRepository extends BaseRepository implements ITokenRepository {
     }));
   }
 
-  async getTokenPermissions({ token }: { token: string }): Promise<{
-    applicationName: string;
-    applicationId: string;
-    environmentName: string;
-    environmentId: string;
+  async getTokenPermissions({
+    token,
+  }: {
     token: string;
-    permission: TokenPermission;
-  } | null> {
+  }): Promise<BackendTokenPermissions | null> {
     const result = await this.prisma.token.findFirst({
       where: {
         key: token,

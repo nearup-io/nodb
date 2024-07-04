@@ -2,9 +2,12 @@ import type { Application } from "../models/application.model.ts";
 import type { Environment } from "../models/environment.model.ts";
 import type { Entity } from "../models/entity.model.ts";
 import type { User } from "../models/user.model.ts";
-import type { EntityQueryMeta } from "../utils/types.ts";
+import type {
+  BackendTokenPermissions,
+  EntityQueryMeta,
+} from "../utils/types.ts";
 import type { EntityAggregateResult } from "../services/entity.service.ts";
-import type { Token, TokenPermission } from "../models/token.model";
+import type { Token } from "../models/token.model";
 
 export interface IApplicationRepository {
   getApplication(props: {
@@ -129,12 +132,7 @@ export interface IUserRepository {
 export interface ITokenRepository {
   getAllTokens(props: { app: string; env: string }): Promise<Token[]>;
   // TODO rename method
-  getTokenPermissions(props: { token: string }): Promise<{
-    applicationName: string;
-    applicationId: string;
-    environmentName: string;
-    environmentId: string;
+  getTokenPermissions(props: {
     token: string;
-    permission: TokenPermission;
-  } | null>;
+  }): Promise<BackendTokenPermissions | null>;
 }
