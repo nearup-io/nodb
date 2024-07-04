@@ -12,7 +12,7 @@ import { ServiceError } from "../utils/service-errors";
 import envsRoute from "./environments";
 import type Context from "../utils/context.ts";
 import { type User } from "../models/user.model.ts";
-import authMiddleware from "../middlewares/auth.middleware.ts";
+import userMiddleware from "../middlewares/user.middleware.ts";
 import { getUserFromClerk } from "../services/user.service.ts";
 
 const app = new Hono<{
@@ -59,7 +59,7 @@ app.post("/:appName", async (c) => {
   }
 });
 
-app.use(authMiddleware);
+app.use(userMiddleware);
 
 app.get("/all", async (c) => {
   const user = c.get("user");

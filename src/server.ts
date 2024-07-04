@@ -5,7 +5,7 @@ import { cors } from "hono/cors";
 import { clerkMiddleware } from "@hono/clerk-auth";
 import contextMiddleware from "./middlewares/context.middleware.ts";
 import usersRoute from "./routes/users.ts";
-import authMiddleware from "./middlewares/auth.middleware.ts";
+import userMiddleware from "./middlewares/user.middleware.ts";
 import appsRoute from "./routes/applications.ts";
 import searchRoute from "./routes/search.ts";
 import ragRoute from "./routes/rag.ts";
@@ -36,7 +36,7 @@ export const startApp = async (props?: {
   app.route("/users", usersRoute);
   app.route("/apps", appsRoute);
 
-  app.use(authMiddleware);
+  app.use(userMiddleware);
   app.route("/search", searchRoute);
   app.route("/knowledgebase", ragRoute);
   app.route("/tokens");
