@@ -12,6 +12,7 @@ import { ServiceError } from "../utils/service-errors";
 import entitiesRoute from "./entities";
 import type Context from "../utils/context.ts";
 import { type User } from "../models/user.model.ts";
+import { flexibleAuthMiddleware } from "../middlewares";
 
 const app = new Hono<{
   Variables: {
@@ -20,11 +21,13 @@ const app = new Hono<{
   };
 }>();
 
-app.get("/", async (c) => {
+// TODO update endpoint
+app.get("/", flexibleAuthMiddleware({ allowBackendToken: true }), async (c) => {
   const { appName, envName } = c.req.param() as {
     appName: string;
     envName: string;
   };
+
   try {
     const env = await findEnvironment({
       context: c.get("context"),
@@ -49,6 +52,7 @@ app.get("/", async (c) => {
   }
 });
 
+// TODO update endpoint
 app.post("/", async (c) => {
   const body = await c.req.json();
   const { appName, envName } = c.req.param() as {
@@ -77,6 +81,7 @@ app.post("/", async (c) => {
   }
 });
 
+// TODO update endpoint
 app.patch("/", async (c) => {
   const body = await asyncTryJson(c.req.json());
   const { appName, envName } = c.req.param() as {
@@ -118,6 +123,7 @@ app.patch("/", async (c) => {
   }
 });
 
+// TODO update endpoint
 app.delete("/", async (c) => {
   const { appName, envName } = c.req.param() as {
     appName: string;

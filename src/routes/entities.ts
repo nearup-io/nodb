@@ -17,6 +17,7 @@ import { entityQueryValidator } from "../utils/route-validators";
 import { RoutingError, ServiceError } from "../utils/service-errors";
 import type { EntityRequestDto, PostEntityRequestDto } from "../utils/types.ts";
 import type Context from "../utils/context.ts";
+import { flexibleAuthMiddleware } from "../middlewares";
 
 const app = new Hono<
   {
@@ -29,6 +30,8 @@ const app = new Hono<
   "/:appName/:envName/:entityName"
 >();
 
+// I don't think we need to update anything
+app.use(flexibleAuthMiddleware({ allowBackendToken: true }));
 app.get("/", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
   const context = c.get("context");

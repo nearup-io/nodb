@@ -12,8 +12,8 @@ import { ServiceError } from "../utils/service-errors";
 import envsRoute from "./environments";
 import type Context from "../utils/context.ts";
 import { type User } from "../models/user.model.ts";
-import userMiddleware from "../middlewares/user.middleware.ts";
 import { getUserFromClerk } from "../services/user.service.ts";
+import { flexibleAuthMiddleware } from "../middlewares";
 
 const app = new Hono<{
   Variables: {
@@ -22,7 +22,7 @@ const app = new Hono<{
   };
 }>();
 
-app.post("/:appName", async (c) => {
+app.post("/:appName", flexibleAuthMiddleware(), async (c) => {
   const appName = c.req.param("appName");
   const body = await c.req.json();
   if (appName.length < APPNAME_MIN_LENGTH) {
@@ -59,9 +59,7 @@ app.post("/:appName", async (c) => {
   }
 });
 
-app.use(userMiddleware);
-
-app.get("/all", async (c) => {
+app.get("/all", flexibleAuthMiddleware(), async (c) => {
   const user = c.get("user");
   try {
     const apps = await getUserApplications({
@@ -77,31 +75,35 @@ app.get("/all", async (c) => {
   }
 });
 
-app.get("/:appName", async (c) => {
-  const appName = c.req.param("appName");
-  const user = c.get("user");
+app.get(
+  "/:appName",
+  flexibleAuthMiddleware({ allowBackendToken: true }),
+  async (c) => {
+    const appName = c.req.param("appName");
+    const user = c.get("user");
 
-  try {
-    const application = await getApplication({
-      context: c.get("context"),
-      appName,
-      clerkId: user.clerkId,
-    });
-    return c.json(application);
-  } catch (err) {
-    if (err instanceof ServiceError) {
-      throw new HTTPException(404, {
-        message: err.explicitMessage,
+    try {
+      const application = await getApplication({
+        context: c.get("context"),
+        appName,
+        clerkId: user.clerkId,
       });
-    } else {
-      throw new HTTPException(500, {
-        message: "Couldn't fetch application",
-      });
+      return c.json(application);
+    } catch (err) {
+      if (err instanceof ServiceError) {
+        throw new HTTPException(404, {
+          message: err.explicitMessage,
+        });
+      } else {
+        throw new HTTPException(500, {
+          message: "Couldn't fetch application",
+        });
+      }
     }
-  }
-});
+  },
+);
 
-app.patch("/:appName", async (c) => {
+app.patch("/:appName", flexibleAuthMiddleware(), async (c) => {
   const appName = c.req.param("appName");
   const body = (await c.req.json()) as {
     appName?: string;
@@ -149,7 +151,7 @@ app.patch("/:appName", async (c) => {
   }
 });
 
-app.delete("/:appName", async (c) => {
+app.delete("/:appName", flexibleAuthMiddleware(), async (c) => {
   const user = c.get("user");
   const appName = c.req.param("appName");
   try {

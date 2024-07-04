@@ -22,7 +22,23 @@ const middleware = factory.createMiddleware(async (c, next) => {
       throw new HTTPException(401, { message: "Token does not exist" });
     }
 
-    console.log(permissions);
+    const { appName, envName } = c.req.param() as {
+      appName?: string;
+      envName?: string;
+    };
+
+    if (appName && appName !== permissions.applicationName) {
+      throw new HTTPException(401, {
+        message: "No access to this application",
+      });
+    }
+
+    if (envName && envName !== permissions.environmentName) {
+      throw new HTTPException(401, {
+        message: "No access to this environment",
+      });
+    }
+
     c.set("tokenPermissions", permissions);
     await next();
     return;

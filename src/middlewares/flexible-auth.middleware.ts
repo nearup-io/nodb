@@ -14,6 +14,15 @@ const middleware = (options: { allowBackendToken?: boolean } = {}) =>
         try {
           await backendTokenMiddleware(c, next);
         } catch (tokenError) {
+          if (
+            tokenError instanceof HTTPException &&
+            [
+              "No access to this application",
+              "No access to this environment",
+            ].includes(tokenError.message)
+          ) {
+            throw tokenError;
+          }
           throw new HTTPException(401, { message: "Authentication failed" });
         }
       } else {
