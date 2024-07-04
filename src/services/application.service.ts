@@ -4,7 +4,8 @@ import { APPLICATION_REPOSITORY, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 import type Context from "../middlewares/context.ts";
 import type { IApplicationRepository } from "../repositories/interfaces.ts";
-import { type Environment, type Token } from "../models/environment.model.ts";
+import { type Environment } from "../models/environment.model.ts";
+import { type Token } from "../models/token.model.ts";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 const getApplication = async ({

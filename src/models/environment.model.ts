@@ -1,7 +1,4 @@
-export type Token = {
-  key: string;
-  permission: "ALL" | "READ_ONLY";
-};
+import type { Token } from "./token.model";
 
 export type Environment = {
   id: string;

@@ -12,6 +12,7 @@ const app = new Hono<{
   };
 }>();
 
+// TODO e2e tests
 app.get("/:app/:env", async (c) => {
   const { app, env } = c.req.param();
   try {

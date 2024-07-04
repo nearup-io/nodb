@@ -1,8 +1,6 @@
 import { type Application } from "../../models/application.model.ts";
-import {
-  type Environment,
-  type Token,
-} from "../../models/environment.model.ts";
+import { type Environment } from "../../models/environment.model.ts";
+import { type Token } from "../../models/token.model.ts";
 import BaseRepository from "./base.repository.ts";
 import type { IApplicationRepository } from "../interfaces.ts";
 import type { PrismaClient } from "@prisma/client";

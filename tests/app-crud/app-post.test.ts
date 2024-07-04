@@ -3,7 +3,7 @@ import {
   createTestApplicationHelperFactory,
   defaultTestUser,
 } from "../helpers";
-import { type Token } from "../../src/models/environment.model";
+import { type Token } from "../../src/models/token.model";
 
 describe("POST /apps/:appName", async () => {
   const helper = createTestApplicationHelperFactory();
