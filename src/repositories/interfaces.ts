@@ -84,7 +84,6 @@ export interface IEntityRepository {
   }): Promise<EntityAggregateResult>;
   searchEntities(props: {
     embedding: number[];
-    vectorIndex: string;
     limit: number;
     entityType?: string;
   }): Promise<Record<string, unknown>[]>;

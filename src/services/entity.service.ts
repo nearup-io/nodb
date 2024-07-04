@@ -28,8 +28,6 @@ export type EntityAggregateResult = {
   entities: Entity[];
 };
 
-const { NODB_VECTOR_INDEX: vectorIndex = "nodb_vector_index" } = Bun.env;
-
 const searchEntities = async ({
   context,
   query,
@@ -48,7 +46,6 @@ const searchEntities = async ({
     embedding,
     entityType,
     limit,
-    vectorIndex,
   });
 };
 
@@ -70,7 +67,6 @@ const searchAiEntities = async ({
     const res = await entityRepository.searchEntities({
       embedding,
       limit,
-      vectorIndex,
       entityType,
     });
 
