@@ -10,7 +10,7 @@ import {
 import { APPNAME_MIN_LENGTH, APPNAME_REGEX, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
 import envsRoute from "./environments";
-import type Context from "../middlewares/context.ts";
+import type Context from "../utils/context.ts";
 import { type User } from "../models/user.model.ts";
 import authMiddleware from "../middlewares/auth.middleware.ts";
 import { getUserFromClerk } from "../services/user.service.ts";

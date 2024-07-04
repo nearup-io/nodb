@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { getAuth } from "@hono/clerk-auth";
-import type Context from "../middlewares/context.ts";
+import type Context from "../utils/context.ts";
 import { type ClerkClient } from "@clerk/backend";
 import { HTTPException } from "hono/http-exception";
 import { httpError } from "../utils/const.ts";

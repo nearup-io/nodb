@@ -20,7 +20,7 @@ import type {
   PostEntityRequestDto,
 } from "../utils/types.ts";
 import { findEnvironment } from "./environment.service";
-import type Context from "../middlewares/context.ts";
+import type Context from "../utils/context.ts";
 import { type IEntityRepository } from "../repositories/interfaces.ts";
 
 export type EntityAggregateResult = {

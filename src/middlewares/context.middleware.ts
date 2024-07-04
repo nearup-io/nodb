@@ -1,5 +1,5 @@
 import { createFactory } from "hono/factory";
-import Context from "./context.ts";
+import Context from "../utils/context.ts";
 import {
   APPLICATION_REPOSITORY,
   ENTITY_REPOSITORY,

@@ -16,7 +16,7 @@ import { asyncTryJson } from "../utils/route-utils";
 import { entityQueryValidator } from "../utils/route-validators";
 import { RoutingError, ServiceError } from "../utils/service-errors";
 import type { EntityRequestDto, PostEntityRequestDto } from "../utils/types.ts";
-import type Context from "../middlewares/context.ts";
+import type Context from "../utils/context.ts";
 
 const app = new Hono<
   {

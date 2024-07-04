@@ -2,7 +2,7 @@ import * as R from "ramda";
 import { type Environment } from "../models/environment.model";
 import { ENVIRONMENT_REPOSITORY, httpError } from "../utils/const";
 import { ServiceError } from "../utils/service-errors";
-import type Context from "../middlewares/context.ts";
+import type Context from "../utils/context.ts";
 import { type IEnvironmentRepository } from "../repositories/interfaces.ts";
 
 const findEnvironment = async ({

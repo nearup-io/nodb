@@ -1,5 +1,5 @@
 import type { Token, TokenPermission } from "../models/token.model.ts";
-import type Context from "../middlewares/context.ts";
+import type Context from "../utils/context.ts";
 import type { ITokenRepository } from "../repositories/interfaces.ts";
 import { TOKEN_REPOSITORY } from "../utils/const.ts";
 

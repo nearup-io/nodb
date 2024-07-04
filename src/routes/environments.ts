@@ -10,7 +10,7 @@ import { httpError } from "../utils/const";
 import { asyncTryJson } from "../utils/route-utils";
 import { ServiceError } from "../utils/service-errors";
 import entitiesRoute from "./entities";
-import type Context from "../middlewares/context.ts";
+import type Context from "../utils/context.ts";
 import { type User } from "../models/user.model.ts";
 
 const app = new Hono<{

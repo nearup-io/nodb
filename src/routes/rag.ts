@@ -3,7 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import * as R from "ramda";
 import { searchAiEntities } from "../services/entity.service";
 import { ServiceError } from "../utils/service-errors";
-import type Context from "../middlewares/context.ts";
+import type Context from "../utils/context.ts";
 import { type User } from "../models/user.model.ts";
 
 const app = new Hono<{

@@ -1,5 +1,5 @@
 import type { User } from "../models/user.model.ts";
-import type Context from "../middlewares/context.ts";
+import type Context from "../utils/context.ts";
 import { type Context as HonoContext } from "hono";
 import {
   APPLICATION_REPOSITORY,
