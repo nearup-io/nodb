@@ -66,6 +66,49 @@ describe("App endpoint PATCH", async () => {
     });
   });
 
+  test("Should return 401 FORBIDDEN when no JWT token or backend token is provided", async () => {
+    const appName = "random-app";
+    const patchResponse = await helper.executePatchRequest({
+      url: `/apps/${appName}`,
+      body: {
+        appName: "new-app-name",
+        description: "new description",
+        image: "path/to/image-new.jpg",
+      },
+    });
+
+    expect(patchResponse.status).toBe(401);
+  });
+
+  test("Should return 401 FORBIDDEN when trying to update app the backend token does not have permission to", async () => {
+    const appName = "test-app";
+    const postResponse = await helper.executePostRequest({
+      url: `/apps/${appName}`,
+      body: {
+        image: "path/to/image.jpg",
+        description: "some description",
+      },
+    });
+    expect(postResponse.status).toBe(201);
+
+    const token = (await postResponse.json()).tokens[0].key as string;
+
+    const patchResponse = await helper.executePatchRequest({
+      url: `/apps/different-app`,
+      backendToken: token,
+      body: {
+        appName: "new-app-name",
+        description: "new description",
+        image: "path/to/image-new.jpg",
+      },
+    });
+
+    expect(patchResponse.status).toBe(401);
+  });
+
+  // TODO implements once we have a mechanism for generating READ ONLY tokens
+  test.skip("Should return 401 FORBIDDEN when the backend token contains only READ_ONLY permissions", async () => {});
+
   test("Should return 404 NOT FOUND and return proper body when app is not found", async () => {
     const appName = "random-app";
     const patchResponse = await helper.executePatchRequest({
@@ -82,7 +125,7 @@ describe("App endpoint PATCH", async () => {
     expect(await patchResponse.json()).toEqual({ found: false });
   });
 
-  test("Should return 200 OK and update app props in db properly", async () => {
+  test("Should return 200 OK and update app props in db properly when auth is JWT token", async () => {
     const appName = "random-app";
     const postResponse = await helper.executePostRequest({
       url: `/apps/${appName}`,
@@ -121,5 +164,47 @@ describe("App endpoint PATCH", async () => {
     expect(tokens).toStrictEqual(environments[0].tokens);
 
     await helper.deleteAppByName("new-app-name");
+  });
+
+  test("Should return 200 OK and update app props in db properly when auth backend token", async () => {
+    const appName = "random-app-2";
+    const postResponse = await helper.executePostRequest({
+      url: `/apps/${appName}`,
+      body: {
+        image: "path/to/image.jpg",
+        description: "some description",
+      },
+    });
+    expect(postResponse.status).toBe(201);
+
+    const token = (await postResponse.json()).tokens[0].key as string;
+
+    const patchResponse = await helper.executePatchRequest({
+      url: `/apps/${appName}`,
+      backendToken: token,
+      body: {
+        appName: "new-app-name-2",
+        description: "new description",
+        image: "path/to/image-new.jpg",
+      },
+    });
+
+    expect(patchResponse.status).toBe(200);
+    expect(await patchResponse.json()).toEqual({ found: true });
+    const dbResult = await helper.getAppFromDbByName("new-app-name-2");
+    expect(dbResult).not.toBeNull();
+    const { id, environments, tokens, ...otherProps } = dbResult!;
+    expect(id).not.toBeUndefined();
+    // one environment is automatically created
+    expect(environments).toBeArray();
+    expect(environments.length).toEqual(1);
+    expect(otherProps).toEqual({
+      name: "new-app-name-2",
+      description: "new description",
+      image: "path/to/image-new.jpg",
+    });
+    expect(tokens).toStrictEqual(environments[0].tokens);
+
+    await helper.deleteAppByName("new-app-name-2");
   });
 });

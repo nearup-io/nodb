@@ -126,10 +126,14 @@ const updateApplication = async (props: {
   context: Context;
   oldAppName: string;
   newAppName?: string;
-  clerkId: string;
+  clerkId?: string;
+  tokenPermissions?: BackendTokenPermissions;
   description?: string;
   image?: string;
 }): Promise<Omit<Application, "environments" | "tokens"> | null> => {
+  if (!props.clerkId && !props.tokenPermissions) {
+    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED);
+  }
   const repository = props.context.get<IApplicationRepository>(
     APPLICATION_REPOSITORY,
   );
@@ -144,6 +148,7 @@ const updateApplication = async (props: {
     return await repository.updateApplication({
       oldAppName: props.oldAppName,
       clerkId: props.clerkId,
+      token: props.tokenPermissions?.token,
       updateProps,
     });
   } catch (e) {

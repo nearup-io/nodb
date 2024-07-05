@@ -149,7 +149,8 @@ app.patch(
         context: c.get("context"),
         oldAppName: appName,
         newAppName: body.appName,
-        clerkId: user.clerkId,
+        clerkId: user?.clerkId,
+        tokenPermissions: c.get("tokenPermissions"),
         description: body.description,
         image: body.image,
       });

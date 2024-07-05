@@ -305,7 +305,8 @@ class ApplicationRepository
 
   public async updateApplication(props: {
     oldAppName: string;
-    clerkId: string;
+    clerkId?: string;
+    token?: string;
     updateProps: {
       name?: string;
       description?: string;
@@ -313,7 +314,17 @@ class ApplicationRepository
     };
   }): Promise<Omit<Application, "environments" | "tokens"> | null> {
     const doc = await this.prisma.application.update({
-      where: { name: props.oldAppName },
+      where: {
+        name: props.oldAppName,
+        ...(props.clerkId && { userId: props.clerkId }),
+        ...(props.token && {
+          tokens: {
+            some: {
+              key: props.token,
+            },
+          },
+        }),
+      },
       data: {
         ...(props.updateProps.name && {
           name: props.updateProps.name,

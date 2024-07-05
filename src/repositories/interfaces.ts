@@ -42,7 +42,8 @@ export interface IApplicationRepository {
   }>;
   updateApplication(props: {
     oldAppName: string;
-    clerkId: string;
+    clerkId?: string;
+    token?: string;
     updateProps: {
       name?: string;
       description?: string;
