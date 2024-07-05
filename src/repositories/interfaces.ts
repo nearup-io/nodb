@@ -25,6 +25,7 @@ export interface IApplicationRepository {
     image?: string;
     appDescription?: string;
     environmentName?: string;
+    environmentDescription?: string;
   }): Promise<{
     applicationName: string;
     environmentName: string;

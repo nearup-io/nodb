@@ -57,6 +57,7 @@ const createApplication = async ({
   image,
   appDescription,
   environmentName,
+  environmentDescription,
 }: {
   context: Context;
   appName: string;
@@ -64,10 +65,11 @@ const createApplication = async ({
   image: string;
   appDescription: string;
   environmentName?: string;
+  environmentDescription?: string;
 }): Promise<{
   applicationName: string;
   environmentName: string;
-  tokens: Omit<Token, "environments">[];
+  tokens: Token[];
 }> => {
   const repository = context.get<IApplicationRepository>(
     APPLICATION_REPOSITORY,
@@ -80,6 +82,7 @@ const createApplication = async ({
       image,
       appDescription,
       environmentName,
+      environmentDescription,
     });
     return result;
   } catch (e: any) {

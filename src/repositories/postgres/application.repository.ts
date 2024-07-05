@@ -150,12 +150,14 @@ class ApplicationRepository
     image,
     appDescription,
     environmentName,
+    environmentDescription,
   }: {
     appName: string;
     clerkId?: string;
     image: string;
     appDescription: string;
     environmentName?: string;
+    environmentDescription?: string;
   }): Promise<{
     applicationName: string;
     environmentName: string;
@@ -177,7 +179,7 @@ class ApplicationRepository
           environments: {
             create: {
               name: environmentName || defaultNodbEnv,
-              description: "",
+              description: environmentDescription || "",
             },
           },
         },
