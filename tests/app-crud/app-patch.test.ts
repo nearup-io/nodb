@@ -108,7 +108,7 @@ describe("App endpoint PATCH", async () => {
     expect(await patchResponse.json()).toEqual({ found: true });
     const dbResult = await helper.getAppFromDbByName("new-app-name");
     expect(dbResult).not.toBeNull();
-    const { id, environments, ...otherProps } = dbResult!;
+    const { id, environments, tokens, ...otherProps } = dbResult!;
     expect(id).not.toBeUndefined();
     // one environment is automatically created
     expect(environments).toBeArray();
@@ -118,6 +118,7 @@ describe("App endpoint PATCH", async () => {
       description: "new description",
       image: "path/to/image-new.jpg",
     });
+    expect(tokens).toStrictEqual(environments[0].tokens);
 
     await helper.deleteAppByName("new-app-name");
   });

@@ -39,7 +39,7 @@ const getUserApplications = async ({
   context: Context;
   clerkId: string;
 }): Promise<
-  (Omit<Application, "id" | "environments" | "tokens"> & {
+  (Omit<Application, "id" | "environments"> & {
     environments: Omit<Environment, "id" | "description">[];
   })[]
 > => {

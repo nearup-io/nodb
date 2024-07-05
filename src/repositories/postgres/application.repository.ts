@@ -92,7 +92,7 @@ class ApplicationRepository
   }
 
   public async getUserApplications({ clerkId }: { clerkId: string }): Promise<
-    (Omit<Application, "id" | "environments" | "tokens"> & {
+    (Omit<Application, "id" | "environments"> & {
       environments: Omit<Environment, "id" | "description">[];
     })[]
   > {
@@ -103,6 +103,12 @@ class ApplicationRepository
       include: {
         environments: {
           include: {
+            tokens: {
+              select: {
+                key: true,
+                permission: true,
+              },
+            },
             entities: {
               select: {
                 type: true,
@@ -110,7 +116,12 @@ class ApplicationRepository
             },
           },
         },
-        tokens: false,
+        tokens: {
+          select: {
+            key: true,
+            permission: true,
+          },
+        },
       },
     });
 
@@ -119,13 +130,14 @@ class ApplicationRepository
         name: app.name,
         description: app.description,
         image: app.image,
+        tokens: app.tokens,
         environments: app.environments.map((env) => {
           return {
             name: env.name,
             entities: R.uniq(
               env.entities.map((entity) => entity.type.split("/").at(-1)!),
             ),
-            tokens: [],
+            tokens: env.tokens,
           };
         }),
       };

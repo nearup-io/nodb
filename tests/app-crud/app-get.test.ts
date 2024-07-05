@@ -64,11 +64,17 @@ describe("App endpoint GET", async () => {
       const entities = (await response.json()) as any[];
 
       const [first] = entities;
+      const [token] = first.tokens;
+
+      expect(token.key).toBeString();
+      expect(token.permission).toBeString();
       expect(first.environments).toBeArray();
 
       const [firstEnvironment] = first.environments;
 
-      expect(R.keys(firstEnvironment)).toEqual(["name", "tokens", "entities"]);
+      expect(R.keys(firstEnvironment).sort()).toEqual(
+        ["name", "tokens", "entities"].sort(),
+      );
 
       expect(firstEnvironment.entities).toBeArray();
       expect(firstEnvironment.name).toBeString();
@@ -79,7 +85,7 @@ describe("App endpoint GET", async () => {
       expect(firstToken.permission).toBeString();
 
       expect(
-        entities.map((entity) => R.omit(["environments"], entity)),
+        entities.map((entity) => R.omit(["environments", "tokens"], entity)),
       ).toEqual(apps);
     });
 

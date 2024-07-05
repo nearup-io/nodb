@@ -15,7 +15,7 @@ export interface IApplicationRepository {
     clerkId: string;
   }): Promise<Application | null>;
   getUserApplications(props: { clerkId: string }): Promise<
-    (Omit<Application, "id" | "environments" | "tokens"> & {
+    (Omit<Application, "id" | "environments"> & {
       environments: Omit<Environment, "id" | "description">[];
     })[]
   >;
