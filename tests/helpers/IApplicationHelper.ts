@@ -57,7 +57,7 @@ export interface ITestApplicationHelper {
   createAppWithEnvironmentEntities(props: {
     appName: string;
     environmentName: string;
-    token: string;
+    jwtToken: string;
     entityName: string;
     entities: any[];
   }): Promise<string[]>;

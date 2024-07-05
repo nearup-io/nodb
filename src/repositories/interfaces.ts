@@ -19,6 +19,14 @@ export interface IApplicationRepository {
       environments: Omit<Environment, "id" | "description">[];
     })[]
   >;
+  getTokenApplication(props: {
+    tokenPermissions: BackendTokenPermissions;
+  }): Promise<
+    | (Omit<Application, "id" | "environments"> & {
+        environments: Omit<Environment, "id" | "description">[];
+      })
+    | null
+  >;
   createApplication(props: {
     appName: string;
     clerkId?: string;

@@ -4,7 +4,7 @@ import {
   createApplication,
   deleteApplication,
   getApplication,
-  getUserApplications,
+  getApplications,
   updateApplication,
 } from "../services/application.service";
 import { APPNAME_MIN_LENGTH, APPNAME_REGEX, httpError } from "../utils/const";
@@ -14,17 +14,19 @@ import type Context from "../utils/context.ts";
 import { type User } from "../models/user.model.ts";
 import { getUserFromClerk } from "../services/user.service.ts";
 import { flexibleAuthMiddleware } from "../middlewares";
+import type { BackendTokenPermissions } from "../utils/types.ts";
 
 const app = new Hono<{
   Variables: {
     user: User;
     context: Context;
+    tokenPermissions: BackendTokenPermissions;
   };
 }>();
 
 app.post(
   "/:appName",
-  flexibleAuthMiddleware({ allowAnything: true }),
+  flexibleAuthMiddleware({ authNotRequired: true }),
   async (c) => {
     const appName = c.req.param("appName");
     const body = await c.req.json();
@@ -64,21 +66,25 @@ app.post(
   },
 );
 
-app.get("/all", flexibleAuthMiddleware(), async (c) => {
-  const user = c.get("user");
-  try {
-    const apps = await getUserApplications({
-      context: c.get("context"),
-      clerkId: user.clerkId,
-    });
-    return c.json(apps);
-  } catch (e) {
-    console.log(e);
-    throw new HTTPException(500, {
-      message: "Unknown error",
-    });
-  }
-});
+app.get(
+  "/all",
+  flexibleAuthMiddleware({ allowBackendToken: true }),
+  async (c) => {
+    const user = c.get("user");
+    try {
+      const apps = await getApplications({
+        context: c.get("context"),
+        clerkId: user?.clerkId,
+        tokenPermissions: c.get("tokenPermissions"),
+      });
+      return c.json(apps);
+    } catch (e) {
+      throw new HTTPException(500, {
+        message: "Unknown error",
+      });
+    }
+  },
+);
 
 app.get(
   "/:appName",

@@ -29,7 +29,7 @@ export abstract class BaseApplicationHelper {
       headers: {
         "Content-Type": "application/json",
         ...(jwtToken && { Authorization: jwtToken }),
-        ...(backendToken && { token: jwtToken }),
+        ...(backendToken && { token: backendToken }),
       },
       ...(body && { body: JSON.stringify(body) }),
     });
@@ -51,7 +51,7 @@ export abstract class BaseApplicationHelper {
       headers: {
         "Content-Type": "application/json",
         ...(jwtToken && { Authorization: jwtToken }),
-        ...(backendToken && { token: jwtToken }),
+        ...(backendToken && { token: backendToken }),
       },
       ...(body && { body: JSON.stringify(body) }),
     });
@@ -73,7 +73,7 @@ export abstract class BaseApplicationHelper {
       headers: {
         "Content-Type": "application/json",
         ...(jwtToken && { Authorization: jwtToken }),
-        ...(backendToken && { token: jwtToken }),
+        ...(backendToken && { token: backendToken }),
       },
       ...(body && { body: JSON.stringify(body) }),
     });
@@ -93,7 +93,7 @@ export abstract class BaseApplicationHelper {
       headers: {
         "Content-Type": "application/json",
         ...(jwtToken && { Authorization: jwtToken }),
-        ...(backendToken && { token: jwtToken }),
+        ...(backendToken && { token: backendToken }),
       },
     });
   }
@@ -112,7 +112,7 @@ export abstract class BaseApplicationHelper {
       headers: {
         "Content-Type": "application/json",
         ...(jwtToken && { Authorization: jwtToken }),
-        ...(backendToken && { token: jwtToken }),
+        ...(backendToken && { token: backendToken }),
       },
     });
   }

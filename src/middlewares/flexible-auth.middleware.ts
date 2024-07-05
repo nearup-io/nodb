@@ -6,7 +6,7 @@ import backendTokenMiddleware from "./backend-token.middleware.ts";
 const factory = createFactory();
 
 const middleware = (
-  options: { allowBackendToken?: boolean; allowAnything?: boolean } = {},
+  options: { allowBackendToken?: boolean; authNotRequired?: boolean } = {},
 ) =>
   factory.createMiddleware(async (c, next) => {
     try {
@@ -16,7 +16,7 @@ const middleware = (
         try {
           await backendTokenMiddleware(c, next);
         } catch (tokenError) {
-          if (options.allowAnything) {
+          if (options.authNotRequired) {
             await next();
           }
           if (
@@ -30,7 +30,7 @@ const middleware = (
           }
           throw new HTTPException(401, { message: "Authentication failed" });
         }
-      } else if (options.allowAnything) {
+      } else if (options.authNotRequired) {
         await next();
       } else {
         throw error;

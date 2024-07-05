@@ -7,6 +7,7 @@ import type { PrismaClient } from "@prisma/client";
 import * as R from "ramda";
 import { defaultNodbEnv, Permissions } from "../../utils/const.ts";
 import generateToken from "../../utils/backend-token.ts";
+import type { BackendTokenPermissions } from "../../utils/types.ts";
 
 class ApplicationRepository
   extends BaseRepository
@@ -142,6 +143,68 @@ class ApplicationRepository
         }),
       };
     });
+  }
+
+  public async getTokenApplication({
+    tokenPermissions,
+  }: {
+    tokenPermissions: BackendTokenPermissions;
+  }): Promise<
+    | (Omit<Application, "environments" | "id"> & {
+        environments: Omit<Environment, "id" | "description">[];
+      })
+    | null
+  > {
+    const application = await this.prisma.application.findFirst({
+      where: {
+        tokens: {
+          some: {
+            key: tokenPermissions.token,
+          },
+        },
+      },
+      include: {
+        environments: {
+          include: {
+            tokens: {
+              select: {
+                key: true,
+                permission: true,
+              },
+            },
+            entities: {
+              select: {
+                type: true,
+              },
+            },
+          },
+        },
+        tokens: {
+          select: {
+            key: true,
+            permission: true,
+          },
+        },
+      },
+    });
+
+    if (!application) return null;
+
+    return {
+      name: application.name,
+      description: application.description,
+      image: application.image,
+      tokens: application.tokens,
+      environments: application.environments.map((env) => {
+        return {
+          name: env.name,
+          entities: R.uniq(
+            env.entities.map((entity) => entity.type.split("/").at(-1)!),
+          ),
+          tokens: env.tokens,
+        };
+      }),
+    };
   }
 
   public async createApplication({

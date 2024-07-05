@@ -38,7 +38,6 @@ const middleware = factory.createMiddleware(async (c, next) => {
         message: "No access to this environment",
       });
     }
-
     c.set("tokenPermissions", permissions);
     await next();
     return;

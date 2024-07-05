@@ -7,6 +7,7 @@ import type { IApplicationRepository } from "../repositories/interfaces.ts";
 import { type Environment } from "../models/environment.model.ts";
 import { type Token } from "../models/token.model.ts";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import type { BackendTokenPermissions } from "../utils/types.ts";
 
 const getApplication = async ({
   context,
@@ -32,22 +33,36 @@ const getApplication = async ({
   return application;
 };
 
-const getUserApplications = async ({
+const getApplications = async ({
   context,
   clerkId,
+  tokenPermissions,
 }: {
   context: Context;
-  clerkId: string;
+  clerkId?: string;
+  tokenPermissions?: BackendTokenPermissions;
 }): Promise<
   (Omit<Application, "id" | "environments"> & {
     environments: Omit<Environment, "id" | "description">[];
   })[]
 > => {
+  if (!clerkId && !tokenPermissions) {
+    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED);
+  }
+
   const repository = context.get<IApplicationRepository>(
     APPLICATION_REPOSITORY,
   );
 
-  return repository.getUserApplications({ clerkId });
+  if (clerkId) {
+    return repository.getUserApplications({ clerkId });
+  } else {
+    const app = await repository.getTokenApplication({
+      tokenPermissions: tokenPermissions!,
+    });
+    if (!app) return [];
+    return [app];
+  }
 };
 
 const createApplication = async ({
@@ -164,7 +179,7 @@ const deleteApplication = async ({
 
 export {
   getApplication,
-  getUserApplications,
+  getApplications,
   createApplication,
   updateApplication,
   deleteApplication,

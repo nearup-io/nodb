@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development bun --hot src/app.ts",
     "start": "bun src/app.ts",
-    "e2e-app-tests-postgres": "bun test app-post --env-file=.env.postgres.test",
+    "e2e-app-tests-postgres": "bun test app --env-file=.env.postgres.test",
     "e2e-env-tests-postgres": "bun test environment --env-file=.env.postgres.test",
     "e2e-entity-tests-postgres": "bun test entity --env-file=.env.postgres.test",
     "e2e-tests-all-postgres": "bun test --env-file=.env.postgres.test",
