@@ -22,7 +22,7 @@ describe("App endpoint PATCH", async () => {
       const shortAppName = "ap";
       const response = await helper.executePatchRequest({
         url: `/apps/memes-app`,
-        token: jwtToken,
+        jwtToken: jwtToken,
         body: {
           appName: shortAppName,
         },
@@ -35,7 +35,7 @@ describe("App endpoint PATCH", async () => {
 
       const response = await helper.executePatchRequest({
         url: `/apps/memes-app`,
-        token: jwtToken,
+        jwtToken: jwtToken,
         body: {
           appName: faultyAppName,
         },
@@ -44,7 +44,7 @@ describe("App endpoint PATCH", async () => {
 
       const response1 = await helper.executePatchRequest({
         url: `/apps/${faultyAppName}`,
-        token: jwtToken,
+        jwtToken: jwtToken,
         body: {
           appName: "memes-app",
         },
@@ -57,7 +57,7 @@ describe("App endpoint PATCH", async () => {
 
       const response = await helper.executePatchRequest({
         url: `/apps/${appName}`,
-        token: jwtToken,
+        jwtToken: jwtToken,
         body: {
           appName,
         },
@@ -70,7 +70,7 @@ describe("App endpoint PATCH", async () => {
     const appName = "random-app";
     const patchResponse = await helper.executePatchRequest({
       url: `/apps/${appName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: {
         appName: "new-app-name",
         description: "new description",
@@ -86,7 +86,7 @@ describe("App endpoint PATCH", async () => {
     const appName = "random-app";
     const postResponse = await helper.executePostRequest({
       url: `/apps/${appName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "some description",
@@ -96,7 +96,7 @@ describe("App endpoint PATCH", async () => {
 
     const patchResponse = await helper.executePatchRequest({
       url: `/apps/${appName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: {
         appName: "new-app-name",
         description: "new description",

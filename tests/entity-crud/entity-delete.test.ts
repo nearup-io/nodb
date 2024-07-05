@@ -36,7 +36,7 @@ describe("DELETE /apps/:appName/:envName/:entityName", () => {
   test("should return 404 NOT FOUND when environment does not exist", async () => {
     const response = await helper.executeDeleteRequest({
       url: `/apps/${deleteAppName}/not-existing-environment/${deleteEntityName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
     });
     expect(response.status).toBe(404);
   });
@@ -51,7 +51,7 @@ describe("DELETE /apps/:appName/:envName/:entityName", () => {
   test("Should return 200 OK and delete the entity + update the environment", async () => {
     const response = await helper.executeDeleteRequest({
       url: `/apps/${deleteAppName}/${deleteEnvironmentName}/${deleteEntityName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toStrictEqual({ deleted: 3 });
@@ -83,7 +83,7 @@ describe("DELETE /apps/:appName/:envName/:entityName", () => {
 
     const response = await helper.executeDeleteRequest({
       url: `/apps/${appName}/${environmentName}/${entityName}/${ids[0]}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toStrictEqual({ deleted: true });
@@ -106,7 +106,7 @@ describe("DELETE /apps/:appName/:envName/:entityName", () => {
     // when we delete the second one, the environment should be updated as well
     const finalDeleteResponse = await helper.executeDeleteRequest({
       url: `/apps/${appName}/${environmentName}/${entityName}/${ids[1]}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
     });
     expect(finalDeleteResponse.status).toBe(200);
     expect(await finalDeleteResponse.json()).toStrictEqual({ deleted: true });

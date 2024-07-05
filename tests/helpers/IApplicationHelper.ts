@@ -7,23 +7,31 @@ export interface ITestApplicationHelper {
   init(): Promise<void>;
   executePostRequest(props: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
     body?: any;
   }): Promise<Response>;
   executePatchRequest(props: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
     body?: any;
   }): Promise<Response>;
   executePutRequest(props: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
     body?: any;
   }): Promise<Response>;
-  executeGetRequest(props: { url: string; token?: string }): Promise<Response>;
+  executeGetRequest(props: {
+    url: string;
+    jwtToken?: string;
+    backendToken?: string;
+  }): Promise<Response>;
   executeDeleteRequest(props: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
   }): Promise<Response>;
   insertUser(userData: TestUser, createUser?: boolean): Promise<string>;
   stopApplication(): Promise<void>;

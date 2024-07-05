@@ -24,7 +24,7 @@ describe("POST /apps/:appName", async () => {
       const shortAppName = "ap";
       const response = await helper.executePostRequest({
         url: `/apps/${shortAppName}`,
-        token: jwtToken,
+        jwtToken: jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -37,7 +37,7 @@ describe("POST /apps/:appName", async () => {
       const faultyAppName = "app_?test";
       const response = await helper.executePostRequest({
         url: `/apps/${faultyAppName}`,
-        token: jwtToken,
+        jwtToken: jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -50,7 +50,7 @@ describe("POST /apps/:appName", async () => {
       const duplicateAppName = "app-name";
       const response = await helper.executePostRequest({
         url: `/apps/${duplicateAppName}`,
-        token: jwtToken,
+        jwtToken: jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -61,7 +61,7 @@ describe("POST /apps/:appName", async () => {
 
       const response1 = await helper.executePostRequest({
         url: `/apps/${duplicateAppName}`,
-        token: jwtToken,
+        jwtToken: jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -75,7 +75,7 @@ describe("POST /apps/:appName", async () => {
   test("Should return 201 CREATED when no token is present and return app, environment and tokens", async () => {
     const response = await helper.executePostRequest({
       url: `/apps/${appName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
@@ -121,11 +121,11 @@ describe("POST /apps/:appName", async () => {
     await helper.deleteAppByName(appName);
   });
 
-  test("Should return 201 OK and create an app", async () => {
+  test("Should return 201 OK and create an app with clerk's JWT token", async () => {
     const secondAppName = "second-app";
     const response = await helper.executePostRequest({
       url: `/apps/${secondAppName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
@@ -170,5 +170,77 @@ describe("POST /apps/:appName", async () => {
     expect(environment.tokens).toStrictEqual(body.tokens);
 
     await helper.deleteAppByName(secondAppName);
+  });
+
+  test("Should return 201 OK and create an app with backend token but receive an new token", async () => {
+    const thirdAppName = "third-app";
+    const firstAppResponse = await helper.executePostRequest({
+      url: `/apps/${thirdAppName}`,
+      body: {
+        image: "path/to/image.jpg",
+        description: "Memes app",
+      },
+    });
+    expect(firstAppResponse.status).toBe(201);
+    const firstAppBody = (await firstAppResponse.json()) as {
+      applicationName: string;
+      environmentName: string;
+      tokens: Token[];
+    };
+
+    const [token] = firstAppBody.tokens as Token[];
+    const fourthAppName = "fourth-app";
+    const secondAppResponse = await helper.executePostRequest({
+      url: `/apps/${fourthAppName}`,
+      backendToken: token.key,
+      body: {
+        image: "path/to/image.jpg",
+        description: "Memes app",
+        environmentName: "fourth-app-environment",
+        environmentDescription: "Environment description",
+      },
+    });
+
+    expect(secondAppResponse.status).toBe(201);
+    const body = (await secondAppResponse.json()) as {
+      applicationName: string;
+      environmentName: string;
+      tokens: Token[];
+    };
+
+    expect(Object.keys(body).sort()).toStrictEqual([
+      "applicationName",
+      "environmentName",
+      "tokens",
+    ]);
+
+    expect(body.applicationName).toBe(fourthAppName);
+    expect(body.environmentName).toBe("fourth-app-environment");
+    expect(body.tokens.length).toBe(1);
+    const [firstToken] = body.tokens;
+    expect(Object.keys(firstToken).sort()).toStrictEqual(["key", "permission"]);
+    expect(typeof firstToken.key).toBe("string");
+    expect(firstToken.permission).toBe("ALL");
+    const dbResult = await helper.getAppFromDbByName(fourthAppName);
+    expect(dbResult).not.toBeNull();
+    const { id, environments, tokens, ...otherProps } = dbResult!;
+    expect(id).not.toBeUndefined();
+    expect(tokens).toStrictEqual(body.tokens);
+    // one environment is automatically created
+    expect(environments).toBeArray();
+    expect(environments.length).toEqual(1);
+    expect(otherProps).toEqual({
+      description: "Memes app",
+      image: "path/to/image.jpg",
+      name: fourthAppName,
+    });
+
+    const [environment] = environments;
+    expect(environment.name).toBe("fourth-app-environment");
+    expect(environment.tokens).toStrictEqual(body.tokens);
+    expect(environment.tokens[0].key).not.toEqual(token.key);
+
+    await helper.deleteAppByName(thirdAppName);
+    await helper.deleteAppByName(fourthAppName);
   });
 });

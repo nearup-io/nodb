@@ -15,18 +15,21 @@ export abstract class BaseApplicationHelper {
 
   public async executePostRequest({
     url,
-    token,
+    jwtToken,
+    backendToken,
     body,
   }: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
     body?: any;
   }): Promise<Response> {
     return this.app.request(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
+        ...(jwtToken && { Authorization: jwtToken }),
+        ...(backendToken && { token: jwtToken }),
       },
       ...(body && { body: JSON.stringify(body) }),
     });
@@ -34,18 +37,21 @@ export abstract class BaseApplicationHelper {
 
   public async executePatchRequest({
     url,
-    token,
+    jwtToken,
+    backendToken,
     body,
   }: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
     body?: any;
   }): Promise<Response> {
     return this.app.request(url, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
+        ...(jwtToken && { Authorization: jwtToken }),
+        ...(backendToken && { token: jwtToken }),
       },
       ...(body && { body: JSON.stringify(body) }),
     });
@@ -53,18 +59,21 @@ export abstract class BaseApplicationHelper {
 
   public async executePutRequest({
     url,
-    token,
+    jwtToken,
+    backendToken,
     body,
   }: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
     body?: any;
   }): Promise<Response> {
     return this.app.request(url, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
+        ...(jwtToken && { Authorization: jwtToken }),
+        ...(backendToken && { token: jwtToken }),
       },
       ...(body && { body: JSON.stringify(body) }),
     });
@@ -72,52 +81,58 @@ export abstract class BaseApplicationHelper {
 
   public async executeGetRequest({
     url,
-    token,
+    jwtToken,
+    backendToken,
   }: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
   }): Promise<Response> {
     return this.app.request(url, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
+        ...(jwtToken && { Authorization: jwtToken }),
+        ...(backendToken && { token: jwtToken }),
       },
     });
   }
 
   public async executeDeleteRequest({
     url,
-    token,
+    jwtToken,
+    backendToken,
   }: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
   }): Promise<Response> {
     return this.app.request(url, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
+        ...(jwtToken && { Authorization: jwtToken }),
+        ...(backendToken && { token: jwtToken }),
       },
     });
   }
 
   async createAppWithEnvironmentEntities({
     appName,
-    token,
+    jwtToken,
     environmentName,
     entityName,
     entities,
   }: {
     appName: string;
     environmentName: string;
-    token: string;
+    jwtToken: string;
     entityName: string;
     entities: any[];
   }): Promise<string[]> {
     const appResponse = await this.executePostRequest({
       url: `/apps/${appName}`,
-      token,
+      jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
@@ -127,7 +142,7 @@ export abstract class BaseApplicationHelper {
 
     const environmentResponse = await this.executePostRequest({
       url: `/apps/${appName}/${environmentName}`,
-      token,
+      jwtToken,
       body: {
         description: "This is an environment",
       },
@@ -136,7 +151,7 @@ export abstract class BaseApplicationHelper {
 
     const entityResponse = await this.executePostRequest({
       url: `/apps/${appName}/${environmentName}/${entityName}`,
-      token,
+      jwtToken,
       body: entities,
     });
     expect(entityResponse.status).toBe(201);

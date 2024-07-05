@@ -18,7 +18,7 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
     jwtToken = await helper.insertUser(defaultTestUser);
     const appResponse = await helper.executePostRequest({
       url: `/apps/${appName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
@@ -28,7 +28,7 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
 
     const environmentResponse = await helper.executePostRequest({
       url: `/apps/${appName}/${environmentName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: {
         description: "This is an environment",
       },
@@ -52,13 +52,13 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
     test("when body is missing or it's not an array", async () => {
       const response = await helper.executePostRequest({
         url: `/apps/${appName}/${environmentName}/entityName`,
-        token: jwtToken,
+        jwtToken: jwtToken,
       });
       expect(response.status).toBe(400);
 
       const response1 = await helper.executePostRequest({
         url: `/apps/${appName}/${environmentName}/entityName`,
-        token: jwtToken,
+        jwtToken: jwtToken,
         body: {},
       });
       expect(response1.status).toBe(400);
@@ -67,7 +67,7 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
     test("when url params are not valid", async () => {
       const response = await helper.executePostRequest({
         url: `/apps/${appName}/${environmentName}/entityName/:randomId`,
-        token: jwtToken,
+        jwtToken: jwtToken,
         body: [{ prop: "value" }],
       });
       expect(response.status).toBe(404);
@@ -76,7 +76,7 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
     test("when environment does not exist", async () => {
       const response = await helper.executePostRequest({
         url: `/apps/${appName}/not-existing-environment/entityName`,
-        token: jwtToken,
+        jwtToken: jwtToken,
         body: [{ prop: "value" }],
       });
       expect(response.status).toBe(400);
@@ -87,7 +87,7 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
     const entityName = "myEntity";
     const response = await helper.executePostRequest({
       url: `/apps/${appName}/${environmentName}/${entityName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: [{ prop: 1 }, { prop: 2 }, { prop: 3 }],
     });
     expect(response.status).toBe(201);
@@ -131,7 +131,7 @@ describe("POST /apps/:appName/:envName/:entityName", async () => {
 
     const deleteResponse = await helper.executeDeleteRequest({
       url: `/apps/${appName}/${environmentName}/${entityName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
     });
     expect(deleteResponse.status).toBe(200);
   });

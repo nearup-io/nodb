@@ -44,13 +44,13 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
     test("when body is missing or it's not an array", async () => {
       const response = await helper.executePatchRequest({
         url: `/apps/${patchAppName}/${patchEnvironmentName}/entityName`,
-        token: jwtToken,
+        jwtToken: jwtToken,
       });
       expect(response.status).toBe(400);
 
       const response1 = await helper.executePatchRequest({
         url: `/apps/${patchAppName}/${patchEnvironmentName}/entityName`,
-        token: jwtToken,
+        jwtToken: jwtToken,
         body: {},
       });
       expect(response1.status).toBe(400);
@@ -59,7 +59,7 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
     test("when environment does not exist", async () => {
       const response = await helper.executePatchRequest({
         url: `/apps/${patchAppName}/not-existing-environment/entityName`,
-        token: jwtToken,
+        jwtToken: jwtToken,
         body: [{ prop: "value" }],
       });
       expect(response.status).toBe(400);
@@ -68,7 +68,7 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
     test("when no entities are found", async () => {
       const response = await helper.executePatchRequest({
         url: `/apps/${patchAppName}/${patchEnvironmentName}/${patchEntityName}`,
-        token: jwtToken,
+        jwtToken: jwtToken,
         body: [{ id: "randomId", prop: "value" }],
       });
       expect(response.status).toBe(400);
@@ -78,7 +78,7 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
   test("Should return 200 OK and update the entity", async () => {
     const response = await helper.executePatchRequest({
       url: `/apps/${patchAppName}/${patchEnvironmentName}/${patchEntityName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: [
         { id: createdEntityIds[0], secondProp: 3 },
         { id: createdEntityIds[1], prop: 66, secondProp: 66 },
@@ -131,7 +131,7 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
   test("Should return 200 OK and ignore entities that don't have an attached id", async () => {
     const response = await helper.executePatchRequest({
       url: `/apps/${patchAppName}/${patchEnvironmentName}/${patchEntityName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: [
         { id: createdEntityIds[2], thirdProp: 3 },
         { thirdProp: 3 },

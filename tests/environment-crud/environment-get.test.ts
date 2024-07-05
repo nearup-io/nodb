@@ -24,7 +24,7 @@ describe("GET /apps/:appName/:envName", async () => {
   test("should return 404 NOT FOUND when environment is not found", async () => {
     const response = await helper.executePostRequest({
       url: `/apps/${appName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
@@ -34,14 +34,14 @@ describe("GET /apps/:appName/:envName", async () => {
 
     const getResponse = await helper.executeGetRequest({
       url: `/apps/${appName}/not-existing-environment`,
-      token: jwtToken,
+      jwtToken: jwtToken,
     });
 
     expect(getResponse.status).toBe(404);
 
     const deleteAppResponse = await helper.executeDeleteRequest({
       url: `/apps/${appName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
     });
     expect(deleteAppResponse.status).toBe(200);
   });
@@ -49,7 +49,7 @@ describe("GET /apps/:appName/:envName", async () => {
   test("should return 200 OK and environment", async () => {
     const response = await helper.executePostRequest({
       url: `/apps/${appName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
@@ -59,7 +59,7 @@ describe("GET /apps/:appName/:envName", async () => {
     const environmentName = "environment";
     const environmentResponse = await helper.executePostRequest({
       url: `/apps/${appName}/${environmentName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: {
         description: "This is a staging environment",
       },
@@ -68,7 +68,7 @@ describe("GET /apps/:appName/:envName", async () => {
 
     const getResponse = await helper.executeGetRequest({
       url: `/apps/${appName}/${environmentName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
     });
 
     expect(getResponse.status).toBe(200);
@@ -97,7 +97,7 @@ describe("GET /apps/:appName/:envName", async () => {
 
     const deleteAppResponse = await helper.executeDeleteRequest({
       url: `/apps/${appName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
     });
     expect(deleteAppResponse.status).toBe(200);
   });

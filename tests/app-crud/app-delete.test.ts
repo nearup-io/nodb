@@ -22,7 +22,7 @@ describe("App endpoint DELETE", async () => {
   test("should return 200 OK {found: false} when app is not found", async () => {
     const response = await helper.executeDeleteRequest({
       url: `/apps/not-found-name`,
-      token: jwtToken,
+      jwtToken: jwtToken,
     });
 
     expect(response.status).toBe(200);
@@ -38,7 +38,7 @@ describe("App endpoint DELETE", async () => {
 
     const postResponse = await helper.executePostRequest({
       url: `/apps/${appForDeletion.name}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: R.omit(["name"], appForDeletion),
     });
 
@@ -47,7 +47,7 @@ describe("App endpoint DELETE", async () => {
     const environmentName = "environment";
     const envResponse = await helper.executePostRequest({
       url: `/apps/${appForDeletion.name}/${environmentName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: {
         description: "This is a staging environment",
       },
@@ -56,7 +56,7 @@ describe("App endpoint DELETE", async () => {
     const entityName = "todo";
     const entityResponse = await helper.executePostRequest({
       url: `/apps/${appForDeletion.name}/${environmentName}/${entityName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
       body: [
         { title: "Grocery Shopping", completed: false, priority: "medium" },
       ],
@@ -68,7 +68,7 @@ describe("App endpoint DELETE", async () => {
 
     const response = await helper.executeDeleteRequest({
       url: `/apps/${appForDeletion.name}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
     });
 
     expect(response.status).toBe(200);

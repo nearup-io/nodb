@@ -47,7 +47,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
   test("should return 404 NOT FOUND when environment does not exist for get entity by id", async () => {
     const response = await helper.executeGetRequest({
       url: `/apps/${appName}/not-existing-environment/${entityName}/${createdEntityIds[0]}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
     });
     expect(response.status).toBe(404);
   });
@@ -55,7 +55,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
   test("should return 404 NOT FOUND when entity does not exist for get entity by id", async () => {
     const response = await helper.executeGetRequest({
       url: `/apps/${appName}/not-existing-environment/${entityName}/not-existing-id`,
-      token: jwtToken,
+      jwtToken: jwtToken,
     });
     expect(response.status).toBe(404);
   });
@@ -78,7 +78,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     test("Should return 200 OK and entity with expected data", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}/${requestedEntityId}`,
-        token: jwtToken,
+        jwtToken: jwtToken,
       });
       expect(response.status).toBe(200);
       deepEqual(await response.json(), {
@@ -93,7 +93,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     test("Should return 200 OK and should apply the __only filter from query params", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}/${requestedEntityId}?__only=prop1`,
-        token: jwtToken,
+        jwtToken: jwtToken,
       });
       expect(response.status).toBe(200);
       deepEqual(await response.json(), {
@@ -108,7 +108,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     test("Should return 200 OK and not return the meta filters when __no_meta=true is added to the query params", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}/${requestedEntityId}?__only=prop1&__no_meta=true`,
-        token: jwtToken,
+        jwtToken: jwtToken,
       });
       expect(response.status).toBe(200);
       deepEqual(await response.json(), {
@@ -121,7 +121,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
   test("should return 200 OK and all entities of requested type", async () => {
     const response = await helper.executeGetRequest({
       url: `/apps/${appName}/${environmentName}/${entityName}`,
-      token: jwtToken,
+      jwtToken: jwtToken,
     });
     expect(response.status).toBe(200);
 
@@ -156,7 +156,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     test("should return 200 OK and return only the requested props using __only query param", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}?__only=prop1,prop2`,
-        token: jwtToken,
+        jwtToken: jwtToken,
       });
       expect(response.status).toBe(200);
 
@@ -190,7 +190,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     test("should return 200 OK and not return any meta when using __no_meta query param", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}?__no_meta=true`,
-        token: jwtToken,
+        jwtToken: jwtToken,
       });
       expect(response.status).toBe(200);
 
@@ -221,7 +221,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     test("should return 200 OK and sort by requested param using __sort_by query param", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}?__sort_by=prop1`,
-        token: jwtToken,
+        jwtToken: jwtToken,
       });
       expect(response.status).toBe(200);
 
@@ -255,7 +255,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     test("should return 200 OK and sort by requested param using __sort_by_desc query param", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}?__sort_by_desc=prop1`,
-        token: jwtToken,
+        jwtToken: jwtToken,
       });
       expect(response.status).toBe(200);
 
@@ -291,7 +291,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
       test("should return 200 OK and return the requested amount of items on a page + specific page", async () => {
         const response = await helper.executeGetRequest({
           url: `/apps/${appName}/${environmentName}/${entityName}?__per_page=2&__page=1`,
-          token: jwtToken,
+          jwtToken: jwtToken,
         });
         expect(response.status).toBe(200);
 
@@ -329,7 +329,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
       test("should return 200 OK and return the requested amount of items on a page + second page", async () => {
         const response = await helper.executeGetRequest({
           url: `/apps/${appName}/${environmentName}/${entityName}?__per_page=2&__page=2`,
-          token: jwtToken,
+          jwtToken: jwtToken,
         });
         expect(response.status).toBe(200);
 
@@ -373,7 +373,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
       test("should return 200 OK and return the requested amount of items on a page + last page", async () => {
         const response = await helper.executeGetRequest({
           url: `/apps/${appName}/${environmentName}/${entityName}?__per_page=2&__page=3`,
-          token: jwtToken,
+          jwtToken: jwtToken,
         });
         expect(response.status).toBe(200);
 
