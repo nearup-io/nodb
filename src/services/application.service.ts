@@ -13,20 +13,30 @@ const getApplication = async ({
   context,
   appName,
   clerkId,
+  tokenPermissions,
 }: {
   context: Context;
   appName: string;
-  clerkId: string;
+  clerkId?: string;
+  tokenPermissions?: BackendTokenPermissions;
 }): Promise<
   Omit<Application, "environments"> & {
     environments: Pick<Environment, "id" | "name" | "description">[];
   }
 > => {
+  if (!clerkId && !tokenPermissions) {
+    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED);
+  }
+
   const repository = context.get<IApplicationRepository>(
     APPLICATION_REPOSITORY,
   );
 
-  const application = await repository.getApplication({ appName, clerkId });
+  const application = await repository.getApplication({
+    appName,
+    clerkId,
+    token: tokenPermissions?.token,
+  });
   if (!application) {
     throw new ServiceError(httpError.APPNAME_NOT_FOUND);
   }

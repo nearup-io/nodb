@@ -12,7 +12,8 @@ import type { Token } from "../models/token.model";
 export interface IApplicationRepository {
   getApplication(props: {
     appName: string;
-    clerkId: string;
+    clerkId?: string;
+    token?: string;
   }): Promise<Application | null>;
   getUserApplications(props: { clerkId: string }): Promise<
     (Omit<Application, "id" | "environments"> & {

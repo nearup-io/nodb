@@ -97,7 +97,8 @@ app.get(
       const application = await getApplication({
         context: c.get("context"),
         appName,
-        clerkId: user.clerkId,
+        clerkId: user?.clerkId,
+        tokenPermissions: c.get("tokenPermissions"),
       });
       return c.json(application);
     } catch (err) {

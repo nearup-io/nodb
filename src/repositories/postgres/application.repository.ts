@@ -50,21 +50,41 @@ class ApplicationRepository
   public async getApplication({
     appName,
     clerkId,
+    token,
   }: {
     appName: string;
-    clerkId: string;
+    clerkId?: string;
+    token?: string;
   }): Promise<Application | null> {
     const app = await this.prisma.application.findFirst({
       where: {
-        userId: clerkId,
+        ...(clerkId && { userId: clerkId }),
+        ...(token && {
+          tokens: {
+            some: {
+              key: token,
+            },
+          },
+        }),
         name: appName,
       },
       include: {
+        tokens: {
+          select: {
+            key: true,
+            permission: true,
+          },
+        },
         environments: {
           select: {
             id: true,
             name: true,
-            tokens: false,
+            tokens: {
+              select: {
+                key: true,
+                permission: true,
+              },
+            },
             description: true,
             entities: false,
           },
@@ -78,14 +98,14 @@ class ApplicationRepository
           name: app.name,
           image: app.image,
           description: app.description,
-          tokens: [],
+          tokens: app.tokens,
           environments: app.environments.map((env) => {
             return {
               id: env.id,
               name: env.name,
               description: env.description,
               entities: [],
-              tokens: [],
+              tokens: app.tokens,
             };
           }),
         }
