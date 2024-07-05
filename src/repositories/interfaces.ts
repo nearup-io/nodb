@@ -15,7 +15,7 @@ export interface IApplicationRepository {
     clerkId: string;
   }): Promise<Application | null>;
   getUserApplications(props: { clerkId: string }): Promise<
-    (Omit<Application, "id" | "environments"> & {
+    (Omit<Application, "id" | "environments" | "tokens"> & {
       environments: Omit<Environment, "id" | "description">[];
     })[]
   >;
@@ -38,7 +38,7 @@ export interface IApplicationRepository {
       description?: string;
       image?: string;
     };
-  }): Promise<Omit<Application, "environments"> | null>;
+  }): Promise<Omit<Application, "environments" | "tokens"> | null>;
   deleteApplication(props: {
     appName: string;
     clerkId: string;
@@ -129,7 +129,10 @@ export interface IUserRepository {
 }
 
 export interface ITokenRepository {
-  getAllTokens(props: { app: string; env: string }): Promise<Token[]>;
+  getAllTokens(props: {
+    app: string;
+    env: string;
+  }): Promise<Omit<Token, "environments">[]>;
   // TODO rename method
   getTokenPermissions(props: {
     token: string;

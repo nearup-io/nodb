@@ -44,7 +44,7 @@ model Environment {
   // TODO this one should refer to the id and not the name
   application Application @relation(fields: [applicationName], references: [name], onDelete: Cascade)
   applicationName String
-  tokens TokensOnEnvironments[]
+  tokens Token[]
   @@unique([name, applicationName])
 }
 
@@ -53,16 +53,8 @@ model Token {
   permission Permission
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   applicationId String
-  environments TokensOnEnvironments[]
-}
-
-model TokensOnEnvironments {
-  token       Token     @relation(fields: [tokenId], references: [key])
-  tokenId     String
-  environment   Environment @relation(fields: [environmentId], references: [id])
-  environmentId   String
-
-  @@id([tokenId, environmentId])
+  environment Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  environmentId String
 }
 
 model Entity {

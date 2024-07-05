@@ -4,9 +4,6 @@ export const Permissions = Object.freeze({
 });
 import chalk from "chalk";
 
-export const PROVIDER_GOOGLE = "Google";
-export const PROVIDER_GITHUB = "Github";
-
 export const APPNAME_MIN_LENGTH = 3;
 export const APPNAME_REGEX = /^([a-z0-9]+-)*[a-z0-9]+$/;
 export const llms = { anthropic: "anthropic", openai: "openai" };

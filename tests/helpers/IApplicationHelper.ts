@@ -36,7 +36,7 @@ export interface ITestApplicationHelper {
     appName: string,
   ): Promise<Omit<EnvironmentType, "entities" | "tokens">[]>;
   getAppFromDbByName(appName: string): Promise<
-    | (Omit<AppType, "environments"> & {
+    | (Omit<AppType, "environments" | "tokens"> & {
         environments: Pick<EnvironmentType, "name">[];
       })
     | null

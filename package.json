@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development bun --hot src/app.ts",
     "start": "bun src/app.ts",
-    "e2e-app-tests-postgres": "bun test app --env-file=.env.postgres.test",
+    "e2e-app-tests-postgres": "bun test app-post --env-file=.env.postgres.test",
     "e2e-env-tests-postgres": "bun test environment --env-file=.env.postgres.test",
     "e2e-entity-tests-postgres": "bun test entity --env-file=.env.postgres.test",
     "e2e-tests-all-postgres": "bun test --env-file=.env.postgres.test",
@@ -24,7 +24,7 @@
     "cross-env": "^7.0.3",
     "pg": "^8.12.0",
     "prettier": "3.2.5",
-    "prisma": "^5.15.0"
+    "prisma": "^5.16.1"
   },
   "peerDependencies": {
     "typescript": "^5.4.5"
@@ -34,7 +34,7 @@
     "@clerk/backend": "^1.2.1",
     "@hono/clerk-auth": "^2.0.0",
     "@langchain/openai": "^0.0.28",
-    "@prisma/client": "5.15.0",
+    "@prisma/client": "5.16.1",
     "assert": "^2.1.0",
     "axios": "^1.6.8",
     "chalk": "^5.3.0",

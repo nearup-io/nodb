@@ -63,6 +63,11 @@ class EnvironmentRepository
           create: {
             key: generateToken(),
             permission: Permissions.ALL,
+            application: {
+              connect: {
+                name: appName,
+              },
+            },
           },
         },
         application: {

@@ -119,7 +119,7 @@ export class PostgresTestApplicationHelper
     });
   }
   async getAppFromDbByName(appName: string): Promise<
-    | (Omit<Application, "environments"> & {
+    | (Omit<Application, "environments" | "tokens"> & {
         environments: Pick<Environment, "name">[];
       })
     | null

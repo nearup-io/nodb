@@ -30,7 +30,7 @@ describe("App endpoint GET", async () => {
     await helper.stopApplication();
   });
 
-  const apps: Omit<Application, "id" | "environments">[] = [
+  const apps: Omit<Application, "id" | "environments" | "tokens">[] = [
     {
       name: "app-name-1",
       image: "path/to/image-1.jpg",

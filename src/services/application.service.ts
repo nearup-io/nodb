@@ -39,7 +39,7 @@ const getUserApplications = async ({
   context: Context;
   clerkId: string;
 }): Promise<
-  (Omit<Application, "id" | "environments"> & {
+  (Omit<Application, "id" | "environments" | "tokens"> & {
     environments: Omit<Environment, "id" | "description">[];
   })[]
 > => {
@@ -67,7 +67,7 @@ const createApplication = async ({
 }): Promise<{
   applicationName: string;
   environmentName: string;
-  tokens: Token[];
+  tokens: Omit<Token, "environments">[];
 }> => {
   const repository = context.get<IApplicationRepository>(
     APPLICATION_REPOSITORY,
@@ -101,7 +101,7 @@ const updateApplication = async (props: {
   clerkId: string;
   description?: string;
   image?: string;
-}): Promise<Omit<Application, "environments"> | null> => {
+}): Promise<Omit<Application, "environments" | "tokens"> | null> => {
   const repository = props.context.get<IApplicationRepository>(
     APPLICATION_REPOSITORY,
   );

@@ -30,7 +30,7 @@ describe("App endpoint DELETE", async () => {
   });
 
   test("should remove all environments, entities and remove the app from the user", async () => {
-    const appForDeletion: Omit<AppType, "id" | "environments"> = {
+    const appForDeletion: Omit<AppType, "id" | "environments" | "tokens"> = {
       name: "app-name-1",
       image: "path/to/image-1.jpg",
       description: "description 1",
