@@ -119,8 +119,8 @@ export class PostgresTestApplicationHelper
     });
   }
   async getAppFromDbByName(appName: string): Promise<
-    | (Omit<Application, "environments" | "tokens"> & {
-        environments: Pick<Environment, "name">[];
+    | (Omit<Application, "environments"> & {
+        environments: Pick<Environment, "name" | "tokens">[];
       })
     | null
   > {
@@ -133,12 +133,21 @@ export class PostgresTestApplicationHelper
         environments: {
           select: {
             name: true,
+            tokens: {
+              select: { key: true, permission: true },
+            },
           },
         },
         userId: false,
         description: true,
         image: true,
         name: true,
+        tokens: {
+          select: {
+            key: true,
+            permission: true,
+          },
+        },
       },
     });
   }

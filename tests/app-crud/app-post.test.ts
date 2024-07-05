@@ -24,6 +24,7 @@ describe("POST /apps/:appName", async () => {
       const shortAppName = "ap";
       const response = await helper.executePostRequest({
         url: `/apps/${shortAppName}`,
+        token: jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -36,6 +37,7 @@ describe("POST /apps/:appName", async () => {
       const faultyAppName = "app_?test";
       const response = await helper.executePostRequest({
         url: `/apps/${faultyAppName}`,
+        token: jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -48,6 +50,7 @@ describe("POST /apps/:appName", async () => {
       const duplicateAppName = "app-name";
       const response = await helper.executePostRequest({
         url: `/apps/${duplicateAppName}`,
+        token: jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -58,6 +61,7 @@ describe("POST /apps/:appName", async () => {
 
       const response1 = await helper.executePostRequest({
         url: `/apps/${duplicateAppName}`,
+        token: jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -71,6 +75,7 @@ describe("POST /apps/:appName", async () => {
   test("Should return 201 CREATED when no token is present and return app, environment and tokens", async () => {
     const response = await helper.executePostRequest({
       url: `/apps/${appName}`,
+      token: jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
@@ -99,8 +104,9 @@ describe("POST /apps/:appName", async () => {
     expect(firstToken.permission).toBe("ALL");
     const dbResult = await helper.getAppFromDbByName(appName);
     expect(dbResult).not.toBeNull();
-    const { id, environments, ...otherProps } = dbResult!;
+    const { id, environments, tokens, ...otherProps } = dbResult!;
     expect(id).not.toBeUndefined();
+    expect(tokens).toStrictEqual(body.tokens);
     // one environment is automatically created
     expect(environments).toBeArray();
     expect(environments.length).toEqual(1);
@@ -109,6 +115,9 @@ describe("POST /apps/:appName", async () => {
       image: "path/to/image.jpg",
       name: appName,
     });
+    const [environment] = environments;
+    expect(environment.name).toBe("dev"); // default env
+    expect(environment.tokens).toStrictEqual(body.tokens);
     await helper.deleteAppByName(appName);
   });
 
@@ -144,8 +153,9 @@ describe("POST /apps/:appName", async () => {
     expect(firstToken.permission).toBe("ALL");
     const dbResult = await helper.getAppFromDbByName(secondAppName);
     expect(dbResult).not.toBeNull();
-    const { id, environments, ...otherProps } = dbResult!;
+    const { id, environments, tokens, ...otherProps } = dbResult!;
     expect(id).not.toBeUndefined();
+    expect(tokens).toStrictEqual(body.tokens);
     // one environment is automatically created
     expect(environments).toBeArray();
     expect(environments.length).toEqual(1);
@@ -154,6 +164,11 @@ describe("POST /apps/:appName", async () => {
       image: "path/to/image.jpg",
       name: secondAppName,
     });
+
+    const [environment] = environments;
+    expect(environment.name).toBe("dev"); // default env
+    expect(environment.tokens).toStrictEqual(body.tokens);
+
     await helper.deleteAppByName(secondAppName);
   });
 });
