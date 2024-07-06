@@ -51,10 +51,10 @@ model Environment {
 model Token {
   key String @id
   permission Permission
-  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  applicationId String
-  environment Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
-  environmentId String
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationId String?
+  environment Environment? @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  environmentId String?
 }
 
 model Entity {

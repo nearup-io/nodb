@@ -9,20 +9,23 @@ class TokenRepository extends BaseRepository implements ITokenRepository {
     super(prisma);
   }
 
+  // TODO update interface
   async getAllTokens({
     app,
     env,
   }: {
     app: string;
     env: string;
-  }): Promise<Omit<Token, "environments">[]> {
+  }): Promise<Token[]> {
     const tokens = await this.prisma.token.findMany({
       where: {
         application: {
           name: app,
-        },
-        environment: {
-          name: env,
+          environments: {
+            some: {
+              name: env,
+            },
+          },
         },
       },
     });
@@ -61,10 +64,10 @@ class TokenRepository extends BaseRepository implements ITokenRepository {
     if (!result) return null;
 
     return {
-      applicationId: result.application.id,
-      applicationName: result.application.name,
-      environmentId: result.environment.id,
-      environmentName: result.environment.name,
+      applicationId: result.application?.id,
+      applicationName: result.application?.name,
+      environmentId: result.environment?.id,
+      environmentName: result.environment?.name,
       token: result.key,
       permission: result.permission,
     };

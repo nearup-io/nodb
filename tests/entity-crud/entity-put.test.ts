@@ -23,7 +23,7 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
     createdEntityIds = await helper.createAppWithEnvironmentEntities({
       appName: putAppName,
       environmentName: putEnvironmentName,
-      token: jwtToken,
+      jwtToken,
       entities,
       entityName: putEntityName,
     });
@@ -45,13 +45,13 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
     test("when body is missing or it's not an array", async () => {
       const response = await helper.executePutRequest({
         url: `/apps/${putAppName}/${putEnvironmentName}/entityName`,
-        jwtToken: jwtToken,
+        jwtToken,
       });
       expect(response.status).toBe(400);
 
       const response1 = await helper.executePutRequest({
         url: `/apps/${putAppName}/${putEnvironmentName}/entityName`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {},
       });
       expect(response1.status).toBe(400);
@@ -60,7 +60,7 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
     test("when environment does not exist", async () => {
       const response = await helper.executePutRequest({
         url: `/apps/${putAppName}/not-existing-environment/entityName`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: [{ prop: "value" }],
       });
       expect(response.status).toBe(400);
@@ -69,7 +69,7 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
     test("when no entities are found", async () => {
       const response = await helper.executePutRequest({
         url: `/apps/${putAppName}/${putEnvironmentName}/${putEntityName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: [{ id: "randomId", prop: "value" }],
       });
       expect(response.status).toBe(400);
@@ -79,7 +79,7 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
   test("Should return 200 OK and replace the entity", async () => {
     const response = await helper.executePutRequest({
       url: `/apps/${putAppName}/${putEnvironmentName}/${putEntityName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: [
         { id: createdEntityIds[0], secondProp: 3 },
         { id: createdEntityIds[1], newProp: 66, secondProp: 66 },
@@ -130,7 +130,7 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
   test("Should return 200 OK and INSERT entities that don't have an attached id", async () => {
     const response = await helper.executePutRequest({
       url: `/apps/${putAppName}/${putEnvironmentName}/${putEntityName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: [
         { id: createdEntityIds[2], thirdProp: 3 },
         { newEntityProp: 3 },

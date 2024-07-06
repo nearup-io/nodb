@@ -23,7 +23,7 @@ describe("DELETE /apps/:appName/:envName/:entityName", () => {
     createdEntityIds = await helper.createAppWithEnvironmentEntities({
       appName: deleteAppName,
       environmentName: deleteEnvironmentName,
-      token: jwtToken,
+      jwtToken,
       entityName: deleteEntityName,
       entities,
     });
@@ -36,7 +36,7 @@ describe("DELETE /apps/:appName/:envName/:entityName", () => {
   test("should return 404 NOT FOUND when environment does not exist", async () => {
     const response = await helper.executeDeleteRequest({
       url: `/apps/${deleteAppName}/not-existing-environment/${deleteEntityName}`,
-      jwtToken: jwtToken,
+      jwtToken,
     });
     expect(response.status).toBe(404);
   });
@@ -76,7 +76,7 @@ describe("DELETE /apps/:appName/:envName/:entityName", () => {
     const ids = await helper.createAppWithEnvironmentEntities({
       appName,
       environmentName,
-      token: jwtToken,
+      jwtToken,
       entityName,
       entities: [entities[0], entities[1]],
     });

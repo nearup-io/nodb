@@ -38,7 +38,8 @@ export interface IApplicationRepository {
   }): Promise<{
     applicationName: string;
     environmentName: string;
-    tokens: Token[];
+    applicationTokens: Token[];
+    environmentTokens: Token[];
   }>;
   updateApplication(props: {
     oldAppName: string;
@@ -140,10 +141,7 @@ export interface IUserRepository {
 }
 
 export interface ITokenRepository {
-  getAllTokens(props: {
-    app: string;
-    env: string;
-  }): Promise<Omit<Token, "environments">[]>;
+  getAllTokens(props: { app: string; env?: string }): Promise<Token[]>;
   // TODO rename method
   getTokenPermissions(props: {
     token: string;

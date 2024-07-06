@@ -34,7 +34,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     createdEntityIds = await helper.createAppWithEnvironmentEntities({
       appName: appName,
       environmentName,
-      token: jwtToken,
+      jwtToken,
       entityName,
       entities,
     });

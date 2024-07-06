@@ -244,9 +244,15 @@ class ApplicationRepository
   }): Promise<{
     applicationName: string;
     environmentName: string;
-    tokens: Token[];
+    applicationTokens: Token[];
+    environmentTokens: Token[];
   }> {
-    const result = await this.transaction(async (prisma) => {
+    const result = await this.transaction<{
+      applicationName: string;
+      environmentName: string;
+      applicationTokens: Token[];
+      environmentTokens: Token[];
+    }>(async (prisma) => {
       const app = await prisma.application.create({
         data: {
           name: appName,
@@ -272,31 +278,38 @@ class ApplicationRepository
           environments: true,
         },
       });
-      const token = await prisma.token.create({
-        data: {
-          key: generateToken(),
-          permission: Permissions.ALL,
-          application: {
-            connect: {
-              id: app.id,
-            },
+
+      const tokens = await prisma.token.createManyAndReturn({
+        data: [
+          {
+            key: generateToken(),
+            permission: Permissions.ALL,
+            applicationId: app.id,
           },
-          environment: {
-            connect: {
-              id: app.environments[0].id,
-            },
+          {
+            key: generateToken(),
+            permission: Permissions.ALL,
+            environmentId: app.environments[0].id,
           },
+        ],
+        select: {
+          key: true,
+          permission: true,
+          environmentId: true,
+          applicationId: true,
         },
       });
 
       return {
         environmentName: app.environments[0].name,
         applicationName: app.name,
-        tokens: [
-          {
-            key: token.key,
-            permission: token.permission,
-          },
+        applicationTokens: [
+          tokens.find((token) => token.applicationId === app.id)!,
+        ],
+        environmentTokens: [
+          tokens.find(
+            (token) => token.environmentId === app.environments[0].id,
+          )!,
         ],
       };
     });

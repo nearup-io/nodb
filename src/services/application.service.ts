@@ -94,7 +94,8 @@ const createApplication = async ({
 }): Promise<{
   applicationName: string;
   environmentName: string;
-  tokens: Token[];
+  applicationTokens: Token[];
+  environmentTokens: Token[];
 }> => {
   const repository = context.get<IApplicationRepository>(
     APPLICATION_REPOSITORY,

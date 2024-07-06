@@ -47,10 +47,10 @@ export type Pagination = {
 };
 
 export type BackendTokenPermissions = {
-  applicationName: string;
-  applicationId: string;
-  environmentName: string;
-  environmentId: string;
+  applicationName?: string;
+  applicationId?: string;
+  environmentName?: string;
+  environmentId?: string;
   token: string;
   permission: TokenPermission;
 };

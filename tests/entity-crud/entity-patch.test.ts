@@ -22,7 +22,7 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
     createdEntityIds = await helper.createAppWithEnvironmentEntities({
       appName: patchAppName,
       environmentName: patchEnvironmentName,
-      token: jwtToken,
+      jwtToken,
       entities,
       entityName: patchEntityName,
     });
