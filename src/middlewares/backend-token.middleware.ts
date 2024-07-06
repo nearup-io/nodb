@@ -27,17 +27,40 @@ const middleware = factory.createMiddleware(async (c, next) => {
       envName?: string;
     };
 
-    if (appName && appName !== permissions.applicationName) {
-      throw new HTTPException(401, {
-        message: "No access to this application",
-      });
+    if (["POST", "PATCH", "DELETE"].includes(c.req.method)) {
+      if (appName && appName !== permissions.applicationName) {
+        throw new HTTPException(401, {
+          message: "No access to this application",
+        });
+      }
+
+      if (envName && envName !== permissions.environmentName) {
+        throw new HTTPException(401, {
+          message: "No access to this environment",
+        });
+      }
+    } else {
+      if (
+        permissions.applicationName &&
+        appName &&
+        appName !== permissions.applicationName
+      ) {
+        throw new HTTPException(401, {
+          message: "No access to this application",
+        });
+      }
+
+      if (
+        permissions.environmentName &&
+        envName &&
+        envName !== permissions.environmentName
+      ) {
+        throw new HTTPException(401, {
+          message: "No access to this environment",
+        });
+      }
     }
 
-    if (envName && envName !== permissions.environmentName) {
-      throw new HTTPException(401, {
-        message: "No access to this environment",
-      });
-    }
     c.set("tokenPermissions", permissions);
     await next();
     return;

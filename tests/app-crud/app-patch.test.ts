@@ -80,7 +80,7 @@ describe("App endpoint PATCH", async () => {
     expect(patchResponse.status).toBe(401);
   });
 
-  test("Should return 401 FORBIDDEN when trying to update app the backend token does not have permission to", async () => {
+  test("Should return 401 FORBIDDEN when trying to update an application that the application token (backend token) does not have permissions to", async () => {
     const appName = "test-app";
     const postResponse = await helper.executePostRequest({
       url: `/apps/${appName}`,
@@ -91,10 +91,38 @@ describe("App endpoint PATCH", async () => {
     });
     expect(postResponse.status).toBe(201);
 
-    const token = (await postResponse.json()).tokens[0].key as string;
+    const token = (await postResponse.json()).applicationTokens[0]
+      .key as string;
 
     const patchResponse = await helper.executePatchRequest({
       url: `/apps/different-app`,
+      backendToken: token,
+      body: {
+        appName: "new-app-name",
+        description: "new description",
+        image: "path/to/image-new.jpg",
+      },
+    });
+
+    expect(patchResponse.status).toBe(401);
+  });
+
+  test("Should return 401 FORBIDDEN when trying to update an application that the environment token (backend token) does not have permissions to", async () => {
+    const appName = "test-app-2";
+    const postResponse = await helper.executePostRequest({
+      url: `/apps/${appName}`,
+      body: {
+        image: "path/to/image.jpg",
+        description: "some description",
+      },
+    });
+    expect(postResponse.status).toBe(201);
+
+    const token = (await postResponse.json()).environmentTokens[0]
+      .key as string;
+
+    const patchResponse = await helper.executePatchRequest({
+      url: `/apps/${appName}`,
       backendToken: token,
       body: {
         appName: "new-app-name",
@@ -161,7 +189,14 @@ describe("App endpoint PATCH", async () => {
       description: "new description",
       image: "path/to/image-new.jpg",
     });
-    expect(tokens).toStrictEqual(environments[0].tokens);
+    expect(tokens.length).toBe(1);
+    expect(Object.keys(tokens[0]).sort()).toStrictEqual(
+      ["key", "permission"].sort(),
+    );
+    expect(environments[0].tokens.length).toBe(1);
+    expect(Object.keys(environments[0].tokens[0]).sort()).toStrictEqual(
+      ["key", "permission"].sort(),
+    );
 
     await helper.deleteAppByName("new-app-name");
   });
@@ -177,7 +212,8 @@ describe("App endpoint PATCH", async () => {
     });
     expect(postResponse.status).toBe(201);
 
-    const token = (await postResponse.json()).tokens[0].key as string;
+    const token = (await postResponse.json()).applicationTokens[0]
+      .key as string;
 
     const patchResponse = await helper.executePatchRequest({
       url: `/apps/${appName}`,
@@ -203,7 +239,14 @@ describe("App endpoint PATCH", async () => {
       description: "new description",
       image: "path/to/image-new.jpg",
     });
-    expect(tokens).toStrictEqual(environments[0].tokens);
+    expect(tokens.length).toBe(1);
+    expect(Object.keys(tokens[0]).sort()).toStrictEqual(
+      ["key", "permission"].sort(),
+    );
+    expect(environments[0].tokens.length).toBe(1);
+    expect(Object.keys(environments[0].tokens[0]).sort()).toStrictEqual(
+      ["key", "permission"].sort(),
+    );
 
     await helper.deleteAppByName("new-app-name-2");
   });

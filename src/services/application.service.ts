@@ -35,7 +35,7 @@ const getApplication = async ({
   const application = await repository.getApplication({
     appName,
     clerkId,
-    token: tokenPermissions?.token,
+    tokenPermissions,
   });
   if (!application) {
     throw new ServiceError(httpError.APPNAME_NOT_FOUND);

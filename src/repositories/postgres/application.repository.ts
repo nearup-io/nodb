@@ -3,7 +3,7 @@ import { type Environment } from "../../models/environment.model.ts";
 import { type Token } from "../../models/token.model.ts";
 import BaseRepository from "./base.repository.ts";
 import type { IApplicationRepository } from "../interfaces.ts";
-import type { PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 import * as R from "ramda";
 import { defaultNodbEnv, Permissions } from "../../utils/const.ts";
 import generateToken from "../../utils/backend-token.ts";
@@ -50,22 +50,40 @@ class ApplicationRepository
   public async getApplication({
     appName,
     clerkId,
-    token,
+    tokenPermissions,
   }: {
     appName: string;
     clerkId?: string;
-    token?: string;
+    tokenPermissions?: BackendTokenPermissions;
   }): Promise<Application | null> {
-    const app = await this.prisma.application.findFirst({
-      where: {
-        ...(clerkId && { userId: clerkId }),
-        ...(token && {
-          tokens: {
-            some: {
-              key: token,
+    let permissionsWhereClause: Prisma.ApplicationWhereInput = {};
+    if (clerkId) {
+      permissionsWhereClause = { userId: clerkId };
+    } else if (tokenPermissions?.environmentId) {
+      permissionsWhereClause = {
+        environments: {
+          some: {
+            tokens: {
+              some: {
+                key: tokenPermissions.token,
+              },
             },
           },
-        }),
+        },
+      };
+    } else if (tokenPermissions?.applicationId) {
+      permissionsWhereClause = {
+        tokens: {
+          some: {
+            key: tokenPermissions.token,
+          },
+        },
+      };
+    }
+
+    const app = await this.prisma.application.findFirst({
+      where: {
+        ...permissionsWhereClause,
         name: appName,
       },
       include: {
@@ -177,11 +195,24 @@ class ApplicationRepository
   > {
     const application = await this.prisma.application.findFirst({
       where: {
-        tokens: {
-          some: {
-            key: tokenPermissions.token,
+        ...(tokenPermissions.applicationId && {
+          tokens: {
+            some: {
+              key: tokenPermissions.token,
+            },
           },
-        },
+        }),
+        ...(tokenPermissions.environmentId && {
+          environments: {
+            some: {
+              tokens: {
+                some: {
+                  key: tokenPermissions.token,
+                },
+              },
+            },
+          },
+        }),
       },
       include: {
         environments: {
@@ -304,12 +335,18 @@ class ApplicationRepository
         environmentName: app.environments[0].name,
         applicationName: app.name,
         applicationTokens: [
-          tokens.find((token) => token.applicationId === app.id)!,
+          R.omit(
+            ["applicationId", "environmentId"],
+            tokens.find((token) => token.applicationId === app.id)!,
+          ),
         ],
         environmentTokens: [
-          tokens.find(
-            (token) => token.environmentId === app.environments[0].id,
-          )!,
+          R.omit(
+            ["applicationId", "environmentId"],
+            tokens.find(
+              (token) => token.environmentId === app.environments[0].id,
+            )!,
+          ),
         ],
       };
     });

@@ -13,7 +13,7 @@ export interface IApplicationRepository {
   getApplication(props: {
     appName: string;
     clerkId?: string;
-    token?: string;
+    tokenPermissions?: BackendTokenPermissions;
   }): Promise<Application | null>;
   getUserApplications(props: { clerkId: string }): Promise<
     (Omit<Application, "id" | "environments"> & {

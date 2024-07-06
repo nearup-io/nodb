@@ -39,7 +39,8 @@ describe("App endpoint GET", async () => {
     description: "description 5",
   };
 
-  let tokenForAppWithoutUser: string = "";
+  let backendAppToken: string = "";
+  let backendEnvToken: string = "";
 
   beforeAll(async () => {
     await helper.init();
@@ -61,7 +62,8 @@ describe("App endpoint GET", async () => {
     });
     expect(postResponse.status).toBe(201);
     const body = (await postResponse.json()) as any;
-    tokenForAppWithoutUser = body.tokens[0].key as string;
+    backendAppToken = body.applicationTokens[0].key as string;
+    backendEnvToken = body.environmentTokens[0].key as string;
   });
 
   afterAll(async () => {
@@ -123,10 +125,10 @@ describe("App endpoint GET", async () => {
       expect(await response.json()).toEqual([]);
     });
 
-    test("Should return 200 OK and only the app the backendToken has permission to", async () => {
+    test("Should return 200 OK and only the app the app token (backend token) has permission to", async () => {
       const response = await helper.executeGetRequest({
         url: "/apps/all",
-        backendToken: tokenForAppWithoutUser,
+        backendToken: backendAppToken,
       });
       expect(response.status).toBe(200);
 
@@ -136,7 +138,7 @@ describe("App endpoint GET", async () => {
       const [first] = entities;
       const [token] = first.tokens;
 
-      expect(token.key).toEqual(tokenForAppWithoutUser);
+      expect(token.key).toEqual(backendAppToken);
       expect(token.permission).toBeString();
       expect(first.environments).toBeArray();
 
@@ -151,7 +153,43 @@ describe("App endpoint GET", async () => {
       expect(firstEnvironment.tokens).toBeArray();
 
       const [firstToken] = firstEnvironment.tokens;
-      expect(firstToken.key).toEqual(tokenForAppWithoutUser);
+      expect(firstToken.key).toEqual(backendEnvToken);
+      expect(firstToken.permission).toBeString();
+
+      expect(
+        entities.map((entity) => R.omit(["environments", "tokens"], entity)),
+      ).toEqual([appWithoutUser]);
+    });
+
+    test("Should return 200 OK and only the app the env token (backend token) has permission to", async () => {
+      const response = await helper.executeGetRequest({
+        url: "/apps/all",
+        backendToken: backendEnvToken,
+      });
+      expect(response.status).toBe(200);
+
+      const entities = (await response.json()) as any[];
+      expect(entities.length).toBe(1);
+
+      const [first] = entities;
+      const [token] = first.tokens;
+
+      expect(token.key).toEqual(backendAppToken);
+      expect(token.permission).toBeString();
+      expect(first.environments).toBeArray();
+
+      const [firstEnvironment] = first.environments;
+
+      expect(R.keys(firstEnvironment).sort()).toEqual(
+        ["name", "tokens", "entities"].sort(),
+      );
+
+      expect(firstEnvironment.entities).toBeArray();
+      expect(firstEnvironment.name).toBeString();
+      expect(firstEnvironment.tokens).toBeArray();
+
+      const [firstToken] = firstEnvironment.tokens;
+      expect(firstToken.key).toEqual(backendEnvToken);
       expect(firstToken.permission).toBeString();
 
       expect(
@@ -171,7 +209,7 @@ describe("App endpoint GET", async () => {
     test("Should return 401 FORBIDDEN for app when backend token is not linked to the requested app when backend token is used", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${apps[0].name}`,
-        backendToken: tokenForAppWithoutUser,
+        backendToken: backendAppToken,
       });
 
       expect(response.status).toBe(401);
@@ -226,10 +264,53 @@ describe("App endpoint GET", async () => {
       expect(R.omit(["id", "environments", "tokens"], app)).toEqual(apps[0]);
     });
 
-    test("Should return 200 OK and found app when backend token is used", async () => {
+    test("Should return 200 OK and found app when app token (backend token) is used", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appWithoutUser.name}`,
-        backendToken: tokenForAppWithoutUser,
+        backendToken: backendAppToken,
+      });
+
+      expect(response.status).toBe(200);
+
+      const app = (await response.json()) as any;
+
+      expect(Object.keys(app).sort()).toStrictEqual(
+        ["name", "tokens", "description", "environments", "id", "image"].sort(),
+      );
+      expect(app.name).toEqual(appWithoutUser.name);
+      expect(app.id).toBeString();
+      expect(app.image).toBeString();
+      const [token] = app.tokens;
+
+      expect(token.key).toBeString();
+      expect(token.permission).toBeString();
+      expect(app.environments).toBeArray();
+
+      const [firstEnvironment] = app.environments;
+
+      expect(R.keys(firstEnvironment).sort()).toEqual(
+        ["id", "description", "name", "tokens", "entities"].sort(),
+      );
+
+      expect(firstEnvironment.entities).toBeArray();
+      expect(firstEnvironment.name).toBeString();
+      expect(firstEnvironment.id).toBeString();
+      expect(firstEnvironment.description).toBeString();
+      expect(firstEnvironment.tokens).toBeArray();
+
+      const [firstToken] = firstEnvironment.tokens;
+      expect(firstToken.key).toBeString();
+      expect(firstToken.permission).toBeString();
+
+      expect(R.omit(["id", "environments", "tokens"], app)).toEqual(
+        appWithoutUser,
+      );
+    });
+
+    test("Should return 200 OK and found app when env token (backend token) is used", async () => {
+      const response = await helper.executeGetRequest({
+        url: `/apps/${appWithoutUser.name}`,
+        backendToken: backendEnvToken,
       });
 
       expect(response.status).toBe(200);
