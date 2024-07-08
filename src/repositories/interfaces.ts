@@ -145,8 +145,6 @@ export interface IUserRepository {
 }
 
 export interface ITokenRepository {
-  getAllTokens(props: { app: string; env?: string }): Promise<Token[]>;
-  // TODO rename method
   getTokenPermissions(props: {
     token: string;
   }): Promise<BackendTokenPermissions | null>;

@@ -1,39 +1,11 @@
 import BaseRepository from "./base.repository.ts";
 import type { PrismaClient } from "@prisma/client";
 import type { ITokenRepository } from "../interfaces.ts";
-import type { Token } from "../../models/token.model.ts";
 import type { BackendTokenPermissions } from "../../utils/types.ts";
 
 class TokenRepository extends BaseRepository implements ITokenRepository {
   constructor(prisma: PrismaClient) {
     super(prisma);
-  }
-
-  // TODO update interface
-  async getAllTokens({
-    app,
-    env,
-  }: {
-    app: string;
-    env: string;
-  }): Promise<Token[]> {
-    const tokens = await this.prisma.token.findMany({
-      where: {
-        application: {
-          name: app,
-          environments: {
-            some: {
-              name: env,
-            },
-          },
-        },
-      },
-    });
-
-    return tokens.map((token) => ({
-      key: token.key,
-      permission: token.permission,
-    }));
   }
 
   async getTokenPermissions({
