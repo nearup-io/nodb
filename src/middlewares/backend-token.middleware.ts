@@ -2,10 +2,7 @@ import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { httpError } from "../utils/const.ts";
 import { getTokenPermissions } from "../services/token.service.ts";
-import {
-  verifyDataManipulationPermissions,
-  verifyGetPermissions,
-} from "../services/permission.service.ts";
+import { verifyTokenPermissions } from "../services/permission.service.ts";
 
 const factory = createFactory();
 
@@ -31,17 +28,13 @@ const middleware = factory.createMiddleware(async (c, next) => {
       envName?: string;
     };
 
-    if (["POST", "PATCH", "PUT", "DELETE"].includes(c.req.method)) {
-      await verifyDataManipulationPermissions({
-        context,
-        routeAppName: appName,
-        routeEnvName: envName,
-        permissions,
-        method: c.req.method as "POST" | "PUT" | "PATCH" | "DELETE",
-      });
-    } else {
-      await verifyGetPermissions({ appName, envName, permissions });
-    }
+    await verifyTokenPermissions({
+      context,
+      routeAppName: appName,
+      routeEnvName: envName,
+      permissions,
+      method: c.req.method as "POST" | "PUT" | "PATCH" | "DELETE" | "GET",
+    });
 
     c.set("tokenPermissions", permissions);
     await next();

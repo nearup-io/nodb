@@ -4,44 +4,66 @@ import type Context from "../utils/context.ts";
 import type { IApplicationRepository } from "../repositories/interfaces.ts";
 import { APPLICATION_REPOSITORY } from "../utils/const.ts";
 
-// TODO do I even need this?
-const verifyGetPermissions = async ({
+const verifyApplicationTokenPermissions = ({
+  routeAppName,
   appName,
-  envName,
-  permissions,
+  envNames,
+  routeEnvName,
+  method,
 }: {
-  permissions: BackendTokenPermissions;
-  appName?: string;
-  envName?: string;
-}): Promise<void> => {
-  if (!permissions.applicationName && !permissions.environmentName) {
-    throw new HTTPException(401, {
-      message: "No permissions set",
-    });
-  }
-
-  if (
-    permissions.applicationName &&
-    appName &&
-    appName !== permissions.applicationName
-  ) {
+  routeAppName?: string;
+  routeEnvName?: string;
+  method: "POST" | "PUT" | "PATCH" | "DELETE" | "GET";
+  appName: string;
+  envNames: string[];
+}): void => {
+  if (routeAppName && routeAppName !== appName) {
     throw new HTTPException(401, {
       message: "No access to this application",
     });
   }
 
-  if (
-    permissions.environmentName &&
-    envName &&
-    envName !== permissions.environmentName
-  ) {
+  // method !== POST is because you should be able to create a new environment with the application token
+  if (routeEnvName && !envNames.includes(routeEnvName) && method !== "POST") {
     throw new HTTPException(401, {
       message: "No access to this environment",
     });
   }
 };
 
-const verifyDataManipulationPermissions = async ({
+const verifyEnvironmentTokenPermissions = ({
+  routeAppName,
+  appName,
+  envNames,
+  routeEnvName,
+  method,
+}: {
+  routeAppName?: string;
+  routeEnvName?: string;
+  method: "POST" | "PUT" | "PATCH" | "DELETE" | "GET";
+  appName: string;
+  envNames: string[];
+}): void => {
+  if (routeAppName && !routeEnvName && method !== "GET") {
+    throw new HTTPException(401, {
+      message: "You don't have edit permissions on application level",
+    });
+  }
+
+  if (routeAppName && routeAppName !== appName) {
+    throw new HTTPException(401, {
+      message: "No access to this application",
+    });
+  }
+
+  if (routeEnvName && !envNames.includes(routeEnvName)) {
+    throw new HTTPException(401, {
+      message: "No access to this environment",
+    });
+  }
+};
+
+const verifyTokenPermissions = async ({
   routeAppName,
   routeEnvName,
   permissions,
@@ -52,9 +74,9 @@ const verifyDataManipulationPermissions = async ({
   context: Context;
   routeAppName?: string;
   routeEnvName?: string;
-  method: "POST" | "PUT" | "PATCH" | "DELETE";
+  method: "POST" | "PUT" | "PATCH" | "DELETE" | "GET";
 }): Promise<void> => {
-  if (permissions.permission === "READ_ONLY") {
+  if (method !== "GET" && permissions.permission === "READ_ONLY") {
     throw new HTTPException(401, {
       message: "You don't have write access",
     });
@@ -63,6 +85,7 @@ const verifyDataManipulationPermissions = async ({
   let appName = permissions.applicationName;
   let envNames = [permissions.environmentName];
 
+  const tokenType = permissions.applicationName ? "application" : "environment";
   const appRepo = context.get<IApplicationRepository>(APPLICATION_REPOSITORY);
   if (permissions.environmentName && permissions.environmentId) {
     const app = await appRepo.getApplicationByEnvironmentId({
@@ -75,7 +98,7 @@ const verifyDataManipulationPermissions = async ({
       });
     }
 
-    appName = permissions.applicationName;
+    appName = app.name;
   } else if (permissions.applicationName && permissions.applicationId) {
     const environments = await appRepo.getEnvironmentsByAppId({
       appId: permissions.applicationId,
@@ -83,17 +106,23 @@ const verifyDataManipulationPermissions = async ({
     envNames = environments.map((env) => env.name);
   }
 
-  if (routeAppName && routeAppName !== appName) {
-    throw new HTTPException(401, {
-      message: "No access to this application",
+  if (tokenType === "application") {
+    verifyApplicationTokenPermissions({
+      routeAppName,
+      routeEnvName,
+      appName: appName!,
+      envNames: envNames as string[],
+      method,
     });
-  }
-
-  if (method !== "POST" && routeEnvName && !envNames.includes(routeEnvName)) {
-    throw new HTTPException(401, {
-      message: "No access to this environment",
+  } else {
+    verifyEnvironmentTokenPermissions({
+      routeAppName,
+      routeEnvName,
+      appName: appName!,
+      envNames: envNames as string[],
+      method,
     });
   }
 };
 
-export { verifyGetPermissions, verifyDataManipulationPermissions };
+export { verifyTokenPermissions };
