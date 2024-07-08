@@ -49,7 +49,7 @@ describe("App endpoint GET", async () => {
     for (const { name, ...otherProps } of apps) {
       const postResponse = await helper.executePostRequest({
         url: `/apps/${name}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: otherProps,
       });
 
@@ -81,7 +81,7 @@ describe("App endpoint GET", async () => {
     test("Should return 200 OK and all users apps", async () => {
       const response = await helper.executeGetRequest({
         url: "/apps/all",
-        jwtToken: jwtToken,
+        jwtToken,
       });
       expect(response.status).toBe(200);
 
@@ -218,7 +218,7 @@ describe("App endpoint GET", async () => {
     test("Should return 404 NOT FOUND for an app that does not exist", async () => {
       const response = await helper.executeGetRequest({
         url: "/apps/none-existing-app",
-        jwtToken: jwtToken,
+        jwtToken,
       });
       expect(response.status).toBe(404);
     });
@@ -226,7 +226,7 @@ describe("App endpoint GET", async () => {
     test("Should return 200 OK and found app when jwt auth is used", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${apps[0].name}`,
-        jwtToken: jwtToken,
+        jwtToken,
       });
 
       expect(response.status).toBe(200);

@@ -126,10 +126,10 @@ export abstract class BaseApplicationHelper {
   }: {
     appName: string;
     environmentName: string;
-    jwtToken: string;
+    jwtToken?: string;
     entityName: string;
     entities: any[];
-  }): Promise<string[]> {
+  }): Promise<{ entityIds: string[]; appToken: string; envToken: string }> {
     const appResponse = await this.executePostRequest({
       url: `/apps/${appName}`,
       jwtToken,
@@ -139,24 +139,29 @@ export abstract class BaseApplicationHelper {
       },
     });
     expect(appResponse.status).toBe(201);
+    const appToken = (await appResponse.json()).applicationTokens[0]
+      .key as string;
 
     const environmentResponse = await this.executePostRequest({
       url: `/apps/${appName}/${environmentName}`,
       jwtToken,
+      backendToken: appToken,
       body: {
         description: "This is an environment",
       },
     });
     expect(environmentResponse.status).toBe(201);
 
+    const envToken = (await environmentResponse.json()).tokens[0].key as string;
     const entityResponse = await this.executePostRequest({
       url: `/apps/${appName}/${environmentName}/${entityName}`,
       jwtToken,
+      backendToken: appToken,
       body: entities,
     });
     expect(entityResponse.status).toBe(201);
     const { ids } = (await entityResponse.json()) as { ids: string[] };
 
-    return ids;
+    return { entityIds: ids, appToken, envToken };
   }
 }

@@ -24,7 +24,7 @@ describe("POST /apps/:appName", async () => {
       const shortAppName = "ap";
       const response = await helper.executePostRequest({
         url: `/apps/${shortAppName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -37,7 +37,7 @@ describe("POST /apps/:appName", async () => {
       const faultyAppName = "app_?test";
       const response = await helper.executePostRequest({
         url: `/apps/${faultyAppName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -50,7 +50,7 @@ describe("POST /apps/:appName", async () => {
       const duplicateAppName = "app-name";
       const response = await helper.executePostRequest({
         url: `/apps/${duplicateAppName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -61,7 +61,7 @@ describe("POST /apps/:appName", async () => {
 
       const response1 = await helper.executePostRequest({
         url: `/apps/${duplicateAppName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -75,7 +75,7 @@ describe("POST /apps/:appName", async () => {
   test("Should return 201 CREATED when no token is present and return app, environment and tokens", async () => {
     const response = await helper.executePostRequest({
       url: `/apps/${appName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
@@ -143,7 +143,7 @@ describe("POST /apps/:appName", async () => {
     const secondAppName = "second-app";
     const response = await helper.executePostRequest({
       url: `/apps/${secondAppName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",

@@ -110,7 +110,7 @@ describe("DELETE /apps/:appName/:envName", async () => {
   test("should return 200 OK and found false when environment is not found", async () => {
     const response = await helper.executePostRequest({
       url: `/apps/${appName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
@@ -120,7 +120,7 @@ describe("DELETE /apps/:appName/:envName", async () => {
 
     const deleteResponse = await helper.executeDeleteRequest({
       url: `/apps/${appName}/not-existing-environment`,
-      jwtToken: jwtToken,
+      jwtToken,
     });
 
     expect(deleteResponse.status).toBe(200);
@@ -128,7 +128,7 @@ describe("DELETE /apps/:appName/:envName", async () => {
 
     const deleteAppResponse = await helper.executeDeleteRequest({
       url: `/apps/${appName}`,
-      jwtToken: jwtToken,
+      jwtToken,
     });
     expect(deleteAppResponse.status).toBe(200);
   });
@@ -136,7 +136,7 @@ describe("DELETE /apps/:appName/:envName", async () => {
   test("should return 200 OK and found true when environment is deleted successfully with jwt auth", async () => {
     const response = await helper.executePostRequest({
       url: `/apps/${appName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
@@ -146,7 +146,7 @@ describe("DELETE /apps/:appName/:envName", async () => {
     const environmentName = "environment";
     const environmentResponse = await helper.executePostRequest({
       url: `/apps/${appName}/${environmentName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         description: "This is a staging environment",
       },
@@ -155,7 +155,7 @@ describe("DELETE /apps/:appName/:envName", async () => {
 
     const deleteResponse = await helper.executeDeleteRequest({
       url: `/apps/${appName}/${environmentName}`,
-      jwtToken: jwtToken,
+      jwtToken,
     });
 
     expect(deleteResponse.status).toBe(200);
@@ -167,7 +167,7 @@ describe("DELETE /apps/:appName/:envName", async () => {
 
     const deleteAppResponse = await helper.executeDeleteRequest({
       url: `/apps/${appName}`,
-      jwtToken: jwtToken,
+      jwtToken,
     });
     expect(deleteAppResponse.status).toBe(200);
   });

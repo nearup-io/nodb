@@ -24,7 +24,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
     test("when you try to rename the environment to the same name", async () => {
       const response = await helper.executePostRequest({
         url: `/apps/${appName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -36,7 +36,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
       const environmentName = "environment";
       const firstEnvironmentResponse = await helper.executePatchRequest({
         url: `/apps/${appName}/${environmentName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {
           envName: environmentName,
           description: "This is a staging environment",
@@ -46,7 +46,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
 
       const deleteResponse = await helper.executeDeleteRequest({
         url: `/apps/${appName}`,
-        jwtToken: jwtToken,
+        jwtToken,
       });
       expect(deleteResponse.status).toBe(200);
     });
@@ -54,7 +54,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
     test("when no props are passed to be updated", async () => {
       const response = await helper.executePostRequest({
         url: `/apps/${appName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -66,7 +66,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
       const environmentName = "environment";
       const firstEnvironmentResponse = await helper.executePostRequest({
         url: `/apps/${appName}/${environmentName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {
           description: "This is a staging environment",
         },
@@ -76,14 +76,14 @@ describe("PATCH /apps/:appName/:envName", async () => {
       const patchResponse = await helper.executePatchRequest({
         url: `/apps/${appName}/${environmentName}`,
 
-        jwtToken: jwtToken,
+        jwtToken,
         body: {},
       });
       expect(patchResponse.status).toBe(400);
 
       const deleteResponse = await helper.executeDeleteRequest({
         url: `/apps/${appName}`,
-        jwtToken: jwtToken,
+        jwtToken,
       });
       expect(deleteResponse.status).toBe(200);
     });
@@ -91,7 +91,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
     test("when new environment name already exists", async () => {
       const response = await helper.executePostRequest({
         url: `/apps/${appName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -103,7 +103,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
       const environmentName = "environment";
       const firstEnvironmentResponse = await helper.executePostRequest({
         url: `/apps/${appName}/${environmentName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {
           description: "This is a staging environment",
         },
@@ -113,7 +113,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
       const secondEnvironmentName = "environment-2";
       const secondEnvironmentResponse = await helper.executePostRequest({
         url: `/apps/${appName}/${secondEnvironmentName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {
           description: "This is a staging environment",
         },
@@ -122,14 +122,14 @@ describe("PATCH /apps/:appName/:envName", async () => {
 
       const patchResponse = await helper.executePatchRequest({
         url: `/apps/${appName}/${environmentName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: { envName: secondEnvironmentName },
       });
       expect(patchResponse.status).toBe(400);
 
       const deleteResponse = await helper.executeDeleteRequest({
         url: `/apps/${appName}`,
-        jwtToken: jwtToken,
+        jwtToken,
       });
       expect(deleteResponse.status).toBe(200);
     });
@@ -232,7 +232,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
   test("should return 404 NOT FOUND when the environment does not exist", async () => {
     const response = await helper.executePostRequest({
       url: `/apps/${appName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
@@ -244,7 +244,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
     const environmentName = "environment";
     const patchResponse = await helper.executePatchRequest({
       url: `/apps/${appName}/${environmentName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         envName: "new-env-name",
         description: "This is a staging environment",
@@ -254,7 +254,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
 
     const deleteResponse = await helper.executeDeleteRequest({
       url: `/apps/${appName}`,
-      jwtToken: jwtToken,
+      jwtToken,
     });
     expect(deleteResponse.status).toBe(200);
   });
@@ -262,7 +262,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
   test("should return 200 OK and update the environment with jwt auth", async () => {
     const response = await helper.executePostRequest({
       url: `/apps/${appName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
@@ -272,7 +272,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
     const environmentName = "environment-1";
     const environmentResponse = await helper.executePostRequest({
       url: `/apps/${appName}/${environmentName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         description: "This is a staging environment",
       },
@@ -282,7 +282,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
     const updatedEnvName = "updated-environment";
     const patchResponse = await helper.executePatchRequest({
       url: `/apps/${appName}/${environmentName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         envName: updatedEnvName,
         description: "updated description",
@@ -320,7 +320,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
 
     const deleteResponse = await helper.executeDeleteRequest({
       url: `/apps/${appName}`,
-      jwtToken: jwtToken,
+      jwtToken,
     });
     expect(deleteResponse.status).toBe(200);
   });

@@ -222,6 +222,8 @@ const createOrOverwriteEntities = async ({
   entityName: string;
   bodyEntities: PostEntityRequestDto[];
 }): Promise<string[]> => {
+  if (bodyEntities.length === 0) return [];
+
   const environment = await findEnvironment({
     appName,
     envName,

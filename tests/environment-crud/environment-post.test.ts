@@ -22,7 +22,7 @@ describe("POST /apps/:appName/:envName", async () => {
   test("should return 400 BAD REQUEST when environment for that app already exists", async () => {
     const response = await helper.executePostRequest({
       url: `/apps/${appName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
@@ -34,7 +34,7 @@ describe("POST /apps/:appName/:envName", async () => {
     const environmentName = "environment";
     const firstEnvironmentResponse = await helper.executePostRequest({
       url: `/apps/${appName}/${environmentName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         description: "This is a staging environment",
       },
@@ -44,7 +44,7 @@ describe("POST /apps/:appName/:envName", async () => {
     // duplicate environment
     const secondEnvironmentResponse = await helper.executePostRequest({
       url: `/apps/${appName}/${environmentName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         description: "This is a staging environment",
       },
@@ -55,7 +55,7 @@ describe("POST /apps/:appName/:envName", async () => {
 
     const deleteResponse = await helper.executeDeleteRequest({
       url: `/apps/${appName}`,
-      jwtToken: jwtToken,
+      jwtToken,
     });
     expect(deleteResponse.status).toBe(200);
   });
@@ -64,7 +64,7 @@ describe("POST /apps/:appName/:envName", async () => {
     test("when no backend token or JWT token is provided", async () => {
       const postAppResponse = await helper.executePostRequest({
         url: `/apps/${appName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -94,7 +94,7 @@ describe("POST /apps/:appName/:envName", async () => {
     test("when app token (backend token) does not have permissions for the application where it wants to add a new environment", async () => {
       const postAppResponse = await helper.executePostRequest({
         url: `/apps/${appName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -124,7 +124,7 @@ describe("POST /apps/:appName/:envName", async () => {
     test("when environment token (backend token) does not have permissions for the current app it's trying to add an environment to", async () => {
       const postAppResponse = await helper.executePostRequest({
         url: `/apps/${appName}`,
-        jwtToken: jwtToken,
+        jwtToken,
         body: {
           image: "path/to/image.jpg",
           description: "Memes app",
@@ -156,7 +156,7 @@ describe("POST /apps/:appName/:envName", async () => {
   test("should return 201 CREATED and create the environment for the app using JWT auth", async () => {
     const response = await helper.executePostRequest({
       url: `/apps/${appName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
@@ -166,7 +166,7 @@ describe("POST /apps/:appName/:envName", async () => {
     const environmentName = "environment-1";
     const environmentResponse = await helper.executePostRequest({
       url: `/apps/${appName}/${environmentName}`,
-      jwtToken: jwtToken,
+      jwtToken,
       body: {
         description: "This is a staging environment",
       },
@@ -203,7 +203,7 @@ describe("POST /apps/:appName/:envName", async () => {
 
     const deleteResponse = await helper.executeDeleteRequest({
       url: `/apps/${appName}`,
-      jwtToken: jwtToken,
+      jwtToken,
     });
     expect(deleteResponse.status).toBe(200);
   });

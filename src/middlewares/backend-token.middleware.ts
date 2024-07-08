@@ -23,15 +23,17 @@ const middleware = factory.createMiddleware(async (c, next) => {
       throw new HTTPException(401, { message: "Token does not exist" });
     }
 
-    const { appName, envName } = c.req.param() as {
+    const { appName, envName, entityName } = c.req.param() as {
       appName?: string;
       envName?: string;
+      entityName?: string;
     };
 
     await verifyTokenPermissions({
       context,
       routeAppName: appName,
       routeEnvName: envName,
+      routeEntityName: entityName,
       permissions,
       method: c.req.method as "POST" | "PUT" | "PATCH" | "DELETE" | "GET",
     });

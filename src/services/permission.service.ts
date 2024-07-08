@@ -35,11 +35,13 @@ const verifyEnvironmentTokenPermissions = ({
   routeAppName,
   appName,
   envNames,
+  routeEntityName,
   routeEnvName,
   method,
 }: {
   routeAppName?: string;
   routeEnvName?: string;
+  routeEntityName?: string;
   method: "POST" | "PUT" | "PATCH" | "DELETE" | "GET";
   appName: string;
   envNames: string[];
@@ -56,7 +58,15 @@ const verifyEnvironmentTokenPermissions = ({
     });
   }
 
+  // we still allow creating an environment with an environment token, but no further modifications to it
   if (routeEnvName && !envNames.includes(routeEnvName) && method !== "POST") {
+    throw new HTTPException(401, {
+      message: "No access to this environment",
+    });
+  }
+
+  // because of the previous edge case we need to include the standard method afterwards since for creating entities we do need to verify the environment
+  if (routeEntityName && routeEnvName && !envNames.includes(routeEnvName)) {
     throw new HTTPException(401, {
       message: "No access to this environment",
     });
@@ -66,6 +76,7 @@ const verifyEnvironmentTokenPermissions = ({
 const verifyTokenPermissions = async ({
   routeAppName,
   routeEnvName,
+  routeEntityName,
   permissions,
   context,
   method,
@@ -74,6 +85,7 @@ const verifyTokenPermissions = async ({
   context: Context;
   routeAppName?: string;
   routeEnvName?: string;
+  routeEntityName?: string;
   method: "POST" | "PUT" | "PATCH" | "DELETE" | "GET";
 }): Promise<void> => {
   if (method !== "GET" && permissions.permission === "READ_ONLY") {
@@ -118,6 +130,7 @@ const verifyTokenPermissions = async ({
     verifyEnvironmentTokenPermissions({
       routeAppName,
       routeEnvName,
+      routeEntityName,
       appName: appName!,
       envNames: envNames as string[],
       method,

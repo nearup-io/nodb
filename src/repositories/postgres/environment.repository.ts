@@ -63,11 +63,6 @@ class EnvironmentRepository
           create: {
             key: generateToken(),
             permission: Permissions.ALL,
-            application: {
-              connect: {
-                name: appName,
-              },
-            },
           },
         },
         application: {
@@ -78,7 +73,12 @@ class EnvironmentRepository
       },
       include: {
         entities: false,
-        tokens: true,
+        tokens: {
+          select: {
+            key: true,
+            permission: true,
+          },
+        },
       },
     });
 
