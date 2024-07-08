@@ -56,7 +56,7 @@ const verifyEnvironmentTokenPermissions = ({
     });
   }
 
-  if (routeEnvName && !envNames.includes(routeEnvName)) {
+  if (routeEnvName && !envNames.includes(routeEnvName) && method !== "POST") {
     throw new HTTPException(401, {
       message: "No access to this environment",
     });
