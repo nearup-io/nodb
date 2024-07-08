@@ -10,6 +10,9 @@ import type { EntityAggregateResult } from "../services/entity.service.ts";
 import type { Token } from "../models/token.model";
 
 export interface IApplicationRepository {
+  getEnvironmentsByAppId(props: {
+    appId: string;
+  }): Promise<Omit<Environment, "extras" | "tokens">[]>;
   getApplication(props: {
     appName: string;
     clerkId?: string;
@@ -28,6 +31,9 @@ export interface IApplicationRepository {
       })
     | null
   >;
+  getApplicationByEnvironmentId(props: {
+    environmentId: string;
+  }): Promise<Pick<Application, "name" | "id"> | null>;
   createApplication(props: {
     appName: string;
     clerkId?: string;
@@ -52,8 +58,6 @@ export interface IApplicationRepository {
     };
   }): Promise<Omit<Application, "environments" | "tokens"> | null>;
   deleteApplication(props: {
-    appName: string;
-    clerkId: string;
     dbAppId: string;
   }): Promise<Omit<Application, "environments"> | null>;
 }

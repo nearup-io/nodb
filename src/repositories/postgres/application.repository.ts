@@ -17,9 +17,11 @@ class ApplicationRepository
     super(prisma);
   }
 
-  private async getEnvironmentsByAppName(
-    appId: string,
-  ): Promise<Omit<Environment, "extras" | "tokens">[]> {
+  public async getEnvironmentsByAppId({
+    appId,
+  }: {
+    appId: string;
+  }): Promise<Omit<Environment, "extras" | "tokens">[]> {
     const application = await this.prisma.application.findFirst({
       where: { id: appId },
       include: {
@@ -258,6 +260,33 @@ class ApplicationRepository
     };
   }
 
+  public async getApplicationByEnvironmentId({
+    environmentId,
+  }: {
+    environmentId: string;
+  }): Promise<Pick<Application, "name" | "id"> | null> {
+    const application = await this.prisma.application.findFirst({
+      where: {
+        environments: {
+          some: {
+            id: environmentId,
+          },
+        },
+      },
+      select: {
+        name: true,
+        id: true,
+      },
+    });
+
+    if (!application) return null;
+
+    return {
+      name: application.name,
+      id: application.id,
+    };
+  }
+
   public async createApplication({
     appName,
     clerkId,
@@ -402,11 +431,9 @@ class ApplicationRepository
   public async deleteApplication({
     dbAppId,
   }: {
-    appName: string;
-    clerkId: string;
     dbAppId: string;
   }): Promise<Omit<Application, "environments"> | null> {
-    const envIds = (await this.getEnvironmentsByAppName(dbAppId)).map(
+    const envIds = (await this.getEnvironmentsByAppId({ appId: dbAppId })).map(
       ({ id }) => id,
     );
 

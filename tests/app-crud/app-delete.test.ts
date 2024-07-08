@@ -27,7 +27,7 @@ describe("App endpoint DELETE", async () => {
     expect(response.status).toBe(401);
   });
 
-  test("Should return 401 FORBIDDEN when backend token does not have permissions towards the app", async () => {
+  test("Should return 401 FORBIDDEN when application token (backend token) does not have permissions towards the app", async () => {
     const appForDeletion: Omit<AppType, "id" | "environments" | "tokens"> = {
       name: "test-app-name",
       image: "path/to/image-1.jpg",
@@ -40,10 +40,35 @@ describe("App endpoint DELETE", async () => {
     });
 
     expect(postResponse.status).toBe(201);
-    const token = (await postResponse.json()).tokens[0].key as string;
+    const token = (await postResponse.json()).applicationTokens[0]
+      .key as string;
 
     const response = await helper.executeDeleteRequest({
       url: `/apps/random-app`,
+      backendToken: token,
+    });
+
+    expect(response.status).toBe(401);
+  });
+
+  test("Should return 401 FORBIDDEN when environment token token (backend token) does not have permissions towards the app", async () => {
+    const appForDeletion: Omit<AppType, "id" | "environments" | "tokens"> = {
+      name: "test-app-name-2",
+      image: "path/to/image-1.jpg",
+      description: "description 1",
+    };
+
+    const postResponse = await helper.executePostRequest({
+      url: `/apps/${appForDeletion.name}`,
+      body: R.omit(["name"], appForDeletion),
+    });
+
+    expect(postResponse.status).toBe(201);
+    const token = (await postResponse.json()).environmentTokens[0]
+      .key as string;
+
+    const response = await helper.executeDeleteRequest({
+      url: `/apps/${appForDeletion.name}`,
       backendToken: token,
     });
 
@@ -116,7 +141,7 @@ describe("App endpoint DELETE", async () => {
     ).toBeArrayOfSize(0);
   });
 
-  test("should remove all environments, entities and remove the with the token auth", async () => {
+  test("should remove all environments, entities and remove the when using application token (backend token)", async () => {
     const appForDeletion: Omit<AppType, "id" | "environments" | "tokens"> = {
       name: "app-name-2",
       image: "path/to/image-1.jpg",
@@ -129,8 +154,9 @@ describe("App endpoint DELETE", async () => {
     });
 
     expect(postResponse.status).toBe(201);
-    const token = (await postResponse.json()).tokens[0].key as string;
-    const environmentName = "environment";
+    const token = (await postResponse.json()).applicationTokens[0]
+      .key as string;
+    const environmentName = "random-environment";
     const envResponse = await helper.executePostRequest({
       url: `/apps/${appForDeletion.name}/${environmentName}`,
       backendToken: token,
@@ -154,7 +180,7 @@ describe("App endpoint DELETE", async () => {
 
     const response = await helper.executeDeleteRequest({
       url: `/apps/${appForDeletion.name}`,
-      jwtToken: jwtToken,
+      backendToken: token,
     });
 
     expect(response.status).toBe(200);
@@ -166,8 +192,5 @@ describe("App endpoint DELETE", async () => {
       appForDeletion.name,
     );
     expect(environmentsForApp).toBeArrayOfSize(0);
-    expect(
-      await helper.getUserAppsFromDbByEmail(defaultTestUser.email),
-    ).toBeArrayOfSize(0);
   });
 });

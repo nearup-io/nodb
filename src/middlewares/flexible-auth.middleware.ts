@@ -8,7 +8,7 @@ const factory = createFactory();
 const middleware = (
   options: { allowBackendToken?: boolean; authNotRequired?: boolean } = {},
 ) =>
-  factory.createMiddleware(async (c, next) => {
+  factory.createMiddleware(async (c, next): Promise<void> => {
     try {
       await userMiddleware(c, next);
     } catch (error) {

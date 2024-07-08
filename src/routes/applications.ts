@@ -178,7 +178,8 @@ app.delete(
       const app = await deleteApplication({
         context: c.get("context"),
         appName,
-        clerkId: user.clerkId,
+        clerkId: user?.clerkId,
+        tokenPermissions: c.get("tokenPermissions"),
       });
       if (!app) return c.json({ found: false });
       return c.json({ found: true });

@@ -3,7 +3,7 @@ import { logger } from "hono/logger";
 import initDbConnection from "./connections/initDbConnection.ts";
 import { cors } from "hono/cors";
 import { clerkMiddleware } from "@hono/clerk-auth";
-import { contextMiddleware, flexibleAuthMiddleware } from "./middlewares";
+import { contextMiddleware } from "./middlewares";
 import usersRoute from "./routes/users.ts";
 import appsRoute from "./routes/applications.ts";
 import searchRoute from "./routes/search.ts";
@@ -35,7 +35,7 @@ export const startApp = async (props?: {
   app.route("/users", usersRoute);
 
   app.route("/apps", appsRoute);
-  app.use(flexibleAuthMiddleware({ allowBackendToken: true }));
+  app.use();
   app.route("/search", searchRoute);
   app.route("/knowledgebase", ragRoute);
   // app.route("/tokens");

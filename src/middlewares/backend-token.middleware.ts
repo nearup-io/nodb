@@ -2,6 +2,10 @@ import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { httpError } from "../utils/const.ts";
 import { getTokenPermissions } from "../services/token.service.ts";
+import {
+  verifyDataManipulationPermissions,
+  verifyGetPermissions,
+} from "../services/permission.service.ts";
 
 const factory = createFactory();
 
@@ -27,38 +31,16 @@ const middleware = factory.createMiddleware(async (c, next) => {
       envName?: string;
     };
 
-    if (["POST", "PATCH", "DELETE"].includes(c.req.method)) {
-      if (appName && appName !== permissions.applicationName) {
-        throw new HTTPException(401, {
-          message: "No access to this application",
-        });
-      }
-
-      if (envName && envName !== permissions.environmentName) {
-        throw new HTTPException(401, {
-          message: "No access to this environment",
-        });
-      }
+    if (["POST", "PATCH", "PUT", "DELETE"].includes(c.req.method)) {
+      await verifyDataManipulationPermissions({
+        context,
+        routeAppName: appName,
+        routeEnvName: envName,
+        permissions,
+        method: c.req.method as "POST" | "PUT" | "PATCH" | "DELETE",
+      });
     } else {
-      if (
-        permissions.applicationName &&
-        appName &&
-        appName !== permissions.applicationName
-      ) {
-        throw new HTTPException(401, {
-          message: "No access to this application",
-        });
-      }
-
-      if (
-        permissions.environmentName &&
-        envName &&
-        envName !== permissions.environmentName
-      ) {
-        throw new HTTPException(401, {
-          message: "No access to this environment",
-        });
-      }
+      await verifyGetPermissions({ appName, envName, permissions });
     }
 
     c.set("tokenPermissions", permissions);

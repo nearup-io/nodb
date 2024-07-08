@@ -168,23 +168,31 @@ const deleteApplication = async ({
   context,
   clerkId,
   appName,
+  tokenPermissions,
 }: {
   context: Context;
   appName: string;
-  clerkId: string;
+  clerkId?: string;
+  tokenPermissions?: BackendTokenPermissions;
 }): Promise<Omit<Application, "environments"> | null> => {
+  if (!clerkId && !tokenPermissions) {
+    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED);
+  }
+
   const repository = context.get<IApplicationRepository>(
     APPLICATION_REPOSITORY,
   );
-  const application = await repository.getApplication({ appName, clerkId });
+  const application = await repository.getApplication({
+    appName,
+    clerkId,
+    tokenPermissions,
+  });
   if (!application) {
     throw new ServiceError(httpError.APP_DOESNT_EXIST);
   }
 
   try {
     return repository.deleteApplication({
-      appName,
-      clerkId,
       dbAppId: application.id,
     });
   } catch (e) {

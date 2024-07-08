@@ -21,7 +21,6 @@ const app = new Hono<{
   };
 }>();
 
-// TODO update endpoint
 app.get("/", flexibleAuthMiddleware({ allowBackendToken: true }), async (c) => {
   const { appName, envName } = c.req.param() as {
     appName: string;
@@ -52,101 +51,110 @@ app.get("/", flexibleAuthMiddleware({ allowBackendToken: true }), async (c) => {
   }
 });
 
-// TODO update endpoint
-app.post("/", async (c) => {
-  const body = await c.req.json();
-  const { appName, envName } = c.req.param() as {
-    appName: string;
-    envName: string;
-  };
-  try {
-    const doc = await createEnvironment({
-      context: c.get("context"),
-      appName,
-      envName,
-      description: body.description,
-    });
-    c.status(201);
-    return c.json(doc);
-  } catch (e) {
-    if (e instanceof ServiceError) {
-      throw new HTTPException(400, {
-        message: e.explicitMessage,
+app.post(
+  "/",
+  flexibleAuthMiddleware({ allowBackendToken: true }),
+  async (c) => {
+    const body = await c.req.json();
+    const { appName, envName } = c.req.param() as {
+      appName: string;
+      envName: string;
+    };
+    try {
+      const doc = await createEnvironment({
+        context: c.get("context"),
+        appName,
+        envName,
+        description: body.description,
       });
-    } else {
-      throw new HTTPException(500, {
-        message: httpError.UNKNOWN,
-      });
-    }
-  }
-});
-
-// TODO update endpoint
-app.patch("/", async (c) => {
-  const body = await asyncTryJson(c.req.json());
-  const { appName, envName } = c.req.param() as {
-    appName: string;
-    envName: string;
-  };
-  if (envName === body.envName) {
-    throw new HTTPException(400, {
-      message: httpError.SAME_ENVNAME,
-    });
-  }
-  try {
-    const doc = await updateEnvironment({
-      context: c.get("context"),
-      appName,
-      newEnvName: body.envName,
-      oldEnvName: envName,
-      description: body.description,
-    });
-    if (!doc) return c.json({ found: false });
-    return c.json({ found: true });
-  } catch (e) {
-    if (e instanceof ServiceError) {
-      if (e.explicitMessage === httpError.ENV_DOESNT_EXIST) {
-        throw new HTTPException(404, {
+      c.status(201);
+      return c.json(doc);
+    } catch (e) {
+      if (e instanceof ServiceError) {
+        throw new HTTPException(400, {
           message: e.explicitMessage,
         });
       } else {
-        throw new HTTPException(400, {
-          message: e.explicitMessage,
+        throw new HTTPException(500, {
+          message: httpError.UNKNOWN,
         });
       }
-    } else {
-      console.log(e);
-      throw new HTTPException(500, {
-        message: httpError.UNKNOWN,
-      });
     }
-  }
-});
+  },
+);
 
-// TODO update endpoint
-app.delete("/", async (c) => {
-  const { appName, envName } = c.req.param() as {
-    appName: string;
-    envName: string;
-  };
-  try {
-    await deleteEnvironment({ context: c.get("context"), appName, envName });
-    return c.json({ found: true });
-  } catch (e) {
-    if (e instanceof ServiceError) {
-      if (e.explicitMessage === httpError.ENV_DOESNT_EXIST)
-        return c.json({ found: false });
-      else
-        throw new HTTPException(400, {
-          message: e.explicitMessage,
-        });
-    } else {
-      throw new HTTPException(500, {
-        message: httpError.UNKNOWN,
+app.patch(
+  "/",
+  flexibleAuthMiddleware({ allowBackendToken: true }),
+  async (c) => {
+    const body = await asyncTryJson(c.req.json());
+    const { appName, envName } = c.req.param() as {
+      appName: string;
+      envName: string;
+    };
+    if (envName === body.envName) {
+      throw new HTTPException(400, {
+        message: httpError.SAME_ENVNAME,
       });
     }
-  }
-});
+    try {
+      const doc = await updateEnvironment({
+        context: c.get("context"),
+        appName,
+        newEnvName: body.envName,
+        oldEnvName: envName,
+        description: body.description,
+      });
+      if (!doc) return c.json({ found: false });
+      return c.json({ found: true });
+    } catch (e) {
+      if (e instanceof ServiceError) {
+        if (e.explicitMessage === httpError.ENV_DOESNT_EXIST) {
+          throw new HTTPException(404, {
+            message: e.explicitMessage,
+          });
+        } else {
+          throw new HTTPException(400, {
+            message: e.explicitMessage,
+          });
+        }
+      } else {
+        console.log(e);
+        throw new HTTPException(500, {
+          message: httpError.UNKNOWN,
+        });
+      }
+    }
+  },
+);
+
+app.delete(
+  "/",
+  flexibleAuthMiddleware({ allowBackendToken: true }),
+  async (c) => {
+    const { appName, envName } = c.req.param() as {
+      appName: string;
+      envName: string;
+    };
+    try {
+      await deleteEnvironment({ context: c.get("context"), appName, envName });
+      return c.json({ found: true });
+    } catch (e) {
+      if (e instanceof ServiceError) {
+        if (e.explicitMessage === httpError.ENV_DOESNT_EXIST)
+          return c.json({ found: false });
+        else
+          throw new HTTPException(400, {
+            message: e.explicitMessage,
+          });
+      } else {
+        throw new HTTPException(500, {
+          message: httpError.UNKNOWN,
+        });
+      }
+    }
+  },
+);
 
 app.route("/:entityName", entitiesRoute);
 
