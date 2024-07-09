@@ -182,7 +182,6 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     entityType,
   }: {
     embedding: number[];
-    vectorIndex: string;
     limit: number;
     entityType?: string;
   }): Promise<Record<string, unknown>[]> {

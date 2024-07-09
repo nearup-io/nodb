@@ -15,18 +15,21 @@ export abstract class BaseApplicationHelper {
 
   public async executePostRequest({
     url,
-    token,
+    jwtToken,
+    backendToken,
     body,
   }: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
     body?: any;
   }): Promise<Response> {
     return this.app.request(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
+        ...(jwtToken && { Authorization: jwtToken }),
+        ...(backendToken && { token: backendToken }),
       },
       ...(body && { body: JSON.stringify(body) }),
     });
@@ -34,18 +37,21 @@ export abstract class BaseApplicationHelper {
 
   public async executePatchRequest({
     url,
-    token,
+    jwtToken,
+    backendToken,
     body,
   }: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
     body?: any;
   }): Promise<Response> {
     return this.app.request(url, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
+        ...(jwtToken && { Authorization: jwtToken }),
+        ...(backendToken && { token: backendToken }),
       },
       ...(body && { body: JSON.stringify(body) }),
     });
@@ -53,18 +59,21 @@ export abstract class BaseApplicationHelper {
 
   public async executePutRequest({
     url,
-    token,
+    jwtToken,
+    backendToken,
     body,
   }: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
     body?: any;
   }): Promise<Response> {
     return this.app.request(url, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
+        ...(jwtToken && { Authorization: jwtToken }),
+        ...(backendToken && { token: backendToken }),
       },
       ...(body && { body: JSON.stringify(body) }),
     });
@@ -72,76 +81,87 @@ export abstract class BaseApplicationHelper {
 
   public async executeGetRequest({
     url,
-    token,
+    jwtToken,
+    backendToken,
   }: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
   }): Promise<Response> {
     return this.app.request(url, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
+        ...(jwtToken && { Authorization: jwtToken }),
+        ...(backendToken && { token: backendToken }),
       },
     });
   }
 
   public async executeDeleteRequest({
     url,
-    token,
+    jwtToken,
+    backendToken,
   }: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
   }): Promise<Response> {
     return this.app.request(url, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        ...(token && { Authorization: token }),
+        ...(jwtToken && { Authorization: jwtToken }),
+        ...(backendToken && { token: backendToken }),
       },
     });
   }
 
   async createAppWithEnvironmentEntities({
     appName,
-    token,
+    jwtToken,
     environmentName,
     entityName,
     entities,
   }: {
     appName: string;
     environmentName: string;
-    token: string;
+    jwtToken?: string;
     entityName: string;
     entities: any[];
-  }): Promise<string[]> {
+  }): Promise<{ entityIds: string[]; appToken: string; envToken: string }> {
     const appResponse = await this.executePostRequest({
       url: `/apps/${appName}`,
-      token,
+      jwtToken,
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
       },
     });
     expect(appResponse.status).toBe(201);
+    const appToken = (await appResponse.json()).applicationTokens[0]
+      .key as string;
 
     const environmentResponse = await this.executePostRequest({
       url: `/apps/${appName}/${environmentName}`,
-      token,
+      jwtToken,
+      backendToken: appToken,
       body: {
         description: "This is an environment",
       },
     });
     expect(environmentResponse.status).toBe(201);
 
+    const envToken = (await environmentResponse.json()).tokens[0].key as string;
     const entityResponse = await this.executePostRequest({
       url: `/apps/${appName}/${environmentName}/${entityName}`,
-      token,
+      jwtToken,
+      backendToken: appToken,
       body: entities,
     });
     expect(entityResponse.status).toBe(201);
     const { ids } = (await entityResponse.json()) as { ids: string[] };
 
-    return ids;
+    return { entityIds: ids, appToken, envToken };
   }
 }

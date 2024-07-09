@@ -4,9 +4,6 @@ export const Permissions = Object.freeze({
 });
 import chalk from "chalk";
 
-export const PROVIDER_GOOGLE = "Google";
-export const PROVIDER_GITHUB = "Github";
-
 export const APPNAME_MIN_LENGTH = 3;
 export const APPNAME_REGEX = /^([a-z0-9]+-)*[a-z0-9]+$/;
 export const llms = { anthropic: "anthropic", openai: "openai" };
@@ -94,8 +91,7 @@ export const httpError = {
 export const defaultNodbEnv = "dev";
 
 export const APPLICATION_REPOSITORY = "APPLICATION_REPOSITORY";
-
 export const ENVIRONMENT_REPOSITORY = "ENVIRONMENT_REPOSITORY";
-
 export const ENTITY_REPOSITORY = "ENTITY_REPOSITORY";
 export const USER_REPOSITORY = "USER_REPOSITORY";
+export const TOKEN_REPOSITORY = "TOKEN_REPOSITORY";

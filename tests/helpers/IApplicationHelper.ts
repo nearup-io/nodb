@@ -7,23 +7,31 @@ export interface ITestApplicationHelper {
   init(): Promise<void>;
   executePostRequest(props: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
     body?: any;
   }): Promise<Response>;
   executePatchRequest(props: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
     body?: any;
   }): Promise<Response>;
   executePutRequest(props: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
     body?: any;
   }): Promise<Response>;
-  executeGetRequest(props: { url: string; token?: string }): Promise<Response>;
+  executeGetRequest(props: {
+    url: string;
+    jwtToken?: string;
+    backendToken?: string;
+  }): Promise<Response>;
   executeDeleteRequest(props: {
     url: string;
-    token?: string;
+    jwtToken?: string;
+    backendToken?: string;
   }): Promise<Response>;
   insertUser(userData: TestUser, createUser?: boolean): Promise<string>;
   stopApplication(): Promise<void>;
@@ -37,7 +45,7 @@ export interface ITestApplicationHelper {
   ): Promise<Omit<EnvironmentType, "entities" | "tokens">[]>;
   getAppFromDbByName(appName: string): Promise<
     | (Omit<AppType, "environments"> & {
-        environments: Pick<EnvironmentType, "name">[];
+        environments: Pick<EnvironmentType, "name" | "tokens">[];
       })
     | null
   >;
@@ -49,8 +57,8 @@ export interface ITestApplicationHelper {
   createAppWithEnvironmentEntities(props: {
     appName: string;
     environmentName: string;
-    token: string;
+    jwtToken?: string;
     entityName: string;
     entities: any[];
-  }): Promise<string[]>;
+  }): Promise<{ entityIds: string[]; appToken: string; envToken: string }>;
 }

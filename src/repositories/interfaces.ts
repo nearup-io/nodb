@@ -1,38 +1,63 @@
-import { type Application } from "../models/application.model.ts";
-import { type Environment } from "../models/environment.model.ts";
-import { type Entity } from "../models/entity.model.ts";
-import { type User } from "../models/user.model.ts";
-import type { EntityQueryMeta } from "../utils/types.ts";
+import type { Application } from "../models/application.model.ts";
+import type { Environment } from "../models/environment.model.ts";
+import type { Entity } from "../models/entity.model.ts";
+import type { User } from "../models/user.model.ts";
+import type {
+  BackendTokenPermissions,
+  EntityQueryMeta,
+} from "../utils/types.ts";
 import type { EntityAggregateResult } from "../services/entity.service.ts";
+import type { Token } from "../models/token.model";
 
 export interface IApplicationRepository {
+  getEnvironmentsByAppId(props: {
+    appId: string;
+  }): Promise<Omit<Environment, "extras" | "tokens">[]>;
   getApplication(props: {
     appName: string;
-    clerkId: string;
+    clerkId?: string;
+    tokenPermissions?: BackendTokenPermissions;
   }): Promise<Application | null>;
   getUserApplications(props: { clerkId: string }): Promise<
     (Omit<Application, "id" | "environments"> & {
       environments: Omit<Environment, "id" | "description">[];
     })[]
   >;
+  getTokenApplication(props: {
+    tokenPermissions: BackendTokenPermissions;
+  }): Promise<
+    | (Omit<Application, "id" | "environments"> & {
+        environments: Omit<Environment, "id" | "description">[];
+      })
+    | null
+  >;
+  getApplicationByEnvironmentId(props: {
+    environmentId: string;
+  }): Promise<Pick<Application, "name" | "id"> | null>;
   createApplication(props: {
     appName: string;
-    clerkId: string;
+    clerkId?: string;
     image?: string;
     appDescription?: string;
-  }): Promise<void>;
+    environmentName?: string;
+    environmentDescription?: string;
+  }): Promise<{
+    applicationName: string;
+    environmentName: string;
+    applicationTokens: Token[];
+    environmentTokens: Token[];
+  }>;
   updateApplication(props: {
     oldAppName: string;
-    clerkId: string;
+    clerkId?: string;
+    token?: string;
     updateProps: {
       name?: string;
       description?: string;
       image?: string;
     };
-  }): Promise<Omit<Application, "environments"> | null>;
+  }): Promise<Omit<Application, "environments" | "tokens"> | null>;
   deleteApplication(props: {
-    appName: string;
-    clerkId: string;
     dbAppId: string;
   }): Promise<Omit<Application, "environments"> | null>;
 }
@@ -75,7 +100,6 @@ export interface IEntityRepository {
   }): Promise<EntityAggregateResult>;
   searchEntities(props: {
     embedding: number[];
-    vectorIndex: string;
     limit: number;
     entityType?: string;
   }): Promise<Record<string, unknown>[]>;
@@ -118,4 +142,10 @@ export interface IUserRepository {
     clerkId: string;
   }): Promise<Omit<User, "applications"> | null>;
   findUserClerkId(id: string): Promise<Omit<User, "applications"> | null>;
+}
+
+export interface ITokenRepository {
+  getTokenPermissions(props: {
+    token: string;
+  }): Promise<BackendTokenPermissions | null>;
 }

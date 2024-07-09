@@ -73,7 +73,12 @@ class EnvironmentRepository
       },
       include: {
         entities: false,
-        tokens: true,
+        tokens: {
+          select: {
+            key: true,
+            permission: true,
+          },
+        },
       },
     });
 

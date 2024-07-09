@@ -1,11 +1,13 @@
 import { type Application } from "../../models/application.model.ts";
 import { type Environment } from "../../models/environment.model.ts";
+import { type Token } from "../../models/token.model.ts";
 import BaseRepository from "./base.repository.ts";
 import type { IApplicationRepository } from "../interfaces.ts";
-import type { PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 import * as R from "ramda";
 import { defaultNodbEnv, Permissions } from "../../utils/const.ts";
 import generateToken from "../../utils/backend-token.ts";
+import type { BackendTokenPermissions } from "../../utils/types.ts";
 
 class ApplicationRepository
   extends BaseRepository
@@ -15,9 +17,11 @@ class ApplicationRepository
     super(prisma);
   }
 
-  private async getEnvironmentsByAppName(
-    appId: string,
-  ): Promise<Omit<Environment, "extras" | "tokens">[]> {
+  public async getEnvironmentsByAppId({
+    appId,
+  }: {
+    appId: string;
+  }): Promise<Omit<Environment, "extras" | "tokens">[]> {
     const application = await this.prisma.application.findFirst({
       where: { id: appId },
       include: {
@@ -48,21 +52,59 @@ class ApplicationRepository
   public async getApplication({
     appName,
     clerkId,
+    tokenPermissions,
   }: {
     appName: string;
-    clerkId: string;
+    clerkId?: string;
+    tokenPermissions?: BackendTokenPermissions;
   }): Promise<Application | null> {
+    let permissionsWhereClause: Prisma.ApplicationWhereInput = {};
+    if (clerkId) {
+      permissionsWhereClause = { userId: clerkId };
+    } else if (tokenPermissions?.environmentId) {
+      permissionsWhereClause = {
+        environments: {
+          some: {
+            tokens: {
+              some: {
+                key: tokenPermissions.token,
+              },
+            },
+          },
+        },
+      };
+    } else if (tokenPermissions?.applicationId) {
+      permissionsWhereClause = {
+        tokens: {
+          some: {
+            key: tokenPermissions.token,
+          },
+        },
+      };
+    }
+
     const app = await this.prisma.application.findFirst({
       where: {
-        userId: clerkId,
+        ...permissionsWhereClause,
         name: appName,
       },
       include: {
+        tokens: {
+          select: {
+            key: true,
+            permission: true,
+          },
+        },
         environments: {
           select: {
             id: true,
             name: true,
-            tokens: false,
+            tokens: {
+              select: {
+                key: true,
+                permission: true,
+              },
+            },
             description: true,
             entities: false,
           },
@@ -76,13 +118,14 @@ class ApplicationRepository
           name: app.name,
           image: app.image,
           description: app.description,
+          tokens: app.tokens,
           environments: app.environments.map((env) => {
             return {
               id: env.id,
               name: env.name,
               description: env.description,
-              tokens: [],
               entities: [],
+              tokens: app.tokens,
             };
           }),
         }
@@ -101,12 +144,23 @@ class ApplicationRepository
       include: {
         environments: {
           include: {
+            tokens: {
+              select: {
+                key: true,
+                permission: true,
+              },
+            },
             entities: {
               select: {
                 type: true,
               },
             },
-            tokens: true,
+          },
+        },
+        tokens: {
+          select: {
+            key: true,
+            permission: true,
           },
         },
       },
@@ -117,22 +171,120 @@ class ApplicationRepository
         name: app.name,
         description: app.description,
         image: app.image,
+        tokens: app.tokens,
         environments: app.environments.map((env) => {
           return {
             name: env.name,
-            tokens: env.tokens.map((token) => {
-              return {
-                key: token.key,
-                permission: token.permission,
-              };
-            }),
             entities: R.uniq(
               env.entities.map((entity) => entity.type.split("/").at(-1)!),
             ),
+            tokens: env.tokens,
           };
         }),
       };
     });
+  }
+
+  public async getTokenApplication({
+    tokenPermissions,
+  }: {
+    tokenPermissions: BackendTokenPermissions;
+  }): Promise<
+    | (Omit<Application, "environments" | "id"> & {
+        environments: Omit<Environment, "id" | "description">[];
+      })
+    | null
+  > {
+    const application = await this.prisma.application.findFirst({
+      where: {
+        ...(tokenPermissions.applicationId && {
+          tokens: {
+            some: {
+              key: tokenPermissions.token,
+            },
+          },
+        }),
+        ...(tokenPermissions.environmentId && {
+          environments: {
+            some: {
+              tokens: {
+                some: {
+                  key: tokenPermissions.token,
+                },
+              },
+            },
+          },
+        }),
+      },
+      include: {
+        environments: {
+          include: {
+            tokens: {
+              select: {
+                key: true,
+                permission: true,
+              },
+            },
+            entities: {
+              select: {
+                type: true,
+              },
+            },
+          },
+        },
+        tokens: {
+          select: {
+            key: true,
+            permission: true,
+          },
+        },
+      },
+    });
+
+    if (!application) return null;
+
+    return {
+      name: application.name,
+      description: application.description,
+      image: application.image,
+      tokens: application.tokens,
+      environments: application.environments.map((env) => {
+        return {
+          name: env.name,
+          entities: R.uniq(
+            env.entities.map((entity) => entity.type.split("/").at(-1)!),
+          ),
+          tokens: env.tokens,
+        };
+      }),
+    };
+  }
+
+  public async getApplicationByEnvironmentId({
+    environmentId,
+  }: {
+    environmentId: string;
+  }): Promise<Pick<Application, "name" | "id"> | null> {
+    const application = await this.prisma.application.findFirst({
+      where: {
+        environments: {
+          some: {
+            id: environmentId,
+          },
+        },
+      },
+      select: {
+        name: true,
+        id: true,
+      },
+    });
+
+    if (!application) return null;
+
+    return {
+      name: application.name,
+      id: application.id,
+    };
   }
 
   public async createApplication({
@@ -140,49 +292,118 @@ class ApplicationRepository
     clerkId,
     image,
     appDescription,
+    environmentName,
+    environmentDescription,
   }: {
     appName: string;
-    clerkId: string;
+    clerkId?: string;
     image: string;
     appDescription: string;
-  }): Promise<void> {
-    await this.prisma.environment.create({
-      data: {
-        name: defaultNodbEnv,
-        tokens: {
-          create: {
-            key: generateToken(),
-            permission: Permissions.ALL,
-          },
-        },
-        description: "",
-        application: {
-          create: {
-            name: appName,
-            image,
-            description: appDescription,
+    environmentName?: string;
+    environmentDescription?: string;
+  }): Promise<{
+    applicationName: string;
+    environmentName: string;
+    applicationTokens: Token[];
+    environmentTokens: Token[];
+  }> {
+    const result = await this.transaction<{
+      applicationName: string;
+      environmentName: string;
+      applicationTokens: Token[];
+      environmentTokens: Token[];
+    }>(async (prisma) => {
+      const app = await prisma.application.create({
+        data: {
+          name: appName,
+          image,
+          description: appDescription,
+          ...(clerkId && {
             user: {
               connect: {
                 clerkId,
               },
             },
+          }),
+          environments: {
+            create: {
+              name: environmentName || defaultNodbEnv,
+              description: environmentDescription || "",
+            },
           },
         },
-      },
+        select: {
+          id: true,
+          name: true,
+          environments: true,
+        },
+      });
+
+      const tokens = await prisma.token.createManyAndReturn({
+        data: [
+          {
+            key: generateToken(),
+            permission: Permissions.ALL,
+            applicationId: app.id,
+          },
+          {
+            key: generateToken(),
+            permission: Permissions.ALL,
+            environmentId: app.environments[0].id,
+          },
+        ],
+        select: {
+          key: true,
+          permission: true,
+          environmentId: true,
+          applicationId: true,
+        },
+      });
+
+      return {
+        environmentName: app.environments[0].name,
+        applicationName: app.name,
+        applicationTokens: [
+          R.omit(
+            ["applicationId", "environmentId"],
+            tokens.find((token) => token.applicationId === app.id)!,
+          ),
+        ],
+        environmentTokens: [
+          R.omit(
+            ["applicationId", "environmentId"],
+            tokens.find(
+              (token) => token.environmentId === app.environments[0].id,
+            )!,
+          ),
+        ],
+      };
     });
+    return result;
   }
 
   public async updateApplication(props: {
     oldAppName: string;
-    clerkId: string;
+    clerkId?: string;
+    token?: string;
     updateProps: {
       name?: string;
       description?: string;
       image?: string;
     };
-  }): Promise<Omit<Application, "environments"> | null> {
+  }): Promise<Omit<Application, "environments" | "tokens"> | null> {
     const doc = await this.prisma.application.update({
-      where: { name: props.oldAppName },
+      where: {
+        name: props.oldAppName,
+        ...(props.clerkId && { userId: props.clerkId }),
+        ...(props.token && {
+          tokens: {
+            some: {
+              key: props.token,
+            },
+          },
+        }),
+      },
       data: {
         ...(props.updateProps.name && {
           name: props.updateProps.name,
@@ -210,11 +431,9 @@ class ApplicationRepository
   public async deleteApplication({
     dbAppId,
   }: {
-    appName: string;
-    clerkId: string;
     dbAppId: string;
   }): Promise<Omit<Application, "environments"> | null> {
-    const envIds = (await this.getEnvironmentsByAppName(dbAppId)).map(
+    const envIds = (await this.getEnvironmentsByAppId({ appId: dbAppId })).map(
       ({ id }) => id,
     );
 
@@ -222,9 +441,7 @@ class ApplicationRepository
       async (prisma) => {
         await prisma.token.deleteMany({
           where: {
-            environmentId: {
-              in: envIds,
-            },
+            applicationId: dbAppId,
           },
         });
 
@@ -258,6 +475,7 @@ class ApplicationRepository
           name: app.name,
           description: app.description,
           image: app.image,
+          tokens: [],
         };
       },
     );

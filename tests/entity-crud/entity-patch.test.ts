@@ -15,42 +15,71 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
   const entities: { prop: number }[] = [{ prop: 1 }, { prop: 2 }, { prop: 3 }];
 
   let createdEntityIds: string[] = [];
-
+  let appToken = "";
+  let envToken = "";
   beforeAll(async () => {
     await helper.init();
     jwtToken = await helper.insertUser(defaultTestUser);
-    createdEntityIds = await helper.createAppWithEnvironmentEntities({
+    const {
+      entityIds,
+      appToken: aToken,
+      envToken: eToken,
+    } = await helper.createAppWithEnvironmentEntities({
       appName: patchAppName,
       environmentName: patchEnvironmentName,
-      token: jwtToken,
+      jwtToken,
       entities,
       entityName: patchEntityName,
     });
+
+    createdEntityIds = entityIds;
+    appToken = aToken;
+    envToken = eToken;
   });
 
   afterAll(async () => {
     await helper.stopApplication();
   });
 
-  test("Should return 401 UNAUTHORIZED when no token is present", async () => {
-    const response = await helper.executePatchRequest({
-      url: `/apps/${patchAppName}/${patchEnvironmentName}/entityName`,
-      body: [],
+  describe("Should return 401 UNAUTHORIZED", () => {
+    test("when no token is present", async () => {
+      const response = await helper.executePatchRequest({
+        url: `/apps/${patchAppName}/${patchEnvironmentName}/entityName`,
+        body: [],
+      });
+      expect(response.status).toBe(401);
     });
-    expect(response.status).toBe(401);
+
+    test("when application token (backend token) does not have permissions for updating the requested app", async () => {
+      const response = await helper.executePatchRequest({
+        url: `/apps/${patchAppName}-2/${patchEnvironmentName}/entityName`,
+        backendToken: appToken,
+        body: [],
+      });
+      expect(response.status).toBe(401);
+    });
+
+    test("when environment token (backend token) does not have permissions for updating the requested app", async () => {
+      const response = await helper.executePatchRequest({
+        url: `/apps/${patchAppName}/dev/entityName`,
+        backendToken: envToken,
+        body: [],
+      });
+      expect(response.status).toBe(401);
+    });
   });
 
   describe("Should return 400 BAD REQUEST", () => {
     test("when body is missing or it's not an array", async () => {
       const response = await helper.executePatchRequest({
         url: `/apps/${patchAppName}/${patchEnvironmentName}/entityName`,
-        token: jwtToken,
+        jwtToken,
       });
       expect(response.status).toBe(400);
 
       const response1 = await helper.executePatchRequest({
         url: `/apps/${patchAppName}/${patchEnvironmentName}/entityName`,
-        token: jwtToken,
+        jwtToken,
         body: {},
       });
       expect(response1.status).toBe(400);
@@ -59,7 +88,7 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
     test("when environment does not exist", async () => {
       const response = await helper.executePatchRequest({
         url: `/apps/${patchAppName}/not-existing-environment/entityName`,
-        token: jwtToken,
+        jwtToken,
         body: [{ prop: "value" }],
       });
       expect(response.status).toBe(400);
@@ -68,20 +97,32 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
     test("when no entities are found", async () => {
       const response = await helper.executePatchRequest({
         url: `/apps/${patchAppName}/${patchEnvironmentName}/${patchEntityName}`,
-        token: jwtToken,
+        jwtToken,
         body: [{ id: "randomId", prop: "value" }],
       });
       expect(response.status).toBe(400);
     });
   });
 
-  test("Should return 200 OK and update the entity", async () => {
+  test("Should return 200 OK and update the entity using JWT auth", async () => {
+    const appName = "random-app";
+    const environmentName = "random-environment";
+    const entityName = "random-entity";
+
+    const { entityIds } = await helper.createAppWithEnvironmentEntities({
+      appName,
+      environmentName,
+      jwtToken,
+      entities,
+      entityName,
+    });
+
     const response = await helper.executePatchRequest({
-      url: `/apps/${patchAppName}/${patchEnvironmentName}/${patchEntityName}`,
-      token: jwtToken,
+      url: `/apps/${appName}/${environmentName}/${entityName}`,
+      jwtToken,
       body: [
-        { id: createdEntityIds[0], secondProp: 3 },
-        { id: createdEntityIds[1], prop: 66, secondProp: 66 },
+        { id: entityIds[0], secondProp: 3 },
+        { id: entityIds[1], prop: 66, secondProp: 66 },
       ],
     });
     expect(response.status).toBe(200);
@@ -89,11 +130,10 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
     const { ids } = (await response.json()) as { ids: string[] };
 
     expect(ids).toBeArrayOfSize(2);
-    expect(ids).toContain(createdEntityIds[0]);
-    expect(ids).toContain(createdEntityIds[1]);
+    expect(ids).toContain(entityIds[0]);
+    expect(ids).toContain(entityIds[1]);
 
-    const entitiesFromDb =
-      await helper.getEntitiesByIdFromDatabase(createdEntityIds);
+    const entitiesFromDb = await helper.getEntitiesByIdFromDatabase(entityIds);
 
     const entitiesWithoutId = entitiesFromDb.map((entity) => {
       const { id, ...props } = entity;
@@ -108,14 +148,14 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
           prop: 1,
           secondProp: 3,
         },
-        type: `${patchAppName}/${patchEnvironmentName}/${patchEntityName}`,
+        type: `${appName}/${environmentName}/${entityName}`,
       },
       {
         model: {
           // not updating at all
           prop: 3,
         },
-        type: `${patchAppName}/${patchEnvironmentName}/${patchEntityName}`,
+        type: `${appName}/${environmentName}/${entityName}`,
       },
       {
         model: {
@@ -123,15 +163,163 @@ describe("PATCH /apps/:appName/:envName/:entityName", () => {
           prop: 66,
           secondProp: 66,
         },
-        type: `${patchAppName}/${patchEnvironmentName}/${patchEntityName}`,
+        type: `${appName}/${environmentName}/${entityName}`,
       },
     ]);
+
+    const deleteResponse = await helper.executeDeleteRequest({
+      url: `/apps/${appName}`,
+      jwtToken,
+    });
+    expect(deleteResponse.status).toBe(200);
+  });
+
+  test("Should return 200 OK and update the entity using application token (backend token) auth", async () => {
+    const appName = "random-app";
+    const environmentName = "random-environment";
+    const entityName = "random-entity";
+
+    const { entityIds, appToken } =
+      await helper.createAppWithEnvironmentEntities({
+        appName,
+        environmentName,
+        jwtToken,
+        entities,
+        entityName,
+      });
+
+    const response = await helper.executePatchRequest({
+      url: `/apps/${appName}/${environmentName}/${entityName}`,
+      backendToken: appToken,
+      body: [
+        { id: entityIds[0], secondProp: 3 },
+        { id: entityIds[1], prop: 66, secondProp: 66 },
+      ],
+    });
+    expect(response.status).toBe(200);
+
+    const { ids } = (await response.json()) as { ids: string[] };
+
+    expect(ids).toBeArrayOfSize(2);
+    expect(ids).toContain(entityIds[0]);
+    expect(ids).toContain(entityIds[1]);
+
+    const entitiesFromDb = await helper.getEntitiesByIdFromDatabase(entityIds);
+
+    const entitiesWithoutId = entitiesFromDb.map((entity) => {
+      const { id, ...props } = entity;
+      expect(id).toBeString();
+      return props;
+    });
+
+    deepEqual(entitiesWithoutId, [
+      {
+        model: {
+          // just attaching secondProp
+          prop: 1,
+          secondProp: 3,
+        },
+        type: `${appName}/${environmentName}/${entityName}`,
+      },
+      {
+        model: {
+          // not updating at all
+          prop: 3,
+        },
+        type: `${appName}/${environmentName}/${entityName}`,
+      },
+      {
+        model: {
+          // replacing prop and attaching secondProp
+          prop: 66,
+          secondProp: 66,
+        },
+        type: `${appName}/${environmentName}/${entityName}`,
+      },
+    ]);
+
+    const deleteResponse = await helper.executeDeleteRequest({
+      url: `/apps/${appName}`,
+      backendToken: appToken,
+    });
+    expect(deleteResponse.status).toBe(200);
+  });
+
+  test("Should return 200 OK and update the entity using environment token (backend token) auth", async () => {
+    const appName = "random-app";
+    const environmentName = "random-environment";
+    const entityName = "random-entity";
+
+    const { entityIds, appToken, envToken } =
+      await helper.createAppWithEnvironmentEntities({
+        appName,
+        environmentName,
+        jwtToken,
+        entities,
+        entityName,
+      });
+
+    const response = await helper.executePatchRequest({
+      url: `/apps/${appName}/${environmentName}/${entityName}`,
+      backendToken: envToken,
+      body: [
+        { id: entityIds[0], secondProp: 3 },
+        { id: entityIds[1], prop: 66, secondProp: 66 },
+      ],
+    });
+    expect(response.status).toBe(200);
+
+    const { ids } = (await response.json()) as { ids: string[] };
+
+    expect(ids).toBeArrayOfSize(2);
+    expect(ids).toContain(entityIds[0]);
+    expect(ids).toContain(entityIds[1]);
+
+    const entitiesFromDb = await helper.getEntitiesByIdFromDatabase(entityIds);
+
+    const entitiesWithoutId = entitiesFromDb.map((entity) => {
+      const { id, ...props } = entity;
+      expect(id).toBeString();
+      return props;
+    });
+
+    deepEqual(entitiesWithoutId, [
+      {
+        model: {
+          // just attaching secondProp
+          prop: 1,
+          secondProp: 3,
+        },
+        type: `${appName}/${environmentName}/${entityName}`,
+      },
+      {
+        model: {
+          // not updating at all
+          prop: 3,
+        },
+        type: `${appName}/${environmentName}/${entityName}`,
+      },
+      {
+        model: {
+          // replacing prop and attaching secondProp
+          prop: 66,
+          secondProp: 66,
+        },
+        type: `${appName}/${environmentName}/${entityName}`,
+      },
+    ]);
+
+    const deleteResponse = await helper.executeDeleteRequest({
+      url: `/apps/${appName}`,
+      backendToken: appToken,
+    });
+    expect(deleteResponse.status).toBe(200);
   });
 
   test("Should return 200 OK and ignore entities that don't have an attached id", async () => {
     const response = await helper.executePatchRequest({
       url: `/apps/${patchAppName}/${patchEnvironmentName}/${patchEntityName}`,
-      token: jwtToken,
+      jwtToken,
       body: [
         { id: createdEntityIds[2], thirdProp: 3 },
         { thirdProp: 3 },

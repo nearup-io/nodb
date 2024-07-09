@@ -1,22 +1,23 @@
 import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { httpError } from "../utils/const.ts";
-import { findUserByClerkId } from "../services/user.service.ts";
-import { getAuth } from "@hono/clerk-auth";
+import {
+  findUserByClerkId,
+  getUserFromClerk,
+} from "../services/user.service.ts";
 
 const factory = createFactory();
 
 const middleware = factory.createMiddleware(async (c, next) => {
-  const auth = getAuth(c);
-
-  if (!auth?.userId) {
+  const clerkUser = await getUserFromClerk(c.get("clerk"), c);
+  if (!clerkUser) {
     throw new HTTPException(401, {
       message: httpError.USER_NOT_AUTHENTICATED,
     });
   }
   try {
     const user = await findUserByClerkId({
-      id: auth.userId,
+      id: clerkUser.id,
       context: c.get("context"),
     });
 

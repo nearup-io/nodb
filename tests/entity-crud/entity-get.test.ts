@@ -27,17 +27,27 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
   ];
 
   let createdEntityIds: string[] = [];
+  let appToken = "";
+  let envToken = "";
 
   beforeAll(async () => {
     await helper.init();
     jwtToken = await helper.insertUser(defaultTestUser);
-    createdEntityIds = await helper.createAppWithEnvironmentEntities({
+    const {
+      entityIds,
+      appToken: aToken,
+      envToken: eToken,
+    } = await helper.createAppWithEnvironmentEntities({
       appName: appName,
       environmentName,
-      token: jwtToken,
+      jwtToken,
       entityName,
       entities,
     });
+
+    createdEntityIds = entityIds;
+    appToken = aToken;
+    envToken = eToken;
   });
 
   afterAll(async () => {
@@ -47,7 +57,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
   test("should return 404 NOT FOUND when environment does not exist for get entity by id", async () => {
     const response = await helper.executeGetRequest({
       url: `/apps/${appName}/not-existing-environment/${entityName}/${createdEntityIds[0]}`,
-      token: jwtToken,
+      jwtToken,
     });
     expect(response.status).toBe(404);
   });
@@ -55,16 +65,51 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
   test("should return 404 NOT FOUND when entity does not exist for get entity by id", async () => {
     const response = await helper.executeGetRequest({
       url: `/apps/${appName}/not-existing-environment/${entityName}/not-existing-id`,
-      token: jwtToken,
+      jwtToken,
     });
     expect(response.status).toBe(404);
   });
 
-  test("Should return 401 UNAUTHORIZED when no token is present", async () => {
-    const response = await helper.executeGetRequest({
-      url: `/apps/${appName}/${environmentName}/${entityName}`,
+  describe("Should return 401 UNAUTHORIZED", () => {
+    test("when no token is present", async () => {
+      const response = await helper.executeGetRequest({
+        url: `/apps/${appName}/${environmentName}/${entityName}`,
+      });
+      expect(response.status).toBe(401);
+
+      const secondResponse = await helper.executeGetRequest({
+        url: `/apps/${appName}/${environmentName}/${entityName}/${createdEntityIds[0]}`,
+      });
+      expect(secondResponse.status).toBe(401);
     });
-    expect(response.status).toBe(401);
+
+    test("when application token (backend token) does not have permission for the application", async () => {
+      const response = await helper.executeGetRequest({
+        url: `/apps/${appName}-2/${environmentName}/${entityName}`,
+        backendToken: appToken,
+      });
+      expect(response.status).toBe(401);
+
+      const secondResponse = await helper.executeGetRequest({
+        url: `/apps/${appName}-2/${environmentName}/${entityName}/${createdEntityIds[0]}`,
+        backendToken: appToken,
+      });
+      expect(secondResponse.status).toBe(401);
+    });
+
+    test("when environment token (backend token) does not have permission for the environment", async () => {
+      const response = await helper.executeGetRequest({
+        url: `/apps/${appName}/dev/${entityName}`,
+        backendToken: envToken,
+      });
+      expect(response.status).toBe(401);
+
+      const secondResponse = await helper.executeGetRequest({
+        url: `/apps/${appName}/dev/${entityName}/${createdEntityIds[0]}`,
+        backendToken: envToken,
+      });
+      expect(secondResponse.status).toBe(401);
+    });
   });
 
   describe("Get by id endpoint", () => {
@@ -75,10 +120,40 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
       requestedEntityId = createdEntityIds[0]!;
     });
 
-    test("Should return 200 OK and entity with expected data", async () => {
+    test("Should return 200 OK and entity with expected data with JWT auth", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}/${requestedEntityId}`,
-        token: jwtToken,
+        jwtToken,
+      });
+      expect(response.status).toBe(200);
+      deepEqual(await response.json(), {
+        __meta: {
+          self: `/${appName}/${environmentName}/${entityName}/${requestedEntityId}`,
+        },
+        id: requestedEntityId,
+        ...requestedEntity,
+      });
+    });
+
+    test("Should return 200 OK and entity with expected data with application token (backend token) auth", async () => {
+      const response = await helper.executeGetRequest({
+        url: `/apps/${appName}/${environmentName}/${entityName}/${requestedEntityId}`,
+        backendToken: appToken,
+      });
+      expect(response.status).toBe(200);
+      deepEqual(await response.json(), {
+        __meta: {
+          self: `/${appName}/${environmentName}/${entityName}/${requestedEntityId}`,
+        },
+        id: requestedEntityId,
+        ...requestedEntity,
+      });
+    });
+
+    test("Should return 200 OK and entity with expected data with environment token (backend token) auth", async () => {
+      const response = await helper.executeGetRequest({
+        url: `/apps/${appName}/${environmentName}/${entityName}/${requestedEntityId}`,
+        backendToken: envToken,
       });
       expect(response.status).toBe(200);
       deepEqual(await response.json(), {
@@ -93,7 +168,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     test("Should return 200 OK and should apply the __only filter from query params", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}/${requestedEntityId}?__only=prop1`,
-        token: jwtToken,
+        jwtToken,
       });
       expect(response.status).toBe(200);
       deepEqual(await response.json(), {
@@ -108,7 +183,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     test("Should return 200 OK and not return the meta filters when __no_meta=true is added to the query params", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}/${requestedEntityId}?__only=prop1&__no_meta=true`,
-        token: jwtToken,
+        jwtToken,
       });
       expect(response.status).toBe(200);
       deepEqual(await response.json(), {
@@ -118,10 +193,78 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     });
   });
 
-  test("should return 200 OK and all entities of requested type", async () => {
+  test("should return 200 OK and all entities of requested type with JWT auth", async () => {
     const response = await helper.executeGetRequest({
       url: `/apps/${appName}/${environmentName}/${entityName}`,
-      token: jwtToken,
+      jwtToken,
+    });
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    const keys = R.keys(body);
+    expect(keys).toBeArrayOfSize(2);
+    deepEqual(keys, [entityName, "__meta"]);
+
+    deepEqual(body["__meta"], {
+      current_page: `/${appName}/${environmentName}/${entityName}?__page=1&__per_page=10`,
+      items: entities.length,
+      page: 1,
+      pages: 1,
+      totalCount: entities.length,
+    });
+
+    deepEqual(
+      body[entityName],
+      entities.map((entity, index) => {
+        return {
+          id: createdEntityIds[index],
+          __meta: {
+            self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[index]}`,
+          },
+          ...entity,
+        };
+      }),
+    );
+  });
+
+  test("should return 200 OK and all entities of requested type with application token (backend token) auth", async () => {
+    const response = await helper.executeGetRequest({
+      url: `/apps/${appName}/${environmentName}/${entityName}`,
+      backendToken: appToken,
+    });
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    const keys = R.keys(body);
+    expect(keys).toBeArrayOfSize(2);
+    deepEqual(keys, [entityName, "__meta"]);
+
+    deepEqual(body["__meta"], {
+      current_page: `/${appName}/${environmentName}/${entityName}?__page=1&__per_page=10`,
+      items: entities.length,
+      page: 1,
+      pages: 1,
+      totalCount: entities.length,
+    });
+
+    deepEqual(
+      body[entityName],
+      entities.map((entity, index) => {
+        return {
+          id: createdEntityIds[index],
+          __meta: {
+            self: `/${appName}/${environmentName}/${entityName}/${createdEntityIds[index]}`,
+          },
+          ...entity,
+        };
+      }),
+    );
+  });
+
+  test("should return 200 OK and all entities of requested type with environment token (backend token) auth", async () => {
+    const response = await helper.executeGetRequest({
+      url: `/apps/${appName}/${environmentName}/${entityName}`,
+      backendToken: envToken,
     });
     expect(response.status).toBe(200);
 
@@ -156,7 +299,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     test("should return 200 OK and return only the requested props using __only query param", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}?__only=prop1,prop2`,
-        token: jwtToken,
+        jwtToken,
       });
       expect(response.status).toBe(200);
 
@@ -190,7 +333,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     test("should return 200 OK and not return any meta when using __no_meta query param", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}?__no_meta=true`,
-        token: jwtToken,
+        jwtToken,
       });
       expect(response.status).toBe(200);
 
@@ -221,7 +364,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     test("should return 200 OK and sort by requested param using __sort_by query param", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}?__sort_by=prop1`,
-        token: jwtToken,
+        jwtToken,
       });
       expect(response.status).toBe(200);
 
@@ -255,7 +398,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     test("should return 200 OK and sort by requested param using __sort_by_desc query param", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${appName}/${environmentName}/${entityName}?__sort_by_desc=prop1`,
-        token: jwtToken,
+        jwtToken,
       });
       expect(response.status).toBe(200);
 
@@ -291,7 +434,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
       test("should return 200 OK and return the requested amount of items on a page + specific page", async () => {
         const response = await helper.executeGetRequest({
           url: `/apps/${appName}/${environmentName}/${entityName}?__per_page=2&__page=1`,
-          token: jwtToken,
+          jwtToken,
         });
         expect(response.status).toBe(200);
 
@@ -329,7 +472,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
       test("should return 200 OK and return the requested amount of items on a page + second page", async () => {
         const response = await helper.executeGetRequest({
           url: `/apps/${appName}/${environmentName}/${entityName}?__per_page=2&__page=2`,
-          token: jwtToken,
+          jwtToken,
         });
         expect(response.status).toBe(200);
 
@@ -373,7 +516,7 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
       test("should return 200 OK and return the requested amount of items on a page + last page", async () => {
         const response = await helper.executeGetRequest({
           url: `/apps/${appName}/${environmentName}/${entityName}?__per_page=2&__page=3`,
-          token: jwtToken,
+          jwtToken,
         });
         expect(response.status).toBe(200);
 

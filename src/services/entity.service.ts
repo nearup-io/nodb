@@ -20,15 +20,13 @@ import type {
   PostEntityRequestDto,
 } from "../utils/types.ts";
 import { findEnvironment } from "./environment.service";
-import type Context from "../middlewares/context.ts";
+import type Context from "../utils/context.ts";
 import { type IEntityRepository } from "../repositories/interfaces.ts";
 
 export type EntityAggregateResult = {
   totalCount: number;
   entities: Entity[];
 };
-
-const { NODB_VECTOR_INDEX: vectorIndex = "nodb_vector_index" } = Bun.env;
 
 const searchEntities = async ({
   context,
@@ -48,7 +46,6 @@ const searchEntities = async ({
     embedding,
     entityType,
     limit,
-    vectorIndex,
   });
 };
 
@@ -70,7 +67,6 @@ const searchAiEntities = async ({
     const res = await entityRepository.searchEntities({
       embedding,
       limit,
-      vectorIndex,
       entityType,
     });
 
@@ -226,6 +222,8 @@ const createOrOverwriteEntities = async ({
   entityName: string;
   bodyEntities: PostEntityRequestDto[];
 }): Promise<string[]> => {
+  if (bodyEntities.length === 0) return [];
+
   const environment = await findEnvironment({
     appName,
     envName,

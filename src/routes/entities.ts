@@ -16,7 +16,8 @@ import { asyncTryJson } from "../utils/route-utils";
 import { entityQueryValidator } from "../utils/route-validators";
 import { RoutingError, ServiceError } from "../utils/service-errors";
 import type { EntityRequestDto, PostEntityRequestDto } from "../utils/types.ts";
-import type Context from "../middlewares/context.ts";
+import type Context from "../utils/context.ts";
+import { flexibleAuthMiddleware } from "../middlewares";
 
 const app = new Hono<
   {
@@ -28,6 +29,8 @@ const app = new Hono<
   BlankSchema,
   "/:appName/:envName/:entityName"
 >();
+
+app.use(flexibleAuthMiddleware({ allowBackendToken: true }));
 
 app.get("/", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
@@ -68,7 +71,7 @@ app.get("/", entityQueryValidator(), async (c) => {
 app.get("/:entityId", entityQueryValidator(), async (c) => {
   const q = c.req.valid("query");
   const context = c.get("context");
-
+  c.req.param();
   try {
     const entity = await getSingleEntity({
       xpath: c.req.path,
