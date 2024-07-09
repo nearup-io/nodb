@@ -35,7 +35,6 @@ export const startApp = async (props?: {
   app.route("/users", usersRoute);
 
   app.route("/apps", appsRoute);
-  app.use();
   app.route("/search", searchRoute);
   app.route("/knowledgebase", ragRoute);
   // app.route("/tokens");
