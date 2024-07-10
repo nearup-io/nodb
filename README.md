@@ -1,6 +1,6 @@
 # nodb
 
-Open-source API gateway for your Mongo Atlas or Postgres database with RAG support, semantic search, and CRUD.
+Open-source API gateway for your Postgres database with RAG support, semantic search, and CRUD.
 
 <img src="https://github.com/nearup-io/nodb/blob/main/assets/curl-todos.gif" width="600" />
 
@@ -21,10 +21,15 @@ Run in development:
 bun dev
 ```
 
-To run MongoDB Atlas locally use docker-compose:
+To run Postgres locally use docker-compose:
 
 ```bash
-docker-compose up
+docker-compose -f .\docker-compose.dev.yml up postgres
+```
+
+To run the whole app in docker:
+```bash
+docker-compose -f .\docker-compose.dev.yml up
 ```
 
 ## Deploy
@@ -34,33 +39,6 @@ docker-compose up
 For quick deploy you can use Render:
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/nearup-io/nodb)
-
-## Search Index
-
-Before you can do a semantic search or RAG you must create vector search index for your database. You can follow [here](https://www.mongodb.com/docs/atlas/atlas-vector-search/create-index/#procedure) how to create it. In the field where you define the index please use the following:
-
-```json
-{
-  "fields": [
-    {
-      "numDimensions": 1536,
-      "path": "embedding",
-      "similarity": "cosine",
-      "type": "vector"
-    },
-    {
-      "path": "type",
-      "type": "filter"
-    },
-    {
-      "path": "model",
-      "type": "filter"
-    }
-  ]
-}
-```
-
-`numDimensions` can be any number which depends on the dimension of the embedding vector model you want to use.
 
 ## Tests
 
