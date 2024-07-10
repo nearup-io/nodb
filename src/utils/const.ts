@@ -60,6 +60,7 @@ export const httpError = {
   USER_NOT_AUTHENTICATED: "Unauthenticated",
   USER_DOES_NOT_HAVE_EMAIL: "User does not have a linked email",
   ENV_CANT_CREATE: "Couldn't create environment",
+  APPNAME_MUST_BE_UNIQUE: "Application name must be unique",
   APPNAME_LENGTH: `Application name length must be greater than ${APPNAME_MIN_LENGTH}`,
   APPNAME_NOT_ALLOWED:
     "Application name must follow hyphenated url pattern (my-app)",

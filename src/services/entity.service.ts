@@ -89,13 +89,13 @@ const searchAiEntities = async ({
       }
     } catch (e) {
       if (e instanceof Error) {
-        throw new ServiceError(e.message);
+        throw new ServiceError(e.message, 500);
       }
     }
   } catch (e) {
     console.error(e);
     if (e instanceof Error) {
-      throw new ServiceError(httpError.UNKNOWN);
+      throw new ServiceError(httpError.UNKNOWN, 500);
     }
   }
 };
@@ -181,7 +181,7 @@ const getSingleEntity = async ({
     context,
   });
   if (!environment) {
-    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST, 404);
   }
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
   const entity = await entityRepository.getSingleEntity({
@@ -191,7 +191,7 @@ const getSingleEntity = async ({
     entityName,
   });
   if (!entity) {
-    throw new ServiceError(httpError.ENTITY_NOT_FOUND);
+    throw new ServiceError(httpError.ENTITY_NOT_FOUND, 404);
   }
   const objProps =
     metaFilters.only && Array.isArray(metaFilters.only)
@@ -230,7 +230,7 @@ const createOrOverwriteEntities = async ({
     context,
   });
   if (!environment) {
-    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST, 400);
   }
   const entitiesIdsToBeReplaced: string[] = bodyEntities
     .filter((entity) => !!entity.id)
@@ -264,7 +264,7 @@ const createOrOverwriteEntities = async ({
     });
   } catch (e) {
     console.error("Error adding entities", e);
-    throw new ServiceError(httpError.ENTITIES_CANT_ADD);
+    throw new ServiceError(httpError.ENTITIES_CANT_ADD, 400);
   }
 };
 
@@ -285,7 +285,7 @@ const deleteRootAndUpdateEnv = async ({
     envName,
   });
   if (!environment) {
-    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST, 404);
   }
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
@@ -298,7 +298,7 @@ const deleteRootAndUpdateEnv = async ({
     });
   } catch (e) {
     console.error("Error deleting entities", e);
-    throw new ServiceError(httpError.ENTITIES_CANT_DELETE);
+    throw new ServiceError(httpError.ENTITIES_CANT_DELETE, 400);
   }
 };
 
@@ -321,7 +321,7 @@ const deleteSingleEntityAndUpdateEnv = async ({
     envName,
   });
   if (!environment) {
-    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST, 404);
   }
 
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
@@ -334,8 +334,7 @@ const deleteSingleEntityAndUpdateEnv = async ({
       dbEnvironmentId: environment.id,
     });
   } catch (e) {
-    console.log("Error deleting entity", e);
-    throw new ServiceError(httpError.ENTITIES_CANT_DELETE);
+    throw new ServiceError(httpError.ENTITIES_CANT_DELETE, 400);
   }
 };
 
@@ -358,7 +357,7 @@ const replaceEntities = async ({
     context,
   });
   if (!environment) {
-    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST, 400);
   }
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
@@ -373,7 +372,7 @@ const replaceEntities = async ({
     R.isEmpty(dbExistingDocuments) &&
     bodyEntities.filter((x) => !x.id).length === 0
   ) {
-    throw new ServiceError(httpError.ENTITY_NOT_FOUND);
+    throw new ServiceError(httpError.ENTITY_NOT_FOUND, 400);
   }
 
   const entitiesToBeInserted: Entity[] = [];
@@ -400,8 +399,7 @@ const replaceEntities = async ({
       ids: documentIds,
     });
   } catch (e) {
-    console.error("Error updating entities", e);
-    throw new ServiceError(httpError.ENTITIES_CANT_UPDATE);
+    throw new ServiceError(httpError.ENTITIES_CANT_UPDATE, 400);
   }
 };
 
@@ -424,7 +422,7 @@ const updateEntities = async ({
     context,
   });
   if (!environment) {
-    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST, 400);
   }
 
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
@@ -434,7 +432,7 @@ const updateEntities = async ({
     type: `${appName}/${envName}/${entityName}`,
   });
   if (R.isEmpty(dbExistingDocuments)) {
-    throw new ServiceError(httpError.ENTITY_NOT_FOUND);
+    throw new ServiceError(httpError.ENTITY_NOT_FOUND, 400);
   }
 
   const entitiesToBeInserted: Entity[] = [];
@@ -464,8 +462,7 @@ const updateEntities = async ({
       ids: documentIds,
     });
   } catch (e) {
-    console.error("Error updating entities", e);
-    throw new ServiceError(httpError.ENTITIES_CANT_UPDATE);
+    throw new ServiceError(httpError.ENTITIES_CANT_UPDATE, 400);
   }
 };
 

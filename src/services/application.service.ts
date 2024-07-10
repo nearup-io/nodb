@@ -25,7 +25,7 @@ const getApplication = async ({
   }
 > => {
   if (!clerkId && !tokenPermissions) {
-    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED);
+    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED, 401);
   }
 
   const repository = context.get<IApplicationRepository>(
@@ -38,7 +38,7 @@ const getApplication = async ({
     tokenPermissions,
   });
   if (!application) {
-    throw new ServiceError(httpError.APPNAME_NOT_FOUND);
+    throw new ServiceError(httpError.APPNAME_NOT_FOUND, 404);
   }
   return application;
 };
@@ -57,7 +57,7 @@ const getApplications = async ({
   })[]
 > => {
   if (!clerkId && !tokenPermissions) {
-    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED);
+    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED, 401);
   }
 
   const repository = context.get<IApplicationRepository>(
@@ -113,12 +113,11 @@ const createApplication = async ({
     return result;
   } catch (e: any) {
     if (e instanceof PrismaClientKnownRequestError && e.code === "P2002") {
-      throw new ServiceError(httpError.APPNAME_EXISTS);
+      throw new ServiceError(httpError.APPNAME_EXISTS, 400);
     } else if (e.code === 11000) {
-      throw new ServiceError(httpError.APPNAME_EXISTS);
+      throw new ServiceError(httpError.APPNAME_EXISTS, 400);
     } else {
-      console.log("Error creating app", e);
-      throw new ServiceError(httpError.UNKNOWN);
+      throw new ServiceError(httpError.UNKNOWN, 500);
     }
   }
 };
@@ -133,7 +132,7 @@ const updateApplication = async (props: {
   image?: string;
 }): Promise<Omit<Application, "environments" | "tokens"> | null> => {
   if (!props.clerkId && !props.tokenPermissions) {
-    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED);
+    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED, 401);
   }
   const repository = props.context.get<IApplicationRepository>(
     APPLICATION_REPOSITORY,
@@ -159,8 +158,7 @@ const updateApplication = async (props: {
     ) {
       return null; // app does not exist prisma errors
     }
-    console.log("Error updating app", e);
-    throw new ServiceError(httpError.UNKNOWN);
+    throw new ServiceError(httpError.UNKNOWN, 500);
   }
 };
 
@@ -176,7 +174,7 @@ const deleteApplication = async ({
   tokenPermissions?: BackendTokenPermissions;
 }): Promise<Omit<Application, "environments"> | null> => {
   if (!clerkId && !tokenPermissions) {
-    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED);
+    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED, 401);
   }
 
   const repository = context.get<IApplicationRepository>(
@@ -188,7 +186,7 @@ const deleteApplication = async ({
     tokenPermissions,
   });
   if (!application) {
-    throw new ServiceError(httpError.APP_DOESNT_EXIST);
+    return null;
   }
 
   try {
@@ -196,8 +194,7 @@ const deleteApplication = async ({
       dbAppId: application.id,
     });
   } catch (e) {
-    console.error("Error deleting application", e);
-    throw new ServiceError(httpError.APP_CANT_DELETE);
+    throw new ServiceError(httpError.APP_CANT_DELETE, 400);
   }
 };
 

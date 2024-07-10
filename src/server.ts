@@ -8,6 +8,7 @@ import usersRoute from "./routes/users.ts";
 import appsRoute from "./routes/applications.ts";
 import searchRoute from "./routes/search.ts";
 import ragRoute from "./routes/rag.ts";
+import errorHandler from "./middlewares/error-handler.middleware.ts";
 
 export const startApp = async (props?: {
   postgresDatabaseUrl?: string;
@@ -19,6 +20,7 @@ export const startApp = async (props?: {
   if (Bun.env.NODE_ENV === "development") {
     app.use(logger());
   }
+  app.onError(errorHandler);
 
   const db = await initDbConnection(props);
   await db.$connect();

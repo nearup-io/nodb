@@ -2,11 +2,15 @@ interface IServiceError {
   explicitMessage: string;
 }
 
+type StatusCodes = 400 | 401 | 404 | 500;
+
 export class ServiceError extends Error implements IServiceError {
   explicitMessage: string;
-  constructor(message: string) {
+  statusCode: StatusCodes;
+  constructor(message: string, statusCode: StatusCodes) {
     super(message);
     this.explicitMessage = message;
+    this.statusCode = statusCode;
   }
 }
 

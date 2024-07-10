@@ -8,7 +8,6 @@ import {
   updateApplication,
 } from "../services/application.service";
 import { APPNAME_MIN_LENGTH, APPNAME_REGEX, httpError } from "../utils/const";
-import { ServiceError } from "../utils/service-errors";
 import envsRoute from "./environments";
 import type Context from "../utils/context.ts";
 import { type User } from "../models/user.model.ts";
@@ -42,27 +41,18 @@ app.post(
     }
     const clerkClient = c.get("clerk");
     const user = await getUserFromClerk(clerkClient, c);
-    try {
-      const application = await createApplication({
-        context: c.get("context"),
-        appName,
-        image: body.image || "",
-        clerkId: user?.id,
-        appDescription: body.description || "",
-        environmentName: body.environmentName,
-        environmentDescription: body.environmentDescription,
-      });
-      c.status(201);
-      return c.json(application);
-    } catch (err) {
-      if (err instanceof ServiceError) {
-        throw new HTTPException(400, { message: err.explicitMessage });
-      } else {
-        throw new HTTPException(500, {
-          message: "Unknown error",
-        });
-      }
-    }
+
+    const application = await createApplication({
+      context: c.get("context"),
+      appName,
+      image: body.image || "",
+      clerkId: user?.id,
+      appDescription: body.description || "",
+      environmentName: body.environmentName,
+      environmentDescription: body.environmentDescription,
+    });
+    c.status(201);
+    return c.json(application);
   },
 );
 
@@ -71,18 +61,12 @@ app.get(
   flexibleAuthMiddleware({ allowBackendToken: true }),
   async (c) => {
     const user = c.get("user");
-    try {
-      const apps = await getApplications({
-        context: c.get("context"),
-        clerkId: user?.clerkId,
-        tokenPermissions: c.get("tokenPermissions"),
-      });
-      return c.json(apps);
-    } catch (e) {
-      throw new HTTPException(500, {
-        message: "Unknown error",
-      });
-    }
+    const apps = await getApplications({
+      context: c.get("context"),
+      clerkId: user?.clerkId,
+      tokenPermissions: c.get("tokenPermissions"),
+    });
+    return c.json(apps);
   },
 );
 
@@ -93,25 +77,13 @@ app.get(
     const appName = c.req.param("appName");
     const user = c.get("user");
 
-    try {
-      const application = await getApplication({
-        context: c.get("context"),
-        appName,
-        clerkId: user?.clerkId,
-        tokenPermissions: c.get("tokenPermissions"),
-      });
-      return c.json(application);
-    } catch (err) {
-      if (err instanceof ServiceError) {
-        throw new HTTPException(404, {
-          message: err.explicitMessage,
-        });
-      } else {
-        throw new HTTPException(500, {
-          message: "Couldn't fetch application",
-        });
-      }
-    }
+    const application = await getApplication({
+      context: c.get("context"),
+      appName,
+      clerkId: user?.clerkId,
+      tokenPermissions: c.get("tokenPermissions"),
+    });
+    return c.json(application);
   },
 );
 
@@ -144,27 +116,20 @@ app.patch(
       });
     }
     const user = c.get("user");
-    try {
-      const doc = await updateApplication({
-        context: c.get("context"),
-        oldAppName: appName,
-        newAppName: body.appName,
-        clerkId: user?.clerkId,
-        tokenPermissions: c.get("tokenPermissions"),
-        description: body.description,
-        image: body.image,
-      });
-      if (!doc?.name) {
-        c.status(404);
-        return c.json({ found: false });
-      }
-      return c.json({ found: true });
-    } catch (err) {
-      console.log(err);
-      throw new HTTPException(500, {
-        message: httpError.UNKNOWN,
-      });
+    const doc = await updateApplication({
+      context: c.get("context"),
+      oldAppName: appName,
+      newAppName: body.appName,
+      clerkId: user?.clerkId,
+      tokenPermissions: c.get("tokenPermissions"),
+      description: body.description,
+      image: body.image,
+    });
+    if (!doc?.name) {
+      c.status(404);
+      return c.json({ found: false });
     }
+    return c.json({ found: true });
   },
 );
 
@@ -174,29 +139,13 @@ app.delete(
   async (c) => {
     const user = c.get("user");
     const appName = c.req.param("appName");
-    try {
-      const app = await deleteApplication({
-        context: c.get("context"),
-        appName,
-        clerkId: user?.clerkId,
-        tokenPermissions: c.get("tokenPermissions"),
-      });
-      if (!app) return c.json({ found: false });
-      return c.json({ found: true });
-    } catch (e) {
-      if (e instanceof ServiceError) {
-        if (e.explicitMessage === httpError.APP_DOESNT_EXIST)
-          return c.json({ found: false });
-        else
-          throw new HTTPException(400, {
-            message: e.explicitMessage,
-          });
-      } else {
-        throw new HTTPException(500, {
-          message: httpError.UNKNOWN,
-        });
-      }
-    }
+    const app = await deleteApplication({
+      context: c.get("context"),
+      appName,
+      clerkId: user?.clerkId,
+      tokenPermissions: c.get("tokenPermissions"),
+    });
+    return c.json({ found: !!app });
   },
 );
 

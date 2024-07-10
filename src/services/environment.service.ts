@@ -40,7 +40,7 @@ const createEnvironment = async ({
     envName,
   });
   if (existingEnvironment?.name) {
-    throw new ServiceError(httpError.ENV_EXISTS);
+    throw new ServiceError(httpError.ENV_EXISTS, 400);
   }
 
   return repository.createEnvironment({ appName, envName, description });
@@ -54,7 +54,7 @@ const deleteEnvironment = async ({
   context: Context;
   appName: string;
   envName: string;
-}) => {
+}): Promise<Environment | null> => {
   const repository = context.get<IEnvironmentRepository>(
     ENVIRONMENT_REPOSITORY,
   );
@@ -63,9 +63,7 @@ const deleteEnvironment = async ({
     envName,
   });
 
-  if (!environment) {
-    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
-  }
+  if (!environment) return null;
 
   try {
     await repository.deleteEnvironment({
@@ -75,8 +73,7 @@ const deleteEnvironment = async ({
     });
     return environment;
   } catch (e) {
-    console.error("Error deleting environment", e);
-    throw new ServiceError(httpError.ENV_CANT_DELETE);
+    throw new ServiceError(httpError.ENV_CANT_DELETE, 400);
   }
 };
 
@@ -98,14 +95,14 @@ const updateEnvironment = async ({
   );
 
   if (oldEnvName === newEnvName) {
-    throw new ServiceError("Names cannot be the same");
+    throw new ServiceError(httpError.APPNAME_MUST_BE_UNIQUE, 400);
   }
   const environment = await repository.findEnvironment({
     appName,
     envName: oldEnvName,
   });
   if (!environment || !environment.name) {
-    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST, 404);
   }
   const newEnvironment = await repository.findEnvironment({
     appName,
@@ -113,7 +110,7 @@ const updateEnvironment = async ({
   });
 
   if (newEnvironment && newEnvironment.name && newEnvName !== oldEnvName) {
-    throw new ServiceError(httpError.NEW_ENV_EXISTS);
+    throw new ServiceError(httpError.NEW_ENV_EXISTS, 400);
   }
   const updateProps = R.pickBy(R.pipe(R.isNil, R.not), {
     name: newEnvName,
@@ -121,7 +118,7 @@ const updateEnvironment = async ({
   }) as { name?: string; description?: string };
 
   if (R.isEmpty(updateProps)) {
-    throw new ServiceError(httpError.NO_UPDATE_PROPS);
+    throw new ServiceError(httpError.NO_UPDATE_PROPS, 400);
   }
   const updatedEnvironment = await repository.updateEnvironment({
     updateProps,
@@ -129,7 +126,7 @@ const updateEnvironment = async ({
   });
 
   if (!updatedEnvironment) {
-    throw new ServiceError(httpError.ENV_DOESNT_EXIST);
+    throw new ServiceError(httpError.ENV_DOESNT_EXIST, 404);
   }
 
   return updatedEnvironment;

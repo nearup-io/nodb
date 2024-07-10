@@ -36,7 +36,7 @@ const createOrFetchUser = async ({
   const userEmail = user.primaryEmailAddress?.emailAddress;
 
   if (!userEmail) {
-    throw new ServiceError(httpError.USER_DOES_NOT_HAVE_EMAIL);
+    throw new ServiceError(httpError.USER_DOES_NOT_HAVE_EMAIL, 400);
   }
 
   const dbUser = await findUserByClerkId({ id: user.id, context });
