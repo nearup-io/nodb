@@ -21,16 +21,7 @@ Run in development:
 bun dev
 ```
 
-To run Postgres locally use docker-compose:
-
-```bash
-docker-compose -f .\docker-compose.dev.yml up postgres
-```
-
-To run the whole app in docker:
-```bash
-docker-compose -f .\docker-compose.dev.yml up
-```
+You can find detailed explanation on how to run Postgres (locally or in Docker) [here](https://github.com/nearup-io/nodb/wiki/Postgres-database)
 
 ## Deploy
 
