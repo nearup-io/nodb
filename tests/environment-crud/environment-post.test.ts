@@ -172,12 +172,25 @@ describe("POST /apps/:appName/:envName", async () => {
       },
     });
     expect(environmentResponse.status).toBe(201);
+    const body = await environmentResponse.json();
+    expect(Object.keys(body).sort()).toStrictEqual(
+      ["id", "name", "entities", "tokens", "description"].sort(),
+    );
 
-    const environment = (await helper.getEnvironmentFromDbByName(
+    expect(body.id).toBeString();
+    expect(body.entities.length).toBe(0);
+    expect(body.tokens.length).toBe(1);
+    expect(body.name).toBe(environmentName);
+    expect(body.description).toBe("This is a staging environment");
+    expect(Object.keys(body.tokens[0]).sort()).toStrictEqual(
+      ["key", "permission"].sort(),
+    );
+
+    const dbEnvironment = (await helper.getEnvironmentFromDbByName(
       environmentName,
     )) as Omit<EnvironmentType, "app"> | null;
-    expect(environment).not.toBeNull();
-    expect(R.keys(environment!)).toEqual([
+    expect(dbEnvironment).not.toBeNull();
+    expect(R.keys(dbEnvironment!)).toEqual([
       "id",
       "name",
       "tokens",
@@ -185,7 +198,7 @@ describe("POST /apps/:appName/:envName", async () => {
       "description",
     ]);
 
-    const { id, tokens, ...props } = environment!;
+    const { id, tokens, ...props } = dbEnvironment!;
     expect(id).toBeDefined();
     expect(tokens).toBeArray();
     const [firstToken] = tokens;
@@ -229,6 +242,20 @@ describe("POST /apps/:appName/:envName", async () => {
       },
     });
     expect(environmentResponse.status).toBe(201);
+
+    const body = await environmentResponse.json();
+    expect(Object.keys(body).sort()).toStrictEqual(
+      ["id", "name", "entities", "tokens", "description"].sort(),
+    );
+
+    expect(body.id).toBeString();
+    expect(body.entities.length).toBe(0);
+    expect(body.tokens.length).toBe(1);
+    expect(body.name).toBe(environmentName);
+    expect(body.description).toBe("This is a staging environment");
+    expect(Object.keys(body.tokens[0]).sort()).toStrictEqual(
+      ["key", "permission"].sort(),
+    );
 
     const environment = (await helper.getEnvironmentFromDbByName(
       environmentName,
@@ -287,7 +314,19 @@ describe("POST /apps/:appName/:envName", async () => {
       },
     });
     expect(environmentResponse.status).toBe(201);
+    const body = await environmentResponse.json();
+    expect(Object.keys(body).sort()).toStrictEqual(
+      ["id", "name", "entities", "tokens", "description"].sort(),
+    );
 
+    expect(body.id).toBeString();
+    expect(body.entities.length).toBe(0);
+    expect(body.tokens.length).toBe(1);
+    expect(body.name).toBe(environmentName);
+    expect(body.description).toBe("This is a staging environment");
+    expect(Object.keys(body.tokens[0]).sort()).toStrictEqual(
+      ["key", "permission"].sort(),
+    );
     const environment = (await helper.getEnvironmentFromDbByName(
       environmentName,
     )) as Omit<EnvironmentType, "app"> | null;
