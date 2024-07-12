@@ -33,6 +33,8 @@
     "@anthropic-ai/sdk": "^0.22.0",
     "@clerk/backend": "^1.2.1",
     "@hono/clerk-auth": "^2.0.0",
+    "@hono/swagger-ui": "^0.4.0",
+    "@hono/zod-openapi": "^0.14.9",
     "@langchain/openai": "^0.0.28",
     "@prisma/client": "5.16.1",
     "assert": "^2.1.0",

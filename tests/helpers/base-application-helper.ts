@@ -1,15 +1,15 @@
-import type { Hono } from "hono";
 import { expect } from "bun:test";
+import { OpenAPIHono } from "@hono/zod-openapi";
 
 export abstract class BaseApplicationHelper {
   protected application:
     | {
-        app: Hono;
+        app: OpenAPIHono;
         stopApp: () => Promise<void>;
       }
     | undefined;
 
-  get app(): Hono {
+  get app(): OpenAPIHono {
     return this.application!.app;
   }
 

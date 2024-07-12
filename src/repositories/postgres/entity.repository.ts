@@ -234,9 +234,11 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     entitiesIdsToBeReplaced: string[];
   }): Promise<string[]> {
     return this.transaction(async (prisma) => {
-      await prisma.entity.deleteMany({
-        where: { id: { in: entitiesIdsToBeReplaced } },
-      });
+      if (entitiesIdsToBeReplaced.length > 0) {
+        await prisma.entity.deleteMany({
+          where: { id: { in: entitiesIdsToBeReplaced } },
+        });
+      }
 
       const result = await prisma.$queryRaw<{ id: string }[]>(
         this.generateInsertSql(insertEntities, dbEnvironmentId),

@@ -17,7 +17,6 @@ import type {
   EntityRequestDto,
   EntityRouteParams,
   Pagination,
-  PostEntityRequestDto,
 } from "../utils/types.ts";
 import { findEnvironment } from "./environment.service";
 import type Context from "../utils/context.ts";
@@ -112,7 +111,7 @@ export const getEntities = async ({
   metaFilters: EntityQueryMeta;
   rawQuery: Record<string, string>;
   routeParams: EntityRouteParams;
-}): Promise<Record<string, any>> => {
+}): Promise<{ __meta?: Pagination } & Record<string, unknown>> => {
   const paginationQuery = getPaginationNumbers({
     page: metaFilters?.page,
     perPage: metaFilters?.perPage,
@@ -174,7 +173,9 @@ const getSingleEntity = async ({
   xpath: string;
   requestParams: EntityRouteParams & { entityId: string };
   metaFilters: EntityQueryMeta;
-}) => {
+}): Promise<
+  { id: string; __meta?: { self: string } } & Record<string, unknown>
+> => {
   const environment = await findEnvironment({
     appName,
     envName,
@@ -209,7 +210,7 @@ const getSingleEntity = async ({
   };
 };
 
-const createOrOverwriteEntities = async ({
+const createEntities = async ({
   context,
   appName,
   envName,
@@ -220,7 +221,7 @@ const createOrOverwriteEntities = async ({
   appName: string;
   envName: string;
   entityName: string;
-  bodyEntities: PostEntityRequestDto[];
+  bodyEntities: Record<string, unknown>[];
 }): Promise<string[]> => {
   if (bodyEntities.length === 0) return [];
 
@@ -232,9 +233,7 @@ const createOrOverwriteEntities = async ({
   if (!environment) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST, 400);
   }
-  const entitiesIdsToBeReplaced: string[] = bodyEntities
-    .filter((entity) => !!entity.id)
-    .map((entity) => entity.id!);
+
   const insertEntities: Entity[] = [];
   for (let bodyEntity of bodyEntities) {
     const embeddingInput = {
@@ -243,7 +242,7 @@ const createOrOverwriteEntities = async ({
     };
     const input = JSON.stringify(embeddingInput);
     const embedding = await getEmbedding(input);
-    const id = bodyEntity.id ?? generateToken(8);
+    const id = generateToken(8);
     const entityWithoutId = R.omit(["id"], bodyEntity);
     insertEntities.push({
       id,
@@ -257,7 +256,7 @@ const createOrOverwriteEntities = async ({
 
   try {
     return await entityRepository.createOrOverwriteEntities({
-      entitiesIdsToBeReplaced,
+      entitiesIdsToBeReplaced: [],
       entityName,
       dbEnvironmentId: environment.id,
       insertEntities,
@@ -361,7 +360,9 @@ const replaceEntities = async ({
   }
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
-  const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
+  const documentIds = bodyEntities
+    .filter(({ id }) => !!id)
+    .map(({ id }) => id) as string[];
 
   const dbExistingDocuments = await entityRepository.findEntitiesByIdsType({
     ids: documentIds,
@@ -426,7 +427,9 @@ const updateEntities = async ({
   }
 
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
-  const documentIds = bodyEntities.filter(({ id }) => !!id).map(({ id }) => id);
+  const documentIds = bodyEntities
+    .filter(({ id }) => !!id)
+    .map(({ id }) => id) as string[];
   const dbExistingDocuments = await entityRepository.findEntitiesByIdsType({
     ids: documentIds,
     type: `${appName}/${envName}/${entityName}`,
@@ -523,7 +526,7 @@ const generatePaginationMetadata = ({
 
 export {
   getSingleEntity,
-  createOrOverwriteEntities,
+  createEntities,
   replaceEntities,
   updateEntities,
   deleteRootAndUpdateEnv,

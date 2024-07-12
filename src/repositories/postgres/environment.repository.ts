@@ -40,7 +40,7 @@ class EnvironmentRepository
     return {
       id: environment.id,
       name: environment.name,
-      description: environment.description,
+      description: environment.description ?? undefined,
       tokens: environment.tokens,
       entities: environment.entities.map(({ type }) => type.split("/").at(-1)!),
     };
@@ -85,7 +85,7 @@ class EnvironmentRepository
     return {
       id: environment.id,
       name: environment.name,
-      description: environment.description,
+      description: environment.description ?? undefined,
       tokens: environment.tokens,
       entities: [],
     };
@@ -142,7 +142,7 @@ class EnvironmentRepository
     return {
       id: environment.id,
       name: environment.name,
-      description: environment.description,
+      description: environment.description ?? undefined,
       tokens: environment.tokens,
       entities: environment.entities.map(({ type }) => type.split("/").at(-1)!),
     };

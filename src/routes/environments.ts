@@ -1,4 +1,3 @@
-import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import {
   createEnvironment,
@@ -7,25 +6,27 @@ import {
   updateEnvironment,
 } from "../services/environment.service";
 import { httpError } from "../utils/const";
-import { asyncTryJson } from "../utils/route-utils";
 import entitiesRoute from "./entities";
 import type Context from "../utils/context.ts";
 import { type User } from "../models/user.model.ts";
-import { flexibleAuthMiddleware } from "../middlewares";
 import { ServiceError } from "../utils/service-errors.ts";
+import { OpenAPIHono } from "@hono/zod-openapi";
+import {
+  environmentDeleteRoute,
+  environmentGetByNameRoute,
+  environmentPatchRoute,
+  environmentPostRoute,
+} from "./schemas/environment-schemas.ts";
 
-const app = new Hono<{
+const envApp = new OpenAPIHono<{
   Variables: {
     user: User;
     context: Context;
   };
 }>();
 
-app.get("/", flexibleAuthMiddleware({ allowBackendToken: true }), async (c) => {
-  const { appName, envName } = c.req.param() as {
-    appName: string;
-    envName: string;
-  };
+envApp.openapi(environmentGetByNameRoute, async (c) => {
+  const { appName, envName } = c.req.valid("param");
 
   const env = await findEnvironment({
     context: c.get("context"),
@@ -36,72 +37,50 @@ app.get("/", flexibleAuthMiddleware({ allowBackendToken: true }), async (c) => {
   if (!env) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST, 404);
   }
-  return c.json(env);
+  return c.json(env, 200);
 });
 
-app.post(
-  "/",
-  flexibleAuthMiddleware({ allowBackendToken: true }),
-  async (c) => {
-    const body = await c.req.json();
-    const { appName, envName } = c.req.param() as {
-      appName: string;
-      envName: string;
-    };
-    const doc = await createEnvironment({
-      context: c.get("context"),
-      appName,
-      envName,
-      description: body.description,
+envApp.openapi(environmentPostRoute, async (c) => {
+  const { appName, envName } = c.req.valid("param");
+  const body = c.req.valid("json");
+  const doc = await createEnvironment({
+    context: c.get("context"),
+    appName,
+    envName,
+    description: body.description,
+  });
+  return c.json(doc, 201);
+});
+
+envApp.openapi(environmentPatchRoute, async (c) => {
+  const { appName, envName } = c.req.valid("param");
+  const body = c.req.valid("json");
+  if (envName === body.envName) {
+    throw new HTTPException(400, {
+      message: httpError.SAME_ENVNAME,
     });
-    c.status(201);
-    return c.json(doc);
-  },
-);
+  }
+  const doc = await updateEnvironment({
+    context: c.get("context"),
+    appName,
+    newEnvName: body.envName,
+    oldEnvName: envName,
+    description: body.description,
+  });
 
-app.patch(
-  "/",
-  flexibleAuthMiddleware({ allowBackendToken: true }),
-  async (c) => {
-    const body = await asyncTryJson(c.req.json());
-    const { appName, envName } = c.req.param() as {
-      appName: string;
-      envName: string;
-    };
-    if (envName === body.envName) {
-      throw new HTTPException(400, {
-        message: httpError.SAME_ENVNAME,
-      });
-    }
-    const doc = await updateEnvironment({
-      context: c.get("context"),
-      appName,
-      newEnvName: body.envName,
-      oldEnvName: envName,
-      description: body.description,
-    });
-    if (!doc) return c.json({ found: false });
-    return c.json({ found: true });
-  },
-);
+  return c.json({ found: !!doc }, 200);
+});
 
-app.delete(
-  "/",
-  flexibleAuthMiddleware({ allowBackendToken: true }),
-  async (c) => {
-    const { appName, envName } = c.req.param() as {
-      appName: string;
-      envName: string;
-    };
-    const env = await deleteEnvironment({
-      context: c.get("context"),
-      appName,
-      envName,
-    });
-    return c.json({ found: !!env });
-  },
-);
+envApp.openapi(environmentDeleteRoute, async (c) => {
+  const { appName, envName } = c.req.valid("param");
+  const env = await deleteEnvironment({
+    context: c.get("context"),
+    appName,
+    envName,
+  });
+  return c.json({ found: !!env }, 200);
+});
 
-app.route("/:entityName", entitiesRoute);
+envApp.route("/:entityName", entitiesRoute);
 
-export default app;
+export default envApp;

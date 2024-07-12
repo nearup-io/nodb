@@ -106,17 +106,22 @@ export class PostgresTestApplicationHelper
       name: result.name,
       tokens: result.tokens,
       entities: R.uniq(result.entities.map((x) => x.type.split("/").at(-1)!)),
-      description: result.description,
+      description: result.description ?? undefined,
     };
   }
   async getEnvironmentsFromDbByAppName(
     appName: string,
   ): Promise<Omit<Environment, "entities" | "tokens">[]> {
-    return this.prisma.environment.findMany({
+    const result = await this.prisma.environment.findMany({
       where: {
         applicationName: appName,
       },
     });
+
+    return result.map((env) => ({
+      ...env,
+      description: env.description ?? undefined,
+    }));
   }
   async getAppFromDbByName(appName: string): Promise<
     | (Omit<Application, "environments"> & {
@@ -124,7 +129,7 @@ export class PostgresTestApplicationHelper
       })
     | null
   > {
-    return this.prisma.application.findFirst({
+    const result = await this.prisma.application.findFirst({
       where: {
         name: appName,
       },
@@ -150,6 +155,14 @@ export class PostgresTestApplicationHelper
         },
       },
     });
+
+    if (!result) return null;
+
+    return {
+      ...result,
+      image: result.image ?? undefined,
+      description: result.description ?? undefined,
+    };
   }
   async getEntityFromDbById(id: string): Promise<Entity | null> {
     const result = await this.prismaClient!.entity.findFirst({

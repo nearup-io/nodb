@@ -6,7 +6,6 @@ export type Application = {
   name: string;
   environments: Environment[];
   tokens: Token[];
-  image?: string | null;
-  description?: string | null;
-  extras?: Record<string, unknown>;
+  image?: string;
+  description?: string;
 };

@@ -27,6 +27,12 @@ class ApplicationRepository
       include: {
         environments: {
           include: {
+            tokens: {
+              select: {
+                key: true,
+                permission: true,
+              },
+            },
             entities: {
               select: {
                 type: true,
@@ -40,10 +46,14 @@ class ApplicationRepository
     return (
       application?.environments.map((env) => {
         return {
+          id: env.id,
+          name: env.name,
+          description: env.description ?? undefined,
+          tokens: env.tokens,
           entities: env.entities.map(
             (entity) => entity.type.split("/").at(-1)!,
           ),
-          ...R.omit(["entities"], env),
+          // ...R.omit(["entities"], env),
         };
       }) || []
     );
@@ -116,14 +126,14 @@ class ApplicationRepository
       ? {
           id: app.id,
           name: app.name,
-          image: app.image,
-          description: app.description,
+          image: app.image ?? undefined,
+          description: app.description ?? undefined,
           tokens: app.tokens,
           environments: app.environments.map((env) => {
             return {
               id: env.id,
               name: env.name,
-              description: env.description,
+              description: env.description ?? undefined,
               entities: [],
               tokens: app.tokens,
             };
@@ -169,8 +179,8 @@ class ApplicationRepository
     return applications.map((app) => {
       return {
         name: app.name,
-        description: app.description,
-        image: app.image,
+        description: app.description ?? undefined,
+        image: app.image ?? undefined,
         tokens: app.tokens,
         environments: app.environments.map((env) => {
           return {
@@ -245,8 +255,8 @@ class ApplicationRepository
 
     return {
       name: application.name,
-      description: application.description,
-      image: application.image,
+      description: application.description ?? undefined,
+      image: application.image ?? undefined,
       tokens: application.tokens,
       environments: application.environments.map((env) => {
         return {
@@ -423,8 +433,8 @@ class ApplicationRepository
     return {
       id: doc.id,
       name: doc.name,
-      image: doc.image,
-      description: doc.description,
+      image: doc.image ?? undefined,
+      description: doc.description ?? undefined,
     };
   }
 
@@ -473,8 +483,8 @@ class ApplicationRepository
         return {
           id: app.id,
           name: app.name,
-          description: app.description,
-          image: app.image,
+          description: app.description ?? undefined,
+          image: app.image ?? undefined,
           tokens: [],
         };
       },
