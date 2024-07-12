@@ -1,8 +1,6 @@
-import { Hono } from "hono";
-import { HTTPException } from "hono/http-exception";
 import type { BlankSchema } from "hono/types";
 import {
-  createOrOverwriteEntities,
+  createEntities,
   deleteRootAndUpdateEnv,
   deleteSingleEntityAndUpdateEnv,
   getEntities,
@@ -11,14 +9,21 @@ import {
   updateEntities,
 } from "../services/entity.service";
 import { type User } from "../models/user.model.ts";
-import { httpError } from "../utils/const";
-import { asyncTryJson } from "../utils/route-utils";
-import { entityQueryValidator } from "../utils/route-validators";
-import type { EntityRequestDto, PostEntityRequestDto } from "../utils/types.ts";
+import { mapQueryParams } from "../utils/route-validators";
 import type Context from "../utils/context.ts";
 import { flexibleAuthMiddleware } from "../middlewares";
+import { OpenAPIHono } from "@hono/zod-openapi";
+import {
+  entityDeleteByIdRoute,
+  entityDeleteRoute,
+  entityGetByIdRoute,
+  entityGetRoute,
+  entityPatchRoute,
+  entityPostRoute,
+  entityPutRoute,
+} from "./schemas/entity-schemas.ts";
 
-const app = new Hono<
+const entityApp = new OpenAPIHono<
   {
     Variables: {
       user: User;
@@ -29,57 +34,78 @@ const app = new Hono<
   "/:appName/:envName/:entityName"
 >();
 
-app.use(flexibleAuthMiddleware({ allowBackendToken: true }));
+entityApp.use(flexibleAuthMiddleware({ allowBackendToken: true }));
 
-app.get("/", entityQueryValidator(), async (c) => {
-  const q = c.req.valid("query");
+entityApp.openapi(entityGetRoute, async (c) => {
+  const mappedQuery = mapQueryParams(c.req.valid("query"));
+
   const context = c.get("context");
 
   const result = await getEntities({
     context,
-    propFilters: q.props,
-    metaFilters: q.meta,
-    routeParams: c.req.param(),
+    propFilters: mappedQuery.props,
+    metaFilters: mappedQuery.meta,
+    routeParams: c.req.valid("param"),
     rawQuery: c.req.query(),
   });
-  return c.json(result);
+  return c.json(result, 200);
 });
 
-app.get("/:entityId", entityQueryValidator(), async (c) => {
-  const q = c.req.valid("query");
+entityApp.openapi(entityGetByIdRoute, async (c) => {
+  const mappedQueryParams = mapQueryParams(c.req.valid("query"));
   const context = c.get("context");
-  c.req.param();
   const entity = await getSingleEntity({
     xpath: c.req.path,
     context,
-    requestParams: c.req.param(),
-    metaFilters: q.meta,
+    requestParams: c.req.valid("param"),
+    metaFilters: mappedQueryParams.meta,
   });
-  return c.json(entity);
+  return c.json(entity, 200);
 });
 
-app.post("/", async (c) => {
-  const { appName, envName, entityName } = c.req.param();
+entityApp.openapi(entityPostRoute, async (c) => {
+  const { appName, envName, entityName } = c.req.valid("param");
 
-  const body = (await asyncTryJson(c.req.json())) as PostEntityRequestDto[];
-  if (!Array.isArray(body)) {
-    throw new HTTPException(400, {
-      message: httpError.BODY_IS_NOT_ARRAY,
-    });
-  }
-  const ids = await createOrOverwriteEntities({
+  const ids = await createEntities({
     context: c.get("context"),
     appName,
     envName,
     entityName,
-    bodyEntities: body,
+    bodyEntities: c.req.valid("json"),
   });
-  c.status(201);
-  return c.json({ ids });
+  return c.json({ ids }, 201);
 });
 
-app.delete("/", async (c) => {
-  const { appName, envName, entityName } = c.req.param();
+entityApp.openapi(entityPutRoute, async (c) => {
+  const { appName, envName, entityName } = c.req.valid("param");
+
+  const body = c.req.valid("json");
+  const ids = await replaceEntities({
+    context: c.get("context"),
+    appName,
+    envName,
+    entityName,
+    bodyEntities: c.req.valid("json"),
+  });
+
+  return c.json({ ids }, 200);
+});
+
+entityApp.openapi(entityPatchRoute, async (c) => {
+  const { appName, envName, entityName } = c.req.valid("param");
+  const ids = await updateEntities({
+    context: c.get("context"),
+    appName,
+    envName,
+    entityName,
+    bodyEntities: c.req.valid("json"),
+  });
+
+  return c.json({ ids }, 200);
+});
+
+entityApp.openapi(entityDeleteRoute, async (c) => {
+  const { appName, envName, entityName } = c.req.valid("param");
   const context = c.get("context");
   const res = await deleteRootAndUpdateEnv({
     context,
@@ -87,11 +113,11 @@ app.delete("/", async (c) => {
     envName,
     entityName,
   });
-  return c.json({ deleted: res.done });
+  return c.json({ deleted: res.done }, 200);
 });
 
-app.delete("/:entityId", async (c) => {
-  const { appName, envName, entityName, entityId } = c.req.param();
+entityApp.openapi(entityDeleteByIdRoute, async (c) => {
+  const { appName, envName, entityName, entityId } = c.req.valid("param");
   const context = c.get("context");
   const res = await deleteSingleEntityAndUpdateEnv({
     context,
@@ -101,46 +127,7 @@ app.delete("/:entityId", async (c) => {
     entityId,
   });
 
-  return c.json({ deleted: !!res });
+  return c.json({ deleted: !!res }, 200);
 });
 
-app.put("/", async (c) => {
-  const { appName, envName, entityName } = c.req.param();
-
-  const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
-  if (!Array.isArray(bodyEntities)) {
-    throw new HTTPException(400, {
-      message: httpError.BODY_IS_NOT_ARRAY,
-    });
-  }
-  const ids = await replaceEntities({
-    context: c.get("context"),
-    appName,
-    envName,
-    entityName,
-    bodyEntities,
-  });
-
-  return c.json({ ids });
-});
-
-app.patch("/", async (c) => {
-  const { appName, envName, entityName } = c.req.param();
-  const bodyEntities = await asyncTryJson<EntityRequestDto[]>(c.req.json());
-  if (!Array.isArray(bodyEntities)) {
-    throw new HTTPException(400, {
-      message: httpError.BODY_IS_NOT_ARRAY,
-    });
-  }
-  const ids = await updateEntities({
-    context: c.get("context"),
-    appName,
-    envName,
-    entityName,
-    bodyEntities,
-  });
-
-  return c.json({ ids });
-});
-
-export default app;
+export default entityApp;

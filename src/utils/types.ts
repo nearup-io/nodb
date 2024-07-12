@@ -7,13 +7,8 @@ export type EntityRouteParams = {
 };
 
 export type EntityRequestDto = {
-  id: string;
-  [key: string]: any;
-};
-
-export type PostEntityRequestDto = Omit<EntityRequestDto, "id"> & {
   id?: string;
-};
+} & Record<string, unknown>;
 
 export type QuerySortingOrder = "desc" | "asc";
 
