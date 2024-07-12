@@ -37,6 +37,21 @@ const ApplicationGetAllResponseSchema = z.array(
   }),
 );
 
+const ApplicationGetByNameResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  image: z.string().optional(),
+  description: z.string().optional(),
+  tokens: z.array(tokenSchema),
+  environments: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      description: z.string().optional(),
+    }),
+  ),
+});
+
 export const applicationPostRoute = createRoute({
   method: "post",
   path: "/{appName}",
@@ -117,6 +132,51 @@ export const applicationGetAllRoute = createRoute({
     },
     401: {
       description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+  },
+});
+
+export const applicationGetByNameRoute = createRoute({
+  method: "get",
+  path: "/{appName}",
+  middleware: [flexibleAuthMiddleware({ allowBackendToken: true })],
+  request: {
+    params: z.object({
+      appName: z.string().openapi({
+        param: {
+          name: "appName",
+          in: "path",
+        },
+        type: "string",
+        example: "your-application-name",
+      }),
+    }),
+    headers: SecuritySchema,
+  },
+  responses: {
+    200: {
+      description: "Application created response",
+      content: {
+        "application/json": {
+          schema: ApplicationGetByNameResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+    404: {
+      description: "Application not found",
       content: {
         "application/json": {
           schema: ErrorSchema,

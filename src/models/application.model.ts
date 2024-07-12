@@ -8,5 +8,4 @@ export type Application = {
   tokens: Token[];
   image?: string;
   description?: string;
-  extras?: Record<string, unknown>;
 };

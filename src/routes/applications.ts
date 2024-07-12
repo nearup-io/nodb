@@ -16,6 +16,7 @@ import type { BackendTokenPermissions } from "../utils/types.ts";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import {
   applicationGetAllRoute,
+  applicationGetByNameRoute,
   applicationPostRoute,
 } from "./schemas/application-schemas.ts";
 
@@ -29,10 +30,9 @@ const application = new OpenAPIHono<{
 
 application.openapi(applicationPostRoute, async (c) => {
   const { appName } = c.req.valid("param");
-  const body = await c.req.json();
+  const body = c.req.valid("json");
   const clerkClient = c.get("clerk");
   const user = await getUserFromClerk(clerkClient, c);
-
   const application = await createApplication({
     context: c.get("context"),
     appName,
@@ -58,22 +58,18 @@ application.openapi(applicationGetAllRoute, async (c) => {
   return c.json(apps, 200);
 });
 
-application.get(
-  "/:appName",
-  flexibleAuthMiddleware({ allowBackendToken: true }),
-  async (c) => {
-    const appName = c.req.param("appName");
-    const user = c.get("user");
+application.openapi(applicationGetByNameRoute, async (c) => {
+  const { appName } = c.req.valid("param");
+  const user = c.get("user");
 
-    const application = await getApplication({
-      context: c.get("context"),
-      appName,
-      clerkId: user?.clerkId,
-      tokenPermissions: c.get("tokenPermissions"),
-    });
-    return c.json(application);
-  },
-);
+  const application = await getApplication({
+    context: c.get("context"),
+    appName,
+    clerkId: user?.clerkId,
+    tokenPermissions: c.get("tokenPermissions"),
+  });
+  return c.json(application, 200);
+});
 
 application.patch(
   "/:appName",
