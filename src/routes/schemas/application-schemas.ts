@@ -141,6 +141,7 @@ export const applicationPostRoute = createRoute({
       // },
     },
   },
+  tags: ["Applications"],
 });
 
 export const applicationGetAllRoute = createRoute({
@@ -168,6 +169,7 @@ export const applicationGetAllRoute = createRoute({
       },
     },
   },
+  tags: ["Applications"],
 });
 
 export const applicationGetByNameRoute = createRoute({
@@ -204,6 +206,7 @@ export const applicationGetByNameRoute = createRoute({
       },
     },
   },
+  tags: ["Applications"],
 });
 
 export const applicationPatchRoute = createRoute({
@@ -260,6 +263,7 @@ export const applicationPatchRoute = createRoute({
       },
     },
   },
+  tags: ["Applications"],
 });
 
 export const applicationDeleteRoute = createRoute({
@@ -296,4 +300,5 @@ export const applicationDeleteRoute = createRoute({
       },
     },
   },
+  tags: ["Applications"],
 });

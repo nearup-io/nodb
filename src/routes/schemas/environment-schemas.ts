@@ -62,6 +62,7 @@ export const environmentGetByNameRoute = createRoute({
       },
     },
   },
+  tags: ["Environments"],
 });
 
 export const environmentPostRoute = createRoute({
@@ -113,6 +114,7 @@ export const environmentPostRoute = createRoute({
       },
     },
   },
+  tags: ["Environments"],
 });
 
 export const environmentPatchRoute = createRoute({
@@ -173,6 +175,7 @@ export const environmentPatchRoute = createRoute({
       },
     },
   },
+  tags: ["Environments"],
 });
 
 export const environmentDeleteRoute = createRoute({
@@ -204,4 +207,5 @@ export const environmentDeleteRoute = createRoute({
       // },
     },
   },
+  tags: ["Environments"],
 });

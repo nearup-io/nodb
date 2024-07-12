@@ -45,6 +45,11 @@ export const startApp = async (props?: {
       version: "0.1.0",
       title: "Nodb - API",
     },
+    tags: [
+      { name: "Applications", description: "Application management" },
+      { name: "Environments", description: "Environment management" },
+      { name: "Entities", description: "Entity management" },
+    ],
   });
 
   return {
