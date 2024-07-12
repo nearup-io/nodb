@@ -52,6 +52,22 @@ const ApplicationGetByNameResponseSchema = z.object({
   ),
 });
 
+const ApplicationPatchBodySchema = z.object({
+  appName: z
+    .string()
+    .min(
+      APPNAME_MIN_LENGTH,
+      `App name must be at least ${APPNAME_MIN_LENGTH} characters long`,
+    )
+    .refine(
+      (value) => APPNAME_REGEX.test(value ?? ""),
+      "App name must follow hyphenated-url-pattern",
+    )
+    .optional(),
+  image: z.string().optional(),
+  description: z.string().optional(),
+});
+
 export const applicationPostRoute = createRoute({
   method: "post",
   path: "/{appName}",
@@ -177,6 +193,126 @@ export const applicationGetByNameRoute = createRoute({
     },
     404: {
       description: "Application not found",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+  },
+});
+
+export const applicationPatchRoute = createRoute({
+  method: "patch",
+  path: "/{appName}",
+  middleware: [flexibleAuthMiddleware({ allowBackendToken: true })],
+  request: {
+    params: z.object({
+      appName: z
+        .string()
+        .min(
+          APPNAME_MIN_LENGTH,
+          `App name must be at least ${APPNAME_MIN_LENGTH} characters long`,
+        )
+        .refine(
+          (value) => APPNAME_REGEX.test(value ?? ""),
+          "App name must follow hyphenated-url-pattern",
+        )
+        .openapi({
+          param: {
+            name: "appName",
+            in: "path",
+          },
+          type: "string",
+          example: "your-application-name",
+        }),
+    }),
+    body: {
+      content: {
+        "application/json": {
+          schema: ApplicationPatchBodySchema,
+          example: {
+            appName: "new application name",
+            description: "application description",
+            image: "path/to/yourimage.jpg",
+          },
+        },
+      },
+    },
+    headers: SecuritySchema,
+  },
+  responses: {
+    200: {
+      description: "Application updated response",
+      content: {
+        "application/json": {
+          schema: ApplicationPostResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Bad request",
+      // content: {
+      //   "application/json": {
+      //     schema: ErrorSchema,
+      //   },
+      // },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+    404: {
+      description: "Application not found",
+      content: {
+        "application/json": {
+          schema: z.union([ErrorSchema, z.object({ found: z.boolean() })]),
+        },
+      },
+    },
+  },
+});
+
+export const applicationDeleteRoute = createRoute({
+  method: "delete",
+  path: "/{appName}",
+  middleware: [flexibleAuthMiddleware({ allowBackendToken: true })],
+  request: {
+    params: z.object({
+      appName: z.string().openapi({
+        param: {
+          name: "appName",
+          in: "path",
+        },
+        type: "string",
+        example: "your-application-name",
+      }),
+    }),
+    headers: SecuritySchema,
+  },
+  responses: {
+    201: {
+      description: "Application deleted response",
+      content: {
+        "application/json": {
+          schema: z.object({ found: z.boolean() }),
+        },
+      },
+    },
+    400: {
+      description: "Bad request",
+      // content: {
+      //   "application/json": {
+      //     schema: ErrorSchema,
+      //   },
+      // },
+    },
+    401: {
+      description: "Unauthorized",
       content: {
         "application/json": {
           schema: ErrorSchema,
