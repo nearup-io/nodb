@@ -2,36 +2,36 @@ import { HTTPException } from "hono/http-exception";
 import { type Context } from "hono";
 import { ServiceError } from "../utils/service-errors.ts";
 import { httpError } from "../utils/const.ts";
+import type { APIError } from "../routes/schemas/error-schemas.ts";
 
 const errorHandler = (err: Error, c: Context) => {
   if (err instanceof HTTPException) {
-    return c.json(
-      {
-        message: err.message,
-        status: err.status,
-      },
-      err.status,
-    );
+    const error: APIError = {
+      message: err.message,
+      status: err.status,
+    };
+    return c.json(error, err.status);
   }
 
   if (err instanceof ServiceError) {
-    return c.json(
-      {
-        message: err.message,
-        status: err.statusCode,
-      },
-      err.statusCode,
-    );
+    const error: APIError = {
+      message: err.message,
+      status: err.statusCode,
+    };
+    return c.json(error, err.statusCode);
   }
   // Unhandled errors
-  const status = 500;
-  const message =
-    Bun.env.NODE_ENV === "development" ? err.message : httpError.UNKNOWN;
-
   if (Bun.env.NODE_ENV === "development") {
     console.log(err);
   }
-  return c.json({ message, status }, status);
+
+  const error: APIError = {
+    message:
+      Bun.env.NODE_ENV === "development" ? err.message : httpError.UNKNOWN,
+    status: 500,
+  };
+
+  return c.json(error, 500);
 };
 
 export default errorHandler;

@@ -133,7 +133,7 @@ class ApplicationRepository
   }
 
   public async getUserApplications({ clerkId }: { clerkId: string }): Promise<
-    (Omit<Application, "id" | "environments"> & {
+    (Omit<Application, "id" | "environments" | "extras"> & {
       environments: Omit<Environment, "id" | "description">[];
     })[]
   > {
@@ -190,7 +190,7 @@ class ApplicationRepository
   }: {
     tokenPermissions: BackendTokenPermissions;
   }): Promise<
-    | (Omit<Application, "environments" | "id"> & {
+    | (Omit<Application, "environments" | "id" | "extras"> & {
         environments: Omit<Environment, "id" | "description">[];
       })
     | null

@@ -1,4 +1,3 @@
-import { Hono } from "hono";
 import { logger } from "hono/logger";
 import initDbConnection from "./connections/initDbConnection.ts";
 import { cors } from "hono/cors";
@@ -9,19 +8,20 @@ import appsRoute from "./routes/applications.ts";
 import searchRoute from "./routes/search.ts";
 import ragRoute from "./routes/rag.ts";
 import errorHandler from "./middlewares/error-handler.middleware.ts";
+import { swaggerUI } from "@hono/swagger-ui";
+import { OpenAPIHono } from "@hono/zod-openapi";
 
 export const startApp = async (props?: {
   postgresDatabaseUrl?: string;
 }): Promise<{
-  app: Hono;
+  app: OpenAPIHono;
   stopApp: () => Promise<void>;
 }> => {
-  const app = new Hono();
+  const app = new OpenAPIHono();
   if (Bun.env.NODE_ENV === "development") {
     app.use(logger());
   }
   app.onError(errorHandler);
-
   const db = await initDbConnection(props);
   await db.$connect();
   console.log("connected to database");
@@ -33,13 +33,19 @@ export const startApp = async (props?: {
   );
   app.use("*", clerkMiddleware());
   app.use(contextMiddleware(db));
-
+  app.get("/ui", swaggerUI({ url: "/doc" }));
   app.route("/users", usersRoute);
-
   app.route("/apps", appsRoute);
   app.route("/search", searchRoute);
   app.route("/knowledgebase", ragRoute);
-  // app.route("/tokens");
+
+  app.doc("/doc", {
+    openapi: "3.0.0",
+    info: {
+      version: "0.1.0",
+      title: "Nodb - API",
+    },
+  });
 
   return {
     app,

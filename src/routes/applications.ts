@@ -1,4 +1,3 @@
-import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import {
   createApplication,
@@ -14,8 +13,13 @@ import { type User } from "../models/user.model.ts";
 import { getUserFromClerk } from "../services/user.service.ts";
 import { flexibleAuthMiddleware } from "../middlewares";
 import type { BackendTokenPermissions } from "../utils/types.ts";
+import { OpenAPIHono } from "@hono/zod-openapi";
+import {
+  applicationGetAllRoute,
+  applicationPostRoute,
+} from "./schemas/application-schemas.ts";
 
-const app = new Hono<{
+const application = new OpenAPIHono<{
   Variables: {
     user: User;
     context: Context;
@@ -23,54 +27,38 @@ const app = new Hono<{
   };
 }>();
 
-app.post(
-  "/:appName",
-  flexibleAuthMiddleware({ authNotRequired: true }),
-  async (c) => {
-    const appName = c.req.param("appName");
-    const body = await c.req.json();
-    if (appName.length < APPNAME_MIN_LENGTH) {
-      throw new HTTPException(400, {
-        message: `App name must be at least ${APPNAME_MIN_LENGTH} characters long`,
-      });
-    }
-    if (!APPNAME_REGEX.test(appName)) {
-      throw new HTTPException(400, {
-        message: `App name follow hyphenated-url-pattern`,
-      });
-    }
-    const clerkClient = c.get("clerk");
-    const user = await getUserFromClerk(clerkClient, c);
+application.openapi(applicationPostRoute, async (c) => {
+  const { appName } = c.req.valid("param");
+  const body = await c.req.json();
+  const clerkClient = c.get("clerk");
+  const user = await getUserFromClerk(clerkClient, c);
 
-    const application = await createApplication({
-      context: c.get("context"),
-      appName,
-      image: body.image || "",
-      clerkId: user?.id,
-      appDescription: body.description || "",
-      environmentName: body.environmentName,
-      environmentDescription: body.environmentDescription,
-    });
-    c.status(201);
-    return c.json(application);
-  },
-);
+  const application = await createApplication({
+    context: c.get("context"),
+    appName,
+    clerkId: user?.id,
+    image: body.image || "",
+    appDescription: body.description || "",
+    environmentName: body.environmentName,
+    environmentDescription: body.environmentDescription,
+  });
 
-app.get(
-  "/all",
-  flexibleAuthMiddleware({ allowBackendToken: true }),
-  async (c) => {
-    const user = c.get("user");
-    const apps = await getApplications({
-      context: c.get("context"),
-      clerkId: user?.clerkId,
-      tokenPermissions: c.get("tokenPermissions"),
-    });
-    return c.json(apps);
-  },
-);
+  return c.json(application, {
+    status: 201,
+  });
+});
 
-app.get(
+application.openapi(applicationGetAllRoute, async (c) => {
+  const user = c.get("user");
+  const apps = await getApplications({
+    context: c.get("context"),
+    clerkId: user?.clerkId,
+    tokenPermissions: c.get("tokenPermissions"),
+  });
+  return c.json(apps, 200);
+});
+
+application.get(
   "/:appName",
   flexibleAuthMiddleware({ allowBackendToken: true }),
   async (c) => {
@@ -87,7 +75,7 @@ app.get(
   },
 );
 
-app.patch(
+application.patch(
   "/:appName",
   flexibleAuthMiddleware({ allowBackendToken: true }),
   async (c) => {
@@ -133,7 +121,7 @@ app.patch(
   },
 );
 
-app.delete(
+application.delete(
   "/:appName",
   flexibleAuthMiddleware({ allowBackendToken: true }),
   async (c) => {
@@ -149,6 +137,6 @@ app.delete(
   },
 );
 
-app.route("/:appName/:envName", envsRoute);
+application.route("/:appName/:envName", envsRoute);
 
-export default app;
+export default application;

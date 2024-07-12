@@ -52,7 +52,7 @@ const getApplications = async ({
   clerkId?: string;
   tokenPermissions?: BackendTokenPermissions;
 }): Promise<
-  (Omit<Application, "id" | "environments"> & {
+  (Omit<Application, "id" | "environments" | "extras"> & {
     environments: Omit<Environment, "id" | "description">[];
   })[]
 > => {
