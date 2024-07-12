@@ -68,31 +68,44 @@ const ApplicationPatchBodySchema = z.object({
   description: z.string().optional(),
 });
 
+export const appNameParamSchema = z.object({
+  appName: z.string().openapi({
+    param: {
+      name: "appName",
+      in: "path",
+    },
+    type: "string",
+    example: "your-application-name",
+  }),
+});
+
+const appNameParamWithValidation = z.object({
+  appName: z
+    .string()
+    .min(
+      APPNAME_MIN_LENGTH,
+      `App name must be at least ${APPNAME_MIN_LENGTH} characters long`,
+    )
+    .refine(
+      (value) => APPNAME_REGEX.test(value ?? ""),
+      "App name must follow hyphenated-url-pattern",
+    )
+    .openapi({
+      param: {
+        name: "appName",
+        in: "path",
+      },
+      type: "string",
+      example: "your-application-name",
+    }),
+});
+
 export const applicationPostRoute = createRoute({
   method: "post",
   path: "/{appName}",
   middleware: [flexibleAuthMiddleware({ authNotRequired: true })],
   request: {
-    params: z.object({
-      appName: z
-        .string()
-        .min(
-          APPNAME_MIN_LENGTH,
-          `App name must be at least ${APPNAME_MIN_LENGTH} characters long`,
-        )
-        .refine(
-          (value) => APPNAME_REGEX.test(value ?? ""),
-          "App name must follow hyphenated-url-pattern",
-        )
-        .openapi({
-          param: {
-            name: "appName",
-            in: "path",
-          },
-          type: "string",
-          example: "your-application-name",
-        }),
-    }),
+    params: appNameParamWithValidation,
     body: {
       content: {
         "application/json": {
@@ -162,21 +175,12 @@ export const applicationGetByNameRoute = createRoute({
   path: "/{appName}",
   middleware: [flexibleAuthMiddleware({ allowBackendToken: true })],
   request: {
-    params: z.object({
-      appName: z.string().openapi({
-        param: {
-          name: "appName",
-          in: "path",
-        },
-        type: "string",
-        example: "your-application-name",
-      }),
-    }),
+    params: appNameParamSchema,
     headers: SecuritySchema,
   },
   responses: {
     200: {
-      description: "Application created response",
+      description: "Get application by name",
       content: {
         "application/json": {
           schema: ApplicationGetByNameResponseSchema,
@@ -207,26 +211,7 @@ export const applicationPatchRoute = createRoute({
   path: "/{appName}",
   middleware: [flexibleAuthMiddleware({ allowBackendToken: true })],
   request: {
-    params: z.object({
-      appName: z
-        .string()
-        .min(
-          APPNAME_MIN_LENGTH,
-          `App name must be at least ${APPNAME_MIN_LENGTH} characters long`,
-        )
-        .refine(
-          (value) => APPNAME_REGEX.test(value ?? ""),
-          "App name must follow hyphenated-url-pattern",
-        )
-        .openapi({
-          param: {
-            name: "appName",
-            in: "path",
-          },
-          type: "string",
-          example: "your-application-name",
-        }),
-    }),
+    params: appNameParamWithValidation,
     body: {
       content: {
         "application/json": {
@@ -282,16 +267,7 @@ export const applicationDeleteRoute = createRoute({
   path: "/{appName}",
   middleware: [flexibleAuthMiddleware({ allowBackendToken: true })],
   request: {
-    params: z.object({
-      appName: z.string().openapi({
-        param: {
-          name: "appName",
-          in: "path",
-        },
-        type: "string",
-        example: "your-application-name",
-      }),
-    }),
+    params: appNameParamSchema,
     headers: SecuritySchema,
   },
   responses: {

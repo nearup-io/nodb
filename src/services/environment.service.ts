@@ -86,9 +86,9 @@ const updateEnvironment = async ({
 }: {
   context: Context;
   appName: string;
-  newEnvName: string;
+  newEnvName?: string;
   oldEnvName: string;
-  description: string;
+  description?: string;
 }): Promise<Environment> => {
   const repository = context.get<IEnvironmentRepository>(
     ENVIRONMENT_REPOSITORY,
@@ -104,14 +104,18 @@ const updateEnvironment = async ({
   if (!environment || !environment.name) {
     throw new ServiceError(httpError.ENV_DOESNT_EXIST, 404);
   }
-  const newEnvironment = await repository.findEnvironment({
-    appName,
-    envName: newEnvName,
-  });
 
-  if (newEnvironment && newEnvironment.name && newEnvName !== oldEnvName) {
-    throw new ServiceError(httpError.NEW_ENV_EXISTS, 400);
+  if (newEnvName) {
+    const newEnvironment = await repository.findEnvironment({
+      appName,
+      envName: newEnvName,
+    });
+
+    if (newEnvironment && newEnvironment.name && newEnvName !== oldEnvName) {
+      throw new ServiceError(httpError.NEW_ENV_EXISTS, 400);
+    }
   }
+
   const updateProps = R.pickBy(R.pipe(R.isNil, R.not), {
     name: newEnvName,
     description,
