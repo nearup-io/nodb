@@ -179,17 +179,18 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
   public async searchEntities({
     embedding,
     limit,
+    environmentId,
     entityType,
   }: {
     embedding: number[];
     limit: number;
+    environmentId: string;
     entityType?: string;
   }): Promise<Record<string, unknown>[]> {
     const embeddingSql = pgvector.toSql(embedding);
-
     const whereClause = entityType
-      ? Prisma.sql`WHERE type = '${entityType}'`
-      : Prisma.empty;
+      ? Prisma.sql`WHERE environmentId = '${environmentId}' AND type = '${entityType}'`
+      : Prisma.sql`WHERE environmentId = '${environmentId}'`;
 
     const entities = await this.prisma.$queryRaw<
       Pick<Entity, "id" | "model">[]

@@ -49,6 +49,8 @@ export const startApp = async (props?: {
       { name: "Applications", description: "Application management" },
       { name: "Environments", description: "Environment management" },
       { name: "Entities", description: "Entity management" },
+      { name: "Rag", description: "Ai search" },
+      { name: "Search", description: "Vector search" },
     ],
   });
 

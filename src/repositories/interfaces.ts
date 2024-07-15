@@ -101,6 +101,7 @@ export interface IEntityRepository {
   searchEntities(props: {
     embedding: number[];
     limit: number;
+    environmentId: string;
     entityType?: string;
   }): Promise<Record<string, unknown>[]>;
   findEntitiesByIdsType(props: {

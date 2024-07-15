@@ -1,46 +1,44 @@
-import { Hono } from "hono";
-import { HTTPException } from "hono/http-exception";
-import * as R from "ramda";
 import { searchEntities } from "../services/entity.service";
 import type Context from "../utils/context.ts";
 import { type User } from "../models/user.model.ts";
-import { flexibleAuthMiddleware } from "../middlewares";
+import { OpenAPIHono } from "@hono/zod-openapi";
+import {
+  searchSchemaPostEntityRoute,
+  searchSchemaPostRoute,
+} from "./schemas/search-schemas.ts";
 
-const app = new Hono<{
+const app = new OpenAPIHono<{
   Variables: {
     user: User;
     context: Context;
   };
 }>();
 
-app.post(
-  "/:app/:env/*",
-  flexibleAuthMiddleware({ allowBackendToken: true }),
-  async (c) => {
-    const { app, env } = c.req.param();
-    const { path } = c.req;
-    const last = R.last(path);
-    const entityType = R.replace(
-      "/search/",
-      "",
-      last === "/" ? R.init(path) : path,
-    );
-    const hasTypeFilter = `${app}/${env}` !== entityType;
-    const body = await c.req.json();
-    if (body.query) {
-      const res = await searchEntities({
-        context: c.get("context"),
-        query: body.query,
-        limit: body.limit,
-        entityType: hasTypeFilter ? entityType : undefined,
-      });
-      return c.json(res);
-    } else {
-      throw new HTTPException(400, {
-        message: "Query is not defined",
-      });
-    }
-  },
-);
+app.openapi(searchSchemaPostRoute, async (c) => {
+  const { appName, envName } = c.req.valid("param");
+  const body = c.req.valid("json");
+  const res = await searchEntities({
+    context: c.get("context"),
+    query: body.query,
+    limit: body.limit,
+    appName,
+    envName,
+  });
+  return c.json(res);
+});
+
+app.openapi(searchSchemaPostEntityRoute, async (c) => {
+  const { appName, envName, entityName } = c.req.valid("param");
+  const body = c.req.valid("json");
+  const res = await searchEntities({
+    context: c.get("context"),
+    query: body.query,
+    limit: body.limit,
+    appName,
+    envName,
+    entityType: `${appName}/${envName}/${entityName}`,
+  });
+  return c.json(res);
+});
 
 export default app;

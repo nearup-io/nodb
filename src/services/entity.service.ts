@@ -6,7 +6,12 @@ import {
   getOpenaiCompletion,
 } from "../utils/ai-utils.ts";
 import generateToken from "../utils/backend-token";
-import { ENTITY_REPOSITORY, httpError, llms } from "../utils/const";
+import {
+  ENTITY_REPOSITORY,
+  ENVIRONMENT_REPOSITORY,
+  httpError,
+  llms,
+} from "../utils/const";
 import {
   entityMetaResponse,
   getPaginationNumbers,
@@ -20,7 +25,10 @@ import type {
 } from "../utils/types.ts";
 import { findEnvironment } from "./environment.service";
 import type Context from "../utils/context.ts";
-import { type IEntityRepository } from "../repositories/interfaces.ts";
+import {
+  type IEntityRepository,
+  type IEnvironmentRepository,
+} from "../repositories/interfaces.ts";
 
 export type EntityAggregateResult = {
   totalCount: number;
@@ -31,18 +39,32 @@ const searchEntities = async ({
   context,
   query,
   limit = 5,
+  appName,
+  envName,
   entityType,
 }: {
   context: Context;
   query: string;
   limit?: number;
+  appName: string;
+  envName: string;
   entityType?: string;
-}) => {
+}): Promise<Record<string, unknown>[]> => {
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
+  const environmentRepository = context.get<IEnvironmentRepository>(
+    ENVIRONMENT_REPOSITORY,
+  );
   const embedding = await getEmbedding(query);
+
+  const environment = await environmentRepository.findEnvironment({
+    envName,
+    appName,
+  });
+  if (!environment) throw new ServiceError(httpError.ENV_DOESNT_EXIST, 404);
 
   return entityRepository.searchEntities({
     embedding,
+    environmentId: environment.id,
     entityType,
     limit,
   });
@@ -53,20 +75,33 @@ const searchAiEntities = async ({
   query,
   limit = 5,
   entityType,
+  appName,
+  envName,
 }: {
   context: Context;
   query: string;
+  appName: string;
+  envName: string;
   limit?: number;
   entityType?: string;
-}) => {
+}): Promise<{ answer: unknown }> => {
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
-
+  const environmentRepository = context.get<IEnvironmentRepository>(
+    ENVIRONMENT_REPOSITORY,
+  );
   const embedding = await getEmbedding(query);
+  const environment = await environmentRepository.findEnvironment({
+    envName,
+    appName,
+  });
+  if (!environment) throw new ServiceError(httpError.ENV_DOESNT_EXIST, 404);
+
   try {
     const res = await entityRepository.searchEntities({
       embedding,
       limit,
       entityType,
+      environmentId: environment.id,
     });
 
     const context = res.map((obj) => JSON.stringify(obj)).join(" ");
@@ -90,12 +125,14 @@ const searchAiEntities = async ({
       if (e instanceof Error) {
         throw new ServiceError(e.message, 500);
       }
+      throw e;
     }
   } catch (e) {
     console.error(e);
     if (e instanceof Error) {
       throw new ServiceError(httpError.UNKNOWN, 500);
     }
+    throw e;
   }
 };
 
