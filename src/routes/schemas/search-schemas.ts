@@ -5,6 +5,7 @@ import { appNameParamSchema } from "./application-schemas.ts";
 import { envNameParamSchema } from "./environment-schemas.ts";
 import { errorSchema } from "./error-schemas.ts";
 import { entityNameSchema } from "./entity-schemas.ts";
+import { SecuritySchema } from "./security-schemas.ts";
 
 export const searchSchemaPostRoute = createRoute({
   method: "post",
@@ -20,7 +21,7 @@ export const searchSchemaPostRoute = createRoute({
         "application/json": {
           schema: z.object({
             query: z.string(),
-            limit: z.number().int().positive(),
+            limit: z.number().int().positive().optional(),
           }),
           example: {
             query: "What would be your question?",
@@ -71,7 +72,7 @@ export const searchSchemaPostEntityRoute = createRoute({
         "application/json": {
           schema: z.object({
             query: z.string(),
-            limit: z.number().int().positive(),
+            limit: z.number().int().positive().optional(),
           }),
           example: {
             query: "What would be your question?",
@@ -79,9 +80,7 @@ export const searchSchemaPostEntityRoute = createRoute({
         },
       },
     },
-    headers: z.object({
-      Authorization: z.string().optional(),
-    }),
+    headers: SecuritySchema,
   },
   responses: {
     201: {

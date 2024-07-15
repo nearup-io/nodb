@@ -20,7 +20,7 @@ export const ragSchemaPostRoute = createRoute({
         "application/json": {
           schema: z.object({
             query: z.string(),
-            limit: z.number().int().positive(),
+            limit: z.number().int().positive().optional(),
           }),
           example: {
             query: "What would be your question?",
@@ -73,7 +73,7 @@ export const ragSchemaPostEntityRoute = createRoute({
         "application/json": {
           schema: z.object({
             query: z.string(),
-            limit: z.number().int().positive(),
+            limit: z.number().int().positive().optional(),
           }),
           example: {
             query: "What would be your question?",
