@@ -3,7 +3,7 @@ import { createRoute } from "@hono/zod-openapi";
 import { flexibleAuthMiddleware } from "../../middlewares";
 import { appNameParamSchema } from "./application-schemas.ts";
 import { SecuritySchema } from "./security-schemas.ts";
-import { ErrorSchema } from "./error-schemas.ts";
+import { errorSchema } from "./error-schemas.ts";
 import { envNameParamSchema } from "./environment-schemas.ts";
 
 const entityQueryParamsSchema = z
@@ -91,17 +91,12 @@ export const entityPostRoute = createRoute({
     },
     400: {
       description: "Bad request",
-      // content: {
-      //   "application/json": {
-      //     schema: ErrorSchema,
-      //   },
-      // },
     },
     401: {
       description: "Unauthorized",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -149,17 +144,12 @@ export const entityPutRoute = createRoute({
     },
     400: {
       description: "Bad request",
-      // content: {
-      //   "application/json": {
-      //     schema: ErrorSchema,
-      //   },
-      // },
     },
     401: {
       description: "Unauthorized",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -207,17 +197,12 @@ export const entityPatchRoute = createRoute({
     },
     400: {
       description: "Bad request",
-      // content: {
-      //   "application/json": {
-      //     schema: ErrorSchema,
-      //   },
-      // },
     },
     401: {
       description: "Unauthorized",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -250,17 +235,12 @@ export const entityDeleteRoute = createRoute({
     },
     400: {
       description: "Bad request",
-      // content: {
-      //   "application/json": {
-      //     schema: ErrorSchema,
-      //   },
-      // },
     },
     401: {
       description: "Unauthorized",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -268,7 +248,7 @@ export const entityDeleteRoute = createRoute({
       description: "Not found environment",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -302,17 +282,12 @@ export const entityDeleteByIdRoute = createRoute({
     },
     400: {
       description: "Bad request",
-      // content: {
-      //   "application/json": {
-      //     schema: ErrorSchema,
-      //   },
-      // },
     },
     401: {
       description: "Unauthorized",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -320,7 +295,7 @@ export const entityDeleteByIdRoute = createRoute({
       description: "Not found environment",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -364,7 +339,7 @@ export const entityGetByIdRoute = createRoute({
       description: "Unauthorized",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -372,7 +347,7 @@ export const entityGetByIdRoute = createRoute({
       description: "Not found",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -425,7 +400,7 @@ export const entityGetRoute = createRoute({
       description: "Unauthorized",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -433,7 +408,7 @@ export const entityGetRoute = createRoute({
       description: "Not found",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },

@@ -3,7 +3,7 @@ import { flexibleAuthMiddleware } from "../../middlewares";
 import { z } from "zod";
 import { appNameParamSchema } from "./application-schemas.ts";
 import { envNameParamSchema } from "./environment-schemas.ts";
-import { ErrorSchema } from "./error-schemas.ts";
+import { errorSchema } from "./error-schemas.ts";
 import { entityNameSchema } from "./entity-schemas.ts";
 
 export const ragSchemaPostRoute = createRoute({
@@ -45,17 +45,12 @@ export const ragSchemaPostRoute = createRoute({
     },
     400: {
       description: "Bad request",
-      // content: {
-      //   "application/json": {
-      //     schema: ErrorSchema,
-      //   },
-      // },
     },
     404: {
       description: "Not found",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -103,17 +98,12 @@ export const ragSchemaPostEntityRoute = createRoute({
     },
     400: {
       description: "Bad request",
-      // content: {
-      //   "application/json": {
-      //     schema: ErrorSchema,
-      //   },
-      // },
     },
     404: {
       description: "Not found",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },

@@ -4,23 +4,23 @@ import { createRoute } from "@hono/zod-openapi";
 import { flexibleAuthMiddleware } from "../../middlewares";
 import { APPNAME_MIN_LENGTH, APPNAME_REGEX } from "../../utils/const.ts";
 import { SecuritySchema } from "./security-schemas.ts";
-import { ErrorSchema } from "./error-schemas.ts";
+import { errorSchema } from "./error-schemas.ts";
 
-const ApplicationPostBodySchema = z.object({
+const applicationPostBodySchema = z.object({
   image: z.string().optional(),
   description: z.string().optional(),
   environmentName: z.string().optional(),
   environmentDescription: z.string().optional(),
 });
 
-const ApplicationPostResponseSchema = z.object({
+const applicationPostResponseSchema = z.object({
   applicationName: z.string(),
   environmentName: z.string(),
   applicationTokens: z.array(tokenSchema),
   environmentTokens: z.array(tokenSchema),
 });
 
-const ApplicationGetAllResponseSchema = z.array(
+const applicationGetAllResponseSchema = z.array(
   z.object({
     name: z.string(),
     image: z.string().optional(),
@@ -37,7 +37,7 @@ const ApplicationGetAllResponseSchema = z.array(
   }),
 );
 
-const ApplicationGetByNameResponseSchema = z.object({
+const applicationGetByNameResponseSchema = z.object({
   id: z.string(),
   name: z.string(),
   image: z.string().optional(),
@@ -52,7 +52,7 @@ const ApplicationGetByNameResponseSchema = z.object({
   ),
 });
 
-const ApplicationPatchBodySchema = z.object({
+const applicationPatchBodySchema = z.object({
   appName: z
     .string()
     .min(
@@ -109,7 +109,7 @@ export const applicationPostRoute = createRoute({
     body: {
       content: {
         "application/json": {
-          schema: ApplicationPostBodySchema,
+          schema: applicationPostBodySchema,
           example: {
             image: "path/to/yourimage.jpg",
             description: "application description",
@@ -128,17 +128,12 @@ export const applicationPostRoute = createRoute({
       description: "Application created response",
       content: {
         "application/json": {
-          schema: ApplicationPostResponseSchema,
+          schema: applicationPostResponseSchema,
         },
       },
     },
     400: {
       description: "Bad request",
-      // content: {
-      //   "application/json": {
-      //     schema: ErrorSchema,
-      //   },
-      // },
     },
   },
   tags: ["Applications"],
@@ -156,7 +151,7 @@ export const applicationGetAllRoute = createRoute({
       description: "All of the users applications",
       content: {
         "application/json": {
-          schema: ApplicationGetAllResponseSchema,
+          schema: applicationGetAllResponseSchema,
         },
       },
     },
@@ -164,7 +159,7 @@ export const applicationGetAllRoute = createRoute({
       description: "Unauthorized",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -185,7 +180,7 @@ export const applicationGetByNameRoute = createRoute({
       description: "Get application by name",
       content: {
         "application/json": {
-          schema: ApplicationGetByNameResponseSchema,
+          schema: applicationGetByNameResponseSchema,
         },
       },
     },
@@ -193,7 +188,7 @@ export const applicationGetByNameRoute = createRoute({
       description: "Unauthorized",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -201,7 +196,7 @@ export const applicationGetByNameRoute = createRoute({
       description: "Application not found",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -218,7 +213,7 @@ export const applicationPatchRoute = createRoute({
     body: {
       content: {
         "application/json": {
-          schema: ApplicationPatchBodySchema,
+          schema: applicationPatchBodySchema,
           example: {
             appName: "new application name",
             description: "application description",
@@ -234,33 +229,23 @@ export const applicationPatchRoute = createRoute({
       description: "Application updated response",
       content: {
         "application/json": {
-          schema: ApplicationPostResponseSchema,
+          schema: applicationPostResponseSchema,
         },
       },
     },
     400: {
       description: "Bad request",
-      // content: {
-      //   "application/json": {
-      //     schema: ErrorSchema,
-      //   },
-      // },
     },
     401: {
       description: "Unauthorized",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
     404: {
       description: "Application not found",
-      content: {
-        "application/json": {
-          schema: z.union([ErrorSchema, z.object({ found: z.boolean() })]),
-        },
-      },
     },
   },
   tags: ["Applications"],
@@ -285,17 +270,12 @@ export const applicationDeleteRoute = createRoute({
     },
     400: {
       description: "Bad request",
-      // content: {
-      //   "application/json": {
-      //     schema: ErrorSchema,
-      //   },
-      // },
     },
     401: {
       description: "Unauthorized",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },

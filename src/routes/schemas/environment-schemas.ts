@@ -2,7 +2,7 @@ import { createRoute } from "@hono/zod-openapi";
 import { flexibleAuthMiddleware } from "../../middlewares";
 import { z } from "zod";
 import { SecuritySchema } from "./security-schemas.ts";
-import { ErrorSchema } from "./error-schemas.ts";
+import { errorSchema } from "./error-schemas.ts";
 import { appNameParamSchema } from "./application-schemas.ts";
 import { tokenSchema } from "./token-schemas.ts";
 
@@ -49,7 +49,7 @@ export const environmentGetByNameRoute = createRoute({
       description: "Unauthorized",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -57,7 +57,7 @@ export const environmentGetByNameRoute = createRoute({
       description: "Environment not found",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -99,17 +99,12 @@ export const environmentPostRoute = createRoute({
     },
     400: {
       description: "Bad request",
-      // content: {
-      //   "application/json": {
-      //     schema: ErrorSchema,
-      //   },
-      // },
     },
     401: {
       description: "Unauthorized",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -152,17 +147,12 @@ export const environmentPatchRoute = createRoute({
     },
     400: {
       description: "Bad request",
-      // content: {
-      //   "application/json": {
-      //     schema: ErrorSchema,
-      //   },
-      // },
     },
     401: {
       description: "Unauthorized",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -170,7 +160,7 @@ export const environmentPatchRoute = createRoute({
       description: "Environment not found",
       content: {
         "application/json": {
-          schema: ErrorSchema,
+          schema: errorSchema,
         },
       },
     },
@@ -200,11 +190,6 @@ export const environmentDeleteRoute = createRoute({
     },
     400: {
       description: "Bad request",
-      // content: {
-      //   "application/json": {
-      //     schema: ErrorSchema,
-      //   },
-      // },
     },
   },
   tags: ["Environments"],
