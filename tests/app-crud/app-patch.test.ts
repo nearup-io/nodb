@@ -66,7 +66,7 @@ describe("App endpoint PATCH", async () => {
     });
   });
 
-  test("Should return 401 FORBIDDEN when no JWT token or backend token is provided", async () => {
+  test("Should return 401 UNAUTHORIZED when no JWT token or backend token is provided", async () => {
     const appName = "random-app";
     const patchResponse = await helper.executePatchRequest({
       url: `/apps/${appName}`,
@@ -135,7 +135,7 @@ describe("App endpoint PATCH", async () => {
   });
 
   // TODO implements once we have a mechanism for generating READ ONLY tokens
-  test.skip("Should return 401 FORBIDDEN when the backend token contains only READ_ONLY permissions", async () => {});
+  test.skip("Should return 403 FORBIDDEN when the backend token contains only READ_ONLY permissions", async () => {});
 
   test("Should return 404 NOT FOUND and return proper body when app is not found", async () => {
     const appName = "random-app";

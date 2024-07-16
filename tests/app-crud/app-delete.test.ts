@@ -19,7 +19,7 @@ describe("App endpoint DELETE", async () => {
     await helper.stopApplication();
   });
 
-  test("Should return 401 FORBIDDEN when no JWT token or backend token is provided", async () => {
+  test("Should return 401 UNAUTHORIZED when no JWT token or backend token is provided", async () => {
     const response = await helper.executeDeleteRequest({
       url: `/apps/random-app`,
     });
