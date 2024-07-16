@@ -73,6 +73,45 @@ export const tokenPostSchema = createRoute({
   tags: ["Tokens"],
 });
 
+export const tokenDeleteSchema = createRoute({
+  method: "delete",
+  path: "/{appName}",
+  middleware: [flexibleAuthMiddleware({ allowBackendToken: true })],
+  request: {
+    params: appNameParamSchema,
+    headers: SecuritySchema,
+  },
+  responses: {
+    200: {
+      description: "Indicates successful deletion of token",
+      content: {
+        "application/json": {
+          schema: z.object({
+            success: z.boolean(),
+          }),
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      // content: {
+      //   "application/json": {
+      //     schema: errorSchema,
+      //   },
+      // },
+    },
+    403: {
+      description: "Forbidden",
+      // content: {
+      //   "application/json": {
+      //     schema: errorSchema,
+      //   },
+      // },
+    },
+  },
+  tags: ["Tokens"],
+});
+
 export const tokenPostEnvironmentSchema = createRoute({
   method: "post",
   path: "/{appName}/{envName}",
@@ -136,6 +175,48 @@ export const tokenPostEnvironmentSchema = createRoute({
           schema: errorSchema,
         },
       },
+    },
+  },
+  tags: ["Tokens"],
+});
+
+export const tokenDeleteEnvironmentSchema = createRoute({
+  method: "delete",
+  path: "/{appName}",
+  middleware: [flexibleAuthMiddleware({ allowBackendToken: true })],
+  request: {
+    params: z.object({
+      ...appNameParamSchema.shape,
+      ...envNameParamSchema.shape,
+    }),
+    headers: SecuritySchema,
+  },
+  responses: {
+    200: {
+      description: "Indicates successful deletion of token",
+      content: {
+        "application/json": {
+          schema: z.object({
+            success: z.boolean(),
+          }),
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      // content: {
+      //   "application/json": {
+      //     schema: errorSchema,
+      //   },
+      // },
+    },
+    403: {
+      description: "Forbidden",
+      // content: {
+      //   "application/json": {
+      //     schema: errorSchema,
+      //   },
+      // },
     },
   },
   tags: ["Tokens"],

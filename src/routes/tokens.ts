@@ -4,12 +4,16 @@ import { getUserFromClerk } from "../services/user.service.ts";
 import type { BackendTokenPermissions } from "../utils/types.ts";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import {
+  tokenDeleteEnvironmentSchema,
+  tokenDeleteSchema,
   tokenPostEnvironmentSchema,
   tokenPostSchema,
 } from "./schemas/token-schemas.ts";
 import {
   createTokenForApplication,
   createTokenForEnvironment,
+  deleteAppToken,
+  deleteEnvironmentToken,
 } from "../services/token.service.ts";
 
 const tokenApp = new OpenAPIHono<{
@@ -53,6 +57,45 @@ tokenApp.openapi(tokenPostEnvironmentSchema, async (c) => {
   return c.json(createdToken, {
     status: 201,
   });
+});
+
+tokenApp.openapi(tokenDeleteSchema, async (c) => {
+  const { appName } = c.req.valid("param");
+  const clerkClient = c.get("clerk");
+  const user = await getUserFromClerk(clerkClient, c);
+  const deleted = await deleteAppToken({
+    context: c.get("context"),
+    appName,
+    clerkId: user?.id,
+    tokenPermissions: c.get("tokenPermissions"),
+  });
+
+  return c.json(
+    { success: deleted },
+    {
+      status: 200,
+    },
+  );
+});
+
+tokenApp.openapi(tokenDeleteEnvironmentSchema, async (c) => {
+  const { appName, envName } = c.req.valid("param");
+  const clerkClient = c.get("clerk");
+  const user = await getUserFromClerk(clerkClient, c);
+  const deleted = await deleteEnvironmentToken({
+    context: c.get("context"),
+    appName,
+    envName,
+    clerkId: user?.id,
+    tokenPermissions: c.get("tokenPermissions"),
+  });
+
+  return c.json(
+    { success: deleted },
+    {
+      status: 200,
+    },
+  );
 });
 
 export default tokenApp;

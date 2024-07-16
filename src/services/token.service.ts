@@ -185,7 +185,28 @@ const createTokenForApplication = async ({
   };
 };
 
+const deleteAppToken = async ({}: {
+  context: Context;
+  appName: string;
+  clerkId?: string;
+  tokenPermissions?: BackendTokenPermissions;
+}): Promise<boolean> => {
+  return true;
+};
+
+const deleteEnvironmentToken = async ({}: {
+  context: Context;
+  appName: string;
+  envName: string;
+  clerkId?: string;
+  tokenPermissions?: BackendTokenPermissions;
+}): Promise<boolean> => {
+  return true;
+};
+
 export {
+  deleteAppToken,
+  deleteEnvironmentToken,
   getTokenPermissions,
   createTokenForEnvironment,
   createTokenForApplication,
