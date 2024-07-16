@@ -54,6 +54,48 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
     await helper.stopApplication();
   });
 
+  test("Should return 401 UNAUTHORIZED when no token is present", async () => {
+    const response = await helper.executeGetRequest({
+      url: `/apps/${appName}/${environmentName}/${entityName}`,
+    });
+    expect(response.status).toBe(401);
+
+    const secondResponse = await helper.executeGetRequest({
+      url: `/apps/${appName}/${environmentName}/${entityName}/${createdEntityIds[0]}`,
+    });
+    expect(secondResponse.status).toBe(401);
+  });
+
+  describe("Should return 403 FORBIDDEN", () => {
+    test("when application token (backend token) does not have permission for the application", async () => {
+      const response = await helper.executeGetRequest({
+        url: `/apps/${appName}-2/${environmentName}/${entityName}`,
+        backendToken: appToken,
+      });
+      expect(response.status).toBe(403);
+
+      const secondResponse = await helper.executeGetRequest({
+        url: `/apps/${appName}-2/${environmentName}/${entityName}/${createdEntityIds[0]}`,
+        backendToken: appToken,
+      });
+      expect(secondResponse.status).toBe(403);
+    });
+
+    test("when environment token (backend token) does not have permission for the environment", async () => {
+      const response = await helper.executeGetRequest({
+        url: `/apps/${appName}/dev/${entityName}`,
+        backendToken: envToken,
+      });
+      expect(response.status).toBe(403);
+
+      const secondResponse = await helper.executeGetRequest({
+        url: `/apps/${appName}/dev/${entityName}/${createdEntityIds[0]}`,
+        backendToken: envToken,
+      });
+      expect(secondResponse.status).toBe(403);
+    });
+  });
+
   test("should return 404 NOT FOUND when environment does not exist for get entity by id", async () => {
     const response = await helper.executeGetRequest({
       url: `/apps/${appName}/not-existing-environment/${entityName}/${createdEntityIds[0]}`,
@@ -68,48 +110,6 @@ describe("GET /apps/:appName/:envName/:entityName", () => {
       jwtToken,
     });
     expect(response.status).toBe(404);
-  });
-
-  describe("Should return 401 UNAUTHORIZED", () => {
-    test("when no token is present", async () => {
-      const response = await helper.executeGetRequest({
-        url: `/apps/${appName}/${environmentName}/${entityName}`,
-      });
-      expect(response.status).toBe(401);
-
-      const secondResponse = await helper.executeGetRequest({
-        url: `/apps/${appName}/${environmentName}/${entityName}/${createdEntityIds[0]}`,
-      });
-      expect(secondResponse.status).toBe(401);
-    });
-
-    test("when application token (backend token) does not have permission for the application", async () => {
-      const response = await helper.executeGetRequest({
-        url: `/apps/${appName}-2/${environmentName}/${entityName}`,
-        backendToken: appToken,
-      });
-      expect(response.status).toBe(401);
-
-      const secondResponse = await helper.executeGetRequest({
-        url: `/apps/${appName}-2/${environmentName}/${entityName}/${createdEntityIds[0]}`,
-        backendToken: appToken,
-      });
-      expect(secondResponse.status).toBe(401);
-    });
-
-    test("when environment token (backend token) does not have permission for the environment", async () => {
-      const response = await helper.executeGetRequest({
-        url: `/apps/${appName}/dev/${entityName}`,
-        backendToken: envToken,
-      });
-      expect(response.status).toBe(401);
-
-      const secondResponse = await helper.executeGetRequest({
-        url: `/apps/${appName}/dev/${entityName}/${createdEntityIds[0]}`,
-        backendToken: envToken,
-      });
-      expect(secondResponse.status).toBe(401);
-    });
   });
 
   describe("Get by id endpoint", () => {
