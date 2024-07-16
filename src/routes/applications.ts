@@ -2,7 +2,7 @@ import { HTTPException } from "hono/http-exception";
 import {
   createApplication,
   deleteApplication,
-  getApplication,
+  getApplicationByName,
   getApplications,
   updateApplication,
 } from "../services/application.service";
@@ -63,7 +63,7 @@ application.openapi(applicationGetByNameRoute, async (c) => {
   const { appName } = c.req.valid("param");
   const user = c.get("user");
 
-  const application = await getApplication({
+  const application = await getApplicationByName({
     context: c.get("context"),
     appName,
     clerkId: user?.clerkId,

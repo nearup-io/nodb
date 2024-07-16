@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { tokenSchema } from "./token-schemas.ts";
 import { createRoute } from "@hono/zod-openapi";
 import { flexibleAuthMiddleware } from "../../middlewares";
 import { APPNAME_MIN_LENGTH, APPNAME_REGEX } from "../../utils/const.ts";
 import { SecuritySchema } from "./security-schemas.ts";
 import { errorSchema } from "./error-schemas.ts";
+import { appNameParamSchema, tokenSchema } from "./common.ts";
 
 const applicationPostBodySchema = z.object({
   image: z.string().optional(),
@@ -66,17 +66,6 @@ const applicationPatchBodySchema = z.object({
     .optional(),
   image: z.string().optional(),
   description: z.string().optional(),
-});
-
-export const appNameParamSchema = z.object({
-  appName: z.string().openapi({
-    param: {
-      name: "appName",
-      in: "path",
-    },
-    type: "string",
-    example: "your-application-name",
-  }),
 });
 
 const appNameParamWithValidation = z.object({
