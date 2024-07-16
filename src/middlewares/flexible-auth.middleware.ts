@@ -24,6 +24,7 @@ const middleware = (
             [
               "No access to this application",
               "No access to this environment",
+              "You don't have edit permissions on application level",
             ].includes(tokenError.message)
           ) {
             throw tokenError;

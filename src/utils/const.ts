@@ -75,6 +75,7 @@ export const httpError = {
   ENV_EXISTS: "Environment already exists",
   NEW_ENV_EXISTS: "Name for new environment already exists",
   NO_PERMISSIONS_FOR_ENVIRONMENT: "No permissions for this environment",
+  NO_PERMISSIONS_FOR_APPLICATION: "No permissions for this application",
   APP_DOESNT_EXIST: "Application doesn't exist",
   ENV_DOESNT_EXIST: "Environment doesn't exist",
   ENV_NOT_FOUND: "Environment not found",

@@ -2,6 +2,7 @@ import type { TestUser } from "./testUsers.ts";
 import { type Entity as EntityType } from "../../src/models/entity.model.ts";
 import { type Environment as EnvironmentType } from "../../src/models/environment.model.ts";
 import { type Application as AppType } from "../../src/models/application.model.ts";
+import type { TokenPermission } from "../../src/models/token.model.ts";
 
 export interface ITestApplicationHelper {
   init(): Promise<void>;
@@ -54,6 +55,12 @@ export interface ITestApplicationHelper {
   getEnvironmentsFromAppName(name: string): Promise<string[]>;
   deleteAppByName(name: string): Promise<void>;
   deleteAppsByNames(names: string[]): Promise<void>;
+  getTokenByToken(token: string): Promise<{
+    environmentId: string | null;
+    applicationId: string | null;
+    permission: TokenPermission;
+    key: string;
+  } | null>;
   createAppWithEnvironmentEntities(props: {
     appName: string;
     environmentName: string;

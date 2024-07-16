@@ -116,6 +116,9 @@ const createTokenForEnvironment = async ({
       envId: environment.id,
     });
   } else {
+    if (envName !== tokenPermissions!.environmentName) {
+      throw new ServiceError(httpError.NO_PERMISSIONS_FOR_ENVIRONMENT, 403);
+    }
     token = await tokenRepository.createTokenForAppOrEnvironment({
       permission,
       envId: tokenPermissions!.environmentId!,
@@ -157,7 +160,7 @@ const createTokenForApplication = async ({
 
     const token = await tokenRepository.createTokenForAppOrEnvironment({
       permission,
-      envId: app.id,
+      appId: app.id,
     });
 
     return {
@@ -167,25 +170,13 @@ const createTokenForApplication = async ({
     };
   }
 
-  let token = "";
-
-  if (tokenPermissions!.applicationId) {
-    token = await tokenRepository.createTokenForAppOrEnvironment({
-      permission,
-      appId: tokenPermissions!.applicationId!,
-    });
-  } else {
-    const app = await getApplicationByName({
-      context,
-      appName,
-      tokenPermissions,
-    });
-
-    token = await tokenRepository.createTokenForAppOrEnvironment({
-      permission,
-      appId: app.id,
-    });
+  if (!tokenPermissions?.applicationId) {
+    throw new ServiceError(httpError.NO_PERMISSIONS_FOR_APPLICATION, 403);
   }
+  const token = await tokenRepository.createTokenForAppOrEnvironment({
+    permission,
+    appId: tokenPermissions!.applicationId!,
+  });
 
   return {
     appName,

@@ -18,14 +18,14 @@ const verifyApplicationTokenPermissions = ({
   envNames: string[];
 }): void => {
   if (routeAppName && routeAppName !== appName) {
-    throw new HTTPException(401, {
+    throw new HTTPException(403, {
       message: "No access to this application",
     });
   }
 
   // method !== POST is because you should be able to create a new environment with the application token
   if (routeEnvName && !envNames.includes(routeEnvName) && method !== "POST") {
-    throw new HTTPException(401, {
+    throw new HTTPException(403, {
       message: "No access to this environment",
     });
   }
@@ -47,27 +47,27 @@ const verifyEnvironmentTokenPermissions = ({
   envNames: string[];
 }): void => {
   if (routeAppName && !routeEnvName && method !== "GET") {
-    throw new HTTPException(401, {
+    throw new HTTPException(403, {
       message: "You don't have edit permissions on application level",
     });
   }
 
   if (routeAppName && routeAppName !== appName) {
-    throw new HTTPException(401, {
+    throw new HTTPException(403, {
       message: "No access to this application",
     });
   }
 
   // we still allow creating an environment with an environment token, but no further modifications to it
   if (routeEnvName && !envNames.includes(routeEnvName) && method !== "POST") {
-    throw new HTTPException(401, {
+    throw new HTTPException(403, {
       message: "No access to this environment",
     });
   }
 
   // because of the previous edge case we need to include the standard method afterwards since for creating entities we do need to verify the environment
   if (routeEntityName && routeEnvName && !envNames.includes(routeEnvName)) {
-    throw new HTTPException(401, {
+    throw new HTTPException(403, {
       message: "No access to this environment",
     });
   }
@@ -105,7 +105,7 @@ const verifyTokenPermissions = async ({
     });
 
     if (!app) {
-      throw new HTTPException(401, {
+      throw new HTTPException(403, {
         message: "Something went wrong with your permissions",
       });
     }
