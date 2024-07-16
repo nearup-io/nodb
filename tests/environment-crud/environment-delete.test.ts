@@ -18,31 +18,31 @@ describe("DELETE /apps/:appName/:envName", async () => {
     await helper.stopApplication();
   });
 
-  describe("should return 401", async () => {
-    test("when no backend token or JWT token is provided", async () => {
-      const postAppResponse = await helper.executePostRequest({
-        url: `/apps/${appName}`,
-        body: {
-          image: "path/to/image.jpg",
-          description: "Memes app",
-        },
-      });
-      expect(postAppResponse.status).toBe(201);
-      const appBody = await postAppResponse.json();
-      const appToken = appBody.applicationTokens[0].key as string;
-
-      const deleteResponse = await helper.executeDeleteRequest({
-        url: `/apps/${appName}/dev`,
-      });
-      expect(deleteResponse.status).toBe(401);
-
-      const deleteAppResponse = await helper.executeDeleteRequest({
-        url: `/apps/${appName}`,
-        backendToken: appToken,
-      });
-      expect(deleteAppResponse.status).toBe(200);
+  test("should return 401 UNAUTHORIZED when no backend token or JWT token is provided", async () => {
+    const postAppResponse = await helper.executePostRequest({
+      url: `/apps/${appName}`,
+      body: {
+        image: "path/to/image.jpg",
+        description: "Memes app",
+      },
     });
+    expect(postAppResponse.status).toBe(201);
+    const appBody = await postAppResponse.json();
+    const appToken = appBody.applicationTokens[0].key as string;
 
+    const deleteResponse = await helper.executeDeleteRequest({
+      url: `/apps/${appName}/dev`,
+    });
+    expect(deleteResponse.status).toBe(401);
+
+    const deleteAppResponse = await helper.executeDeleteRequest({
+      url: `/apps/${appName}`,
+      backendToken: appToken,
+    });
+    expect(deleteAppResponse.status).toBe(200);
+  });
+
+  describe("Should return 403 FORBIDDEN", async () => {
     test("when app token (backend token) does not have permissions for the application where it needs to delete the environment", async () => {
       const postAppResponse = await helper.executePostRequest({
         url: `/apps/${appName}`,
@@ -70,7 +70,7 @@ describe("DELETE /apps/:appName/:envName", async () => {
         backendToken: appToken,
       });
 
-      expect(deleteResponse.status).toBe(401);
+      expect(deleteResponse.status).toBe(403);
 
       const deleteAppResponse = await helper.executeDeleteRequest({
         url: `/apps/${appName}`,
@@ -97,7 +97,7 @@ describe("DELETE /apps/:appName/:envName", async () => {
         backendToken: envToken,
       });
 
-      expect(deleteResponse.status).toBe(401);
+      expect(deleteResponse.status).toBe(403);
 
       const deleteAppResponse = await helper.executeDeleteRequest({
         url: `/apps/${appName}`,

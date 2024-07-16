@@ -60,37 +60,37 @@ describe("POST /apps/:appName/:envName", async () => {
     expect(deleteResponse.status).toBe(200);
   });
 
-  describe("should return 401", async () => {
-    test("when no backend token or JWT token is provided", async () => {
-      const postAppResponse = await helper.executePostRequest({
-        url: `/apps/${appName}`,
-        jwtToken,
-        body: {
-          image: "path/to/image.jpg",
-          description: "Memes app",
-        },
-      });
-
-      expect(postAppResponse.status).toBe(201);
-      const appBody = await postAppResponse.json();
-      const appToken = appBody.applicationTokens[0].key as string;
-      // first environment
-      const environmentName = "environment";
-      const firstEnvironmentResponse = await helper.executePostRequest({
-        url: `/apps/${appName}/${environmentName}`,
-        body: {
-          description: "This is a staging environment",
-        },
-      });
-      expect(firstEnvironmentResponse.status).toBe(401);
-
-      const deleteResponse = await helper.executeDeleteRequest({
-        url: `/apps/${appName}`,
-        backendToken: appToken,
-      });
-      expect(deleteResponse.status).toBe(200);
+  test("should return 401 UNAUTHORIZED when no backend token or JWT token is provided", async () => {
+    const postAppResponse = await helper.executePostRequest({
+      url: `/apps/${appName}`,
+      jwtToken,
+      body: {
+        image: "path/to/image.jpg",
+        description: "Memes app",
+      },
     });
 
+    expect(postAppResponse.status).toBe(201);
+    const appBody = await postAppResponse.json();
+    const appToken = appBody.applicationTokens[0].key as string;
+    // first environment
+    const environmentName = "environment";
+    const firstEnvironmentResponse = await helper.executePostRequest({
+      url: `/apps/${appName}/${environmentName}`,
+      body: {
+        description: "This is a staging environment",
+      },
+    });
+    expect(firstEnvironmentResponse.status).toBe(401);
+
+    const deleteResponse = await helper.executeDeleteRequest({
+      url: `/apps/${appName}`,
+      backendToken: appToken,
+    });
+    expect(deleteResponse.status).toBe(200);
+  });
+
+  describe("should return 403 FORBIDDEN", async () => {
     test("when app token (backend token) does not have permissions for the application where it wants to add a new environment", async () => {
       const postAppResponse = await helper.executePostRequest({
         url: `/apps/${appName}`,
@@ -112,7 +112,7 @@ describe("POST /apps/:appName/:envName", async () => {
           description: "This is a staging environment",
         },
       });
-      expect(firstEnvironmentResponse.status).toBe(401);
+      expect(firstEnvironmentResponse.status).toBe(403);
 
       const deleteResponse = await helper.executeDeleteRequest({
         url: `/apps/${appName}`,
@@ -143,7 +143,7 @@ describe("POST /apps/:appName/:envName", async () => {
           description: "This is a staging environment",
         },
       });
-      expect(firstEnvironmentResponse.status).toBe(401);
+      expect(firstEnvironmentResponse.status).toBe(403);
 
       const deleteResponse = await helper.executeDeleteRequest({
         url: `/apps/${appName}`,
