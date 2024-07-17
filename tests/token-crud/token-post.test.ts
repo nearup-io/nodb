@@ -94,6 +94,26 @@ describe("Tokens post endpoints", async () => {
       expect(response.status).toBe(403);
     });
 
+    test("Should return 403 FORBIDDEN when you try to create an app token with a READ_ONLY app token", async () => {
+      const postResponse = await helper.executePostRequest({
+        url: `/tokens/${appName}`,
+        backendToken: applicationToken,
+        body: {
+          permission: "READ_ONLY",
+        },
+      });
+      expect(postResponse.status).toBe(201);
+      const token = (await postResponse.json()).token;
+      const response = await helper.executePostRequest({
+        url: `/tokens/${appName}`,
+        backendToken: token,
+        body: {
+          permission: "ALL",
+        },
+      });
+      expect(response.status).toBe(403);
+    });
+
     test("Should return 201 CREATED and correct response body with jwt token", async () => {
       const response = await helper.executePostRequest({
         url: `/tokens/${appName}`,
@@ -193,6 +213,48 @@ describe("Tokens post endpoints", async () => {
       const response = await helper.executePostRequest({
         url: `/tokens/${appName}/random-env`,
         backendToken: environmentToken,
+        body: {
+          permission: "ALL",
+        },
+      });
+      expect(response.status).toBe(403);
+    });
+
+    test("Should return 403 FORBIDDEN when you try to create an env token with a READ_ONLY app token", async () => {
+      const postResponse = await helper.executePostRequest({
+        url: `/tokens/${appName}`,
+        backendToken: applicationToken,
+        body: {
+          permission: "READ_ONLY",
+        },
+      });
+      const token = (await postResponse.json()).token;
+      expect(postResponse.status).toBe(201);
+
+      const response = await helper.executePostRequest({
+        url: `/tokens/${appName}/${envName}`,
+        backendToken: token,
+        body: {
+          permission: "ALL",
+        },
+      });
+      expect(response.status).toBe(403);
+    });
+
+    test("Should return 403 FORBIDDEN when you try to create an env token with a READ_ONLY env token", async () => {
+      const postResponse = await helper.executePostRequest({
+        url: `/tokens/${appName}/${envName}`,
+        backendToken: environmentToken,
+        body: {
+          permission: "READ_ONLY",
+        },
+      });
+      const token = (await postResponse.json()).token;
+      expect(postResponse.status).toBe(201);
+
+      const response = await helper.executePostRequest({
+        url: `/tokens/${appName}/${envName}`,
+        backendToken: token,
         body: {
           permission: "ALL",
         },

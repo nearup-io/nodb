@@ -19,14 +19,7 @@ const middleware = (
           if (options.authNotRequired) {
             await next();
           }
-          if (
-            tokenError instanceof HTTPException &&
-            [
-              "No access to this application",
-              "No access to this environment",
-              "You don't have edit permissions on application level",
-            ].includes(tokenError.message)
-          ) {
+          if (tokenError instanceof HTTPException) {
             throw tokenError;
           }
           throw new HTTPException(401, { message: "Authentication failed" });

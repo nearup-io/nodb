@@ -154,4 +154,5 @@ export interface ITokenRepository {
     appId?: string;
     envId?: string;
   }): Promise<string>;
+  deleteToken(props: { token: string }): Promise<boolean>;
 }

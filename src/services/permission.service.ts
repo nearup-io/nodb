@@ -89,7 +89,7 @@ const verifyTokenPermissions = async ({
   method: "POST" | "PUT" | "PATCH" | "DELETE" | "GET";
 }): Promise<void> => {
   if (method !== "GET" && permissions.permission === "READ_ONLY") {
-    throw new HTTPException(401, {
+    throw new HTTPException(403, {
       message: "You don't have write access",
     });
   }

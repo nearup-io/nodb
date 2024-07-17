@@ -6,6 +6,7 @@ import type { TokenPermission } from "../models/token.model.ts";
 import { getApplicationByName } from "./application.service.ts";
 import { ServiceError } from "../utils/service-errors.ts";
 import { findEnvironment } from "./environment.service.ts";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 const getTokenPermissions = async ({
   token,
@@ -185,23 +186,112 @@ const createTokenForApplication = async ({
   };
 };
 
-const deleteAppToken = async ({}: {
+const deleteAppToken = async ({
+  clerkId,
+  context,
+  tokenPermissions,
+  appName,
+  token,
+}: {
   context: Context;
   appName: string;
   clerkId?: string;
   tokenPermissions?: BackendTokenPermissions;
+  token: string;
 }): Promise<boolean> => {
-  return true;
+  if (!clerkId && !tokenPermissions) {
+    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED, 401);
+  }
+  const tokenRepository = context.get<ITokenRepository>(TOKEN_REPOSITORY);
+
+  if (clerkId) {
+    await getApplicationByName({ context, clerkId, appName });
+  } else if (tokenPermissions) {
+    if (
+      !tokenPermissions.applicationId ||
+      tokenPermissions.applicationName !== appName
+    ) {
+      throw new ServiceError(httpError.NO_PERMISSIONS_FOR_APPLICATION, 403);
+    }
+  }
+
+  try {
+    const result = await tokenRepository.deleteToken({
+      token,
+    });
+
+    return result;
+  } catch (e) {
+    if (e instanceof PrismaClientKnownRequestError && e.code === "P2025") {
+      return false;
+    }
+    throw e;
+  }
 };
 
-const deleteEnvironmentToken = async ({}: {
+const deleteEnvironmentToken = async ({
+  context,
+  appName,
+  envName,
+  clerkId,
+  tokenPermissions,
+  token,
+}: {
   context: Context;
   appName: string;
   envName: string;
   clerkId?: string;
   tokenPermissions?: BackendTokenPermissions;
+  token: string;
 }): Promise<boolean> => {
-  return true;
+  if (!clerkId && !tokenPermissions) {
+    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED, 401);
+  }
+
+  const tokenRepository = context.get<ITokenRepository>(TOKEN_REPOSITORY);
+
+  try {
+    if (clerkId) {
+      const app = await getApplicationByName({ context, clerkId, appName });
+
+      const foundEnvironmentInApp = app.environments.find(
+        (e) => e.name === envName,
+      );
+
+      if (!foundEnvironmentInApp) {
+        throw new ServiceError(httpError.ENV_NOT_FOUND, 404);
+      }
+      const result = await tokenRepository.deleteToken({
+        token,
+      });
+      return result;
+    }
+
+    const tokenType = tokenPermissions!.applicationName
+      ? "application"
+      : "environment";
+
+    if (tokenType === "application") {
+      const environment = await findEnvironment({ context, appName, envName });
+
+      if (!environment) {
+        throw new ServiceError(httpError.ENV_NOT_FOUND, 404);
+      }
+    } else {
+      if (envName !== tokenPermissions!.environmentName) {
+        throw new ServiceError(httpError.NO_PERMISSIONS_FOR_ENVIRONMENT, 403);
+      }
+    }
+    const result = await tokenRepository.deleteToken({
+      token,
+    });
+    return result;
+  } catch (e) {
+    if (e instanceof PrismaClientKnownRequestError && e.code === "P2025") {
+      return false;
+    }
+    throw e;
+  }
 };
 
 export {

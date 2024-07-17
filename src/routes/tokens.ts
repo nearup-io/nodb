@@ -60,12 +60,13 @@ tokenApp.openapi(tokenPostEnvironmentSchema, async (c) => {
 });
 
 tokenApp.openapi(tokenDeleteSchema, async (c) => {
-  const { appName } = c.req.valid("param");
+  const { appName, token } = c.req.valid("param");
   const clerkClient = c.get("clerk");
   const user = await getUserFromClerk(clerkClient, c);
   const deleted = await deleteAppToken({
     context: c.get("context"),
     appName,
+    token,
     clerkId: user?.id,
     tokenPermissions: c.get("tokenPermissions"),
   });
@@ -79,13 +80,14 @@ tokenApp.openapi(tokenDeleteSchema, async (c) => {
 });
 
 tokenApp.openapi(tokenDeleteEnvironmentSchema, async (c) => {
-  const { appName, envName } = c.req.valid("param");
+  const { appName, envName, token } = c.req.valid("param");
   const clerkClient = c.get("clerk");
   const user = await getUserFromClerk(clerkClient, c);
   const deleted = await deleteEnvironmentToken({
     context: c.get("context"),
     appName,
     envName,
+    token,
     clerkId: user?.id,
     tokenPermissions: c.get("tokenPermissions"),
   });

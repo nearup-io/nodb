@@ -81,6 +81,16 @@ class TokenRepository extends BaseRepository implements ITokenRepository {
     });
     return result.key;
   }
+
+  async deleteToken({ token }: { token: string }): Promise<boolean> {
+    const result = await this.prisma.token.delete({
+      where: {
+        key: token,
+      },
+    });
+
+    return !!result;
+  }
 }
 
 export default TokenRepository;

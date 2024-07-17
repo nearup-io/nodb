@@ -75,10 +75,13 @@ export const tokenPostSchema = createRoute({
 
 export const tokenDeleteSchema = createRoute({
   method: "delete",
-  path: "/{appName}",
+  path: "/{appName}/{token}",
   middleware: [flexibleAuthMiddleware({ allowBackendToken: true })],
   request: {
-    params: appNameParamSchema,
+    params: z.object({
+      ...appNameParamSchema.shape,
+      token: z.string(),
+    }),
     headers: SecuritySchema,
   },
   responses: {
@@ -182,12 +185,13 @@ export const tokenPostEnvironmentSchema = createRoute({
 
 export const tokenDeleteEnvironmentSchema = createRoute({
   method: "delete",
-  path: "/{appName}",
+  path: "/{appName}/{envName}/{token}",
   middleware: [flexibleAuthMiddleware({ allowBackendToken: true })],
   request: {
     params: z.object({
       ...appNameParamSchema.shape,
       ...envNameParamSchema.shape,
+      token: z.string(),
     }),
     headers: SecuritySchema,
   },
