@@ -86,7 +86,7 @@ export const tokenDeleteSchema = createRoute({
   },
   responses: {
     200: {
-      description: "Indicates successful deletion of token",
+      description: "Indicates deletion success of token",
       content: {
         "application/json": {
           schema: z.object({
@@ -97,19 +97,22 @@ export const tokenDeleteSchema = createRoute({
     },
     401: {
       description: "Unauthorized",
-      // content: {
-      //   "application/json": {
-      //     schema: errorSchema,
-      //   },
-      // },
     },
     403: {
       description: "Forbidden",
-      // content: {
-      //   "application/json": {
-      //     schema: errorSchema,
-      //   },
-      // },
+      content: {
+        "application/json": {
+          schema: errorSchema,
+        },
+      },
+    },
+    404: {
+      description: "Not found",
+      content: {
+        "application/json": {
+          schema: errorSchema,
+        },
+      },
     },
   },
   tags: ["Tokens"],
@@ -208,19 +211,14 @@ export const tokenDeleteEnvironmentSchema = createRoute({
     },
     401: {
       description: "Unauthorized",
-      // content: {
-      //   "application/json": {
-      //     schema: errorSchema,
-      //   },
-      // },
     },
     403: {
       description: "Forbidden",
-      // content: {
-      //   "application/json": {
-      //     schema: errorSchema,
-      //   },
-      // },
+      content: {
+        "application/json": {
+          schema: errorSchema,
+        },
+      },
     },
   },
   tags: ["Tokens"],

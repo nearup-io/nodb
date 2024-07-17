@@ -1,4 +1,3 @@
-import { HTTPException } from "hono/http-exception";
 import {
   createApplication,
   deleteApplication,
@@ -20,6 +19,7 @@ import {
   applicationPatchRoute,
   applicationPostRoute,
 } from "./schemas/application-schemas.ts";
+import { ServiceError } from "../utils/service-errors.ts";
 
 const application = new OpenAPIHono<{
   Variables: {
@@ -76,9 +76,7 @@ application.openapi(applicationPatchRoute, async (c) => {
   const { appName } = c.req.valid("param");
   const body = c.req.valid("json");
   if (appName === body.appName) {
-    throw new HTTPException(400, {
-      message: httpError.SAME_APPNAME,
-    });
+    throw new ServiceError(httpError.SAME_APPNAME, 400);
   }
   const user = c.get("user");
   const doc = await updateApplication({

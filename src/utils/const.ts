@@ -58,6 +58,9 @@ export const httpError = {
   USER_CANT_CREATE: "Couldn't create user",
   USER_NOT_FOUND: "Can't find user",
   USER_NOT_AUTHENTICATED: "Unauthenticated",
+  NO_TOKEN: "TOKEN_NOT_PROVIDED",
+  TOKEN_DOES_NOT_EXIST: "Token does not exist",
+  AUTH_FAILED: "Authentication failed",
   USER_DOES_NOT_HAVE_EMAIL: "User does not have a linked email",
   ENV_CANT_CREATE: "Couldn't create environment",
   APPNAME_MUST_BE_UNIQUE: "Application name must be unique",
@@ -90,6 +93,12 @@ export const httpError = {
   ENTITIES_CANT_UPDATE: "Cannot update entities",
   ENTITIES_CANT_ADD: "Cannot add entities",
   UNKNOWN: "Unknown error",
+  NO_ACCESS_TO_APP: "No access to this application",
+  NO_ACCESS_TO_ENV: "No access to this environment",
+  NO_EDIT_ACCESS_ON_APP_LEVEL: "No edit permissions on application level",
+  NO_WRITE_ACCESS: "You don't have write access",
+  SOMETHING_WRONG_WITH_PERMISSIONS:
+    "Something went wrong with your permissions",
 };
 
 export const defaultNodbEnv = "dev";

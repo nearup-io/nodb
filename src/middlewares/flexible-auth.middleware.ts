@@ -1,7 +1,8 @@
 import { createFactory } from "hono/factory";
-import { HTTPException } from "hono/http-exception";
 import userMiddleware from "./user.middleware.ts";
 import backendTokenMiddleware from "./backend-token.middleware.ts";
+import { ServiceError } from "../utils/service-errors.ts";
+import { httpError } from "../utils/const.ts";
 
 const factory = createFactory();
 
@@ -19,10 +20,10 @@ const middleware = (
           if (options.authNotRequired) {
             await next();
           }
-          if (tokenError instanceof HTTPException) {
+          if (tokenError instanceof ServiceError) {
             throw tokenError;
           }
-          throw new HTTPException(401, { message: "Authentication failed" });
+          throw new ServiceError(httpError.AUTH_FAILED, 401);
         }
       } else if (options.authNotRequired) {
         await next();

@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import { httpError } from "../utils/const.ts";
 import { getTokenPermissions } from "../services/token.service.ts";
 import { verifyTokenPermissions } from "../services/permission.service.ts";
+import { ServiceError } from "../utils/service-errors.ts";
 
 const factory = createFactory();
 
@@ -10,7 +11,7 @@ const middleware = factory.createMiddleware(async (c, next) => {
   const context = c.get("context");
   const token = c.req.header("token");
   if (!token) {
-    throw new HTTPException(401, { message: "Token not provided" });
+    throw new ServiceError(httpError.NO_TOKEN, 401);
   }
 
   try {
@@ -20,7 +21,7 @@ const middleware = factory.createMiddleware(async (c, next) => {
     });
 
     if (!permissions) {
-      throw new HTTPException(401, { message: "Token does not exist" });
+      throw new ServiceError(httpError.TOKEN_DOES_NOT_EXIST, 401);
     }
 
     const { appName, envName, entityName } = c.req.param() as {
@@ -42,7 +43,7 @@ const middleware = factory.createMiddleware(async (c, next) => {
     await next();
     return;
   } catch (e) {
-    if (e instanceof HTTPException) {
+    if (e instanceof ServiceError) {
       throw e;
     } else {
       throw new HTTPException(500, {
