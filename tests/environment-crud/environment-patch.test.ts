@@ -135,37 +135,37 @@ describe("PATCH /apps/:appName/:envName", async () => {
     });
   });
 
-  describe("should return 401", async () => {
-    test("when no backend token or JWT token is provided", async () => {
-      const appPostResponse = await helper.executePostRequest({
-        url: `/apps/${appName}`,
-        body: {
-          image: "path/to/image.jpg",
-          description: "Memes app",
-        },
-      });
-      expect(appPostResponse.status).toBe(201);
-      const body = await appPostResponse.json();
-      const appToken = body.applicationTokens[0].key as string;
-
-      const environmentName = "environment-1";
-
-      const updatedEnvName = "updated-environment";
-      const patchResponse = await helper.executePatchRequest({
-        url: `/apps/${appName}/${environmentName}`,
-        body: {
-          envName: updatedEnvName,
-          description: "updated description",
-        },
-      });
-      expect(patchResponse.status).toBe(401);
-      const deleteResponse = await helper.executeDeleteRequest({
-        url: `/apps/${appName}`,
-        backendToken: appToken,
-      });
-      expect(deleteResponse.status).toBe(200);
+  test("should return 401 UNAUTHORIZED when no backend token or JWT token is provided", async () => {
+    const appPostResponse = await helper.executePostRequest({
+      url: `/apps/${appName}`,
+      body: {
+        image: "path/to/image.jpg",
+        description: "Memes app",
+      },
     });
+    expect(appPostResponse.status).toBe(201);
+    const body = await appPostResponse.json();
+    const appToken = body.applicationTokens[0].key as string;
 
+    const environmentName = "environment-1";
+
+    const updatedEnvName = "updated-environment";
+    const patchResponse = await helper.executePatchRequest({
+      url: `/apps/${appName}/${environmentName}`,
+      body: {
+        envName: updatedEnvName,
+        description: "updated description",
+      },
+    });
+    expect(patchResponse.status).toBe(401);
+    const deleteResponse = await helper.executeDeleteRequest({
+      url: `/apps/${appName}`,
+      backendToken: appToken,
+    });
+    expect(deleteResponse.status).toBe(200);
+  });
+
+  describe("should return 403 FORBIDDEN", async () => {
     test("when app token (backend token) does not have permissions for the application it needs to update the environment", async () => {
       const environmentName = "environment-1";
       const appPostResponse = await helper.executePostRequest({
@@ -188,7 +188,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
           description: "updated description",
         },
       });
-      expect(patchResponse.status).toBe(401);
+      expect(patchResponse.status).toBe(403);
       const deleteResponse = await helper.executeDeleteRequest({
         url: `/apps/${appName}`,
         backendToken: appToken,
@@ -220,7 +220,7 @@ describe("PATCH /apps/:appName/:envName", async () => {
           description: "updated description",
         },
       });
-      expect(patchResponse.status).toBe(401);
+      expect(patchResponse.status).toBe(403);
       const deleteResponse = await helper.executeDeleteRequest({
         url: `/apps/${appName}`,
         backendToken: appToken,

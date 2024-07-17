@@ -1,10 +1,12 @@
 import { createRoute } from "@hono/zod-openapi";
 import { flexibleAuthMiddleware } from "../../middlewares";
 import { z } from "zod";
-import { appNameParamSchema } from "./application-schemas.ts";
-import { envNameParamSchema } from "./environment-schemas.ts";
 import { errorSchema } from "./error-schemas.ts";
-import { entityNameSchema } from "./entity-schemas.ts";
+import {
+  appNameParamSchema,
+  entityNameSchema,
+  envNameParamSchema,
+} from "./common.ts";
 
 export const ragSchemaPostRoute = createRoute({
   method: "post",

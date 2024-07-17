@@ -5,15 +5,14 @@ import {
   findUserByClerkId,
   getUserFromClerk,
 } from "../services/user.service.ts";
+import { ServiceError } from "../utils/service-errors.ts";
 
 const factory = createFactory();
 
 const middleware = factory.createMiddleware(async (c, next) => {
   const clerkUser = await getUserFromClerk(c.get("clerk"), c);
   if (!clerkUser) {
-    throw new HTTPException(401, {
-      message: httpError.USER_NOT_AUTHENTICATED,
-    });
+    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED, 401);
   }
   try {
     const user = await findUserByClerkId({
@@ -22,15 +21,13 @@ const middleware = factory.createMiddleware(async (c, next) => {
     });
 
     if (!user) {
-      throw new HTTPException(401, {
-        message: httpError.USER_NOT_AUTHENTICATED,
-      });
+      throw new ServiceError(httpError.USER_NOT_AUTHENTICATED, 401);
     }
 
     c.set("user", user);
     await next();
   } catch (e) {
-    if (e instanceof HTTPException) {
+    if (e instanceof ServiceError) {
       throw e;
     } else {
       throw new HTTPException(500, {

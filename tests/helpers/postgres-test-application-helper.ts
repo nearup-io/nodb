@@ -9,6 +9,7 @@ import { startApp } from "../../src/server.ts";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { Client } from "pg";
 import * as R from "ramda";
+import type { TokenPermission } from "../../src/models/token.model.ts";
 
 export class PostgresTestApplicationHelper
   extends BaseApplicationHelper
@@ -213,6 +214,24 @@ export class PostgresTestApplicationHelper
     await this.prismaClient!.application.deleteMany({
       where: {
         name: { in: names },
+      },
+    });
+  }
+  async getTokenByToken(token: string): Promise<{
+    environmentId: string | null;
+    applicationId: string | null;
+    permission: TokenPermission;
+    key: string;
+  } | null> {
+    return this.prisma.token.findFirst({
+      where: {
+        key: token,
+      },
+      select: {
+        environmentId: true,
+        applicationId: true,
+        permission: true,
+        key: true,
       },
     });
   }

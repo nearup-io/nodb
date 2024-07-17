@@ -8,6 +8,7 @@
     "e2e-app-tests-postgres": "bun test app --env-file=.env.postgres.test",
     "e2e-env-tests-postgres": "bun test environment --env-file=.env.postgres.test",
     "e2e-entity-tests-postgres": "bun test entity --env-file=.env.postgres.test",
+    "e2e-token-tests-postgres": "bun test token --env-file=.env.postgres.test",
     "e2e-tests-all-postgres": "bun test --env-file=.env.postgres.test",
     "migrate": "npx prisma migrate dev",
     "generate": "npx prisma generate",

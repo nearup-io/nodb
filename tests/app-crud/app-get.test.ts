@@ -71,7 +71,7 @@ describe("App endpoint GET", async () => {
   });
 
   describe("GET /apps/all", async () => {
-    test("Should return 401 FORBIDDEN when no JWT token or backend token is provided", async () => {
+    test("Should return 401 UNAUTHORIZED when no JWT token or backend token is provided", async () => {
       const response = await helper.executeGetRequest({
         url: "/apps/all",
       });
@@ -199,20 +199,20 @@ describe("App endpoint GET", async () => {
   });
 
   describe("GET /apps/:appName", () => {
-    test("Should return 401 FORBIDDEN when no JWT token or backend token is provided", async () => {
+    test("Should return 401 UNAUTHORIZED when no JWT token or backend token is provided", async () => {
       const response = await helper.executeGetRequest({
         url: "/apps/all",
       });
       expect(response.status).toBe(401);
     });
 
-    test("Should return 401 FORBIDDEN for app when backend token is not linked to the requested app when backend token is used", async () => {
+    test("Should return 403 FORBIDDEN for app when backend token is not linked to the requested app when backend token is used", async () => {
       const response = await helper.executeGetRequest({
         url: `/apps/${apps[0].name}`,
         backendToken: backendAppToken,
       });
 
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(403);
     });
 
     test("Should return 404 NOT FOUND for an app that does not exist", async () => {

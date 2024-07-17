@@ -3,19 +3,11 @@ import { flexibleAuthMiddleware } from "../../middlewares";
 import { z } from "zod";
 import { SecuritySchema } from "./security-schemas.ts";
 import { errorSchema } from "./error-schemas.ts";
-import { appNameParamSchema } from "./application-schemas.ts";
-import { tokenSchema } from "./token-schemas.ts";
-
-export const envNameParamSchema = z.object({
-  envName: z.string().openapi({
-    param: {
-      name: "envName",
-      in: "path",
-    },
-    type: "string",
-    example: "your-env-name",
-  }),
-});
+import {
+  appNameParamSchema,
+  envNameParamSchema,
+  tokenSchema,
+} from "./common.ts";
 
 const environmentSchema = z.object({
   id: z.string(),

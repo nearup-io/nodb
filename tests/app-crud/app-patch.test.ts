@@ -66,7 +66,7 @@ describe("App endpoint PATCH", async () => {
     });
   });
 
-  test("Should return 401 FORBIDDEN when no JWT token or backend token is provided", async () => {
+  test("Should return 401 UNAUTHORIZED when no JWT token or backend token is provided", async () => {
     const appName = "random-app";
     const patchResponse = await helper.executePatchRequest({
       url: `/apps/${appName}`,
@@ -80,7 +80,7 @@ describe("App endpoint PATCH", async () => {
     expect(patchResponse.status).toBe(401);
   });
 
-  test("Should return 401 FORBIDDEN when trying to update an application that the application token (backend token) does not have permissions to", async () => {
+  test("Should return 403 FORBIDDEN when trying to update an application that the application token (backend token) does not have permissions to", async () => {
     const appName = "test-app";
     const postResponse = await helper.executePostRequest({
       url: `/apps/${appName}`,
@@ -104,10 +104,10 @@ describe("App endpoint PATCH", async () => {
       },
     });
 
-    expect(patchResponse.status).toBe(401);
+    expect(patchResponse.status).toBe(403);
   });
 
-  test("Should return 401 FORBIDDEN when trying to update an application that the environment token (backend token) does not have permissions to", async () => {
+  test("Should return 403 FORBIDDEN when trying to update an application that the environment token (backend token) does not have permissions to", async () => {
     const appName = "test-app-2";
     const postResponse = await helper.executePostRequest({
       url: `/apps/${appName}`,
@@ -131,11 +131,11 @@ describe("App endpoint PATCH", async () => {
       },
     });
 
-    expect(patchResponse.status).toBe(401);
+    expect(patchResponse.status).toBe(403);
   });
 
   // TODO implements once we have a mechanism for generating READ ONLY tokens
-  test.skip("Should return 401 FORBIDDEN when the backend token contains only READ_ONLY permissions", async () => {});
+  test.skip("Should return 403 FORBIDDEN when the backend token contains only READ_ONLY permissions", async () => {});
 
   test("Should return 404 NOT FOUND and return proper body when app is not found", async () => {
     const appName = "random-app";

@@ -9,7 +9,41 @@ import { type Token } from "../models/token.model.ts";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import type { BackendTokenPermissions } from "../utils/types.ts";
 
-const getApplication = async ({
+const getApplicationByName = async ({
+  context,
+  appName,
+  clerkId,
+  tokenPermissions,
+}: {
+  context: Context;
+  appName: string;
+  clerkId?: string;
+  tokenPermissions?: BackendTokenPermissions;
+}): Promise<
+  Omit<Application, "environments"> & {
+    environments: Pick<Environment, "id" | "name" | "description">[];
+  }
+> => {
+  if (!clerkId && !tokenPermissions) {
+    throw new ServiceError(httpError.USER_NOT_AUTHENTICATED, 401);
+  }
+
+  const repository = context.get<IApplicationRepository>(
+    APPLICATION_REPOSITORY,
+  );
+
+  const application = await repository.getApplication({
+    appName,
+    clerkId,
+    tokenPermissions,
+  });
+  if (!application) {
+    throw new ServiceError(httpError.APPNAME_NOT_FOUND, 404);
+  }
+  return application;
+};
+
+const getApplicationById = async ({
   context,
   appName,
   clerkId,
@@ -199,7 +233,7 @@ const deleteApplication = async ({
 };
 
 export {
-  getApplication,
+  getApplicationByName,
   getApplications,
   createApplication,
   updateApplication,

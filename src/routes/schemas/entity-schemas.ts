@@ -1,10 +1,14 @@
 import { z } from "zod";
 import { createRoute } from "@hono/zod-openapi";
 import { flexibleAuthMiddleware } from "../../middlewares";
-import { appNameParamSchema } from "./application-schemas.ts";
 import { SecuritySchema } from "./security-schemas.ts";
 import { errorSchema } from "./error-schemas.ts";
-import { envNameParamSchema } from "./environment-schemas.ts";
+import {
+  appNameParamSchema,
+  entityIdSchema,
+  entityNameSchema,
+  envNameParamSchema,
+} from "./common.ts";
 
 const entityQueryParamsSchema = z
   .object({
@@ -33,27 +37,6 @@ const entityQueryParamsSchema = z
   .passthrough();
 
 export type EntityQueryParams = z.infer<typeof entityQueryParamsSchema>;
-
-export const entityNameSchema = z.object({
-  entityName: z.string().openapi({
-    param: {
-      name: "entityName",
-      in: "path",
-    },
-    type: "string",
-    example: "entityName",
-  }),
-});
-export const entityIdSchema = z.object({
-  entityId: z.string().openapi({
-    param: {
-      name: "entityId",
-      in: "path",
-    },
-    type: "string",
-    example: "entityId",
-  }),
-});
 
 export const entityPostRoute = createRoute({
   method: "post",

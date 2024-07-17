@@ -1,4 +1,3 @@
-import { HTTPException } from "hono/http-exception";
 import {
   createEnvironment,
   deleteEnvironment,
@@ -56,9 +55,7 @@ envApp.openapi(environmentPatchRoute, async (c) => {
   const { appName, envName } = c.req.valid("param");
   const body = c.req.valid("json");
   if (envName === body.envName) {
-    throw new HTTPException(400, {
-      message: httpError.SAME_ENVNAME,
-    });
+    throw new ServiceError(httpError.SAME_ENVNAME, 400);
   }
   const doc = await updateEnvironment({
     context: c.get("context"),

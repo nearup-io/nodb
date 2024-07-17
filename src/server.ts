@@ -7,6 +7,7 @@ import usersRoute from "./routes/users.ts";
 import appsRoute from "./routes/applications.ts";
 import searchRoute from "./routes/search.ts";
 import ragRoute from "./routes/rag.ts";
+import tokenRoute from "./routes/tokens.ts";
 import errorHandler from "./middlewares/error-handler.middleware.ts";
 import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
@@ -38,6 +39,7 @@ export const startApp = async (props?: {
   app.route("/apps", appsRoute);
   app.route("/search", searchRoute);
   app.route("/knowledgebase", ragRoute);
+  app.route("/tokens", tokenRoute);
 
   app.doc("/doc", {
     openapi: "3.0.0",
@@ -51,6 +53,7 @@ export const startApp = async (props?: {
       { name: "Entities", description: "Entity management" },
       { name: "Rag", description: "Ai search" },
       { name: "Search", description: "Vector search" },
+      { name: "Tokens", description: "Backend tokens" },
     ],
   });
 

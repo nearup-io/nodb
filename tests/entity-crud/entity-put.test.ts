@@ -78,22 +78,22 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
     });
   });
 
-  describe("Should return 401 UNAUTHORIZED", () => {
-    test("when no token is present", async () => {
-      const response = await helper.executePutRequest({
-        url: `/apps/${putAppName}/${putEnvironmentName}/entityName`,
-        body: [],
-      });
-      expect(response.status).toBe(401);
+  test("Should return 401 UNAUTHORIZED when no token is present", async () => {
+    const response = await helper.executePutRequest({
+      url: `/apps/${putAppName}/${putEnvironmentName}/entityName`,
+      body: [],
     });
+    expect(response.status).toBe(401);
+  });
 
+  describe("Should return 403 FORBIDDEN", () => {
     test("when application token (backend token) does not have permission for the application", async () => {
       const response = await helper.executePutRequest({
         url: `/apps/${putAppName}-2/${putEnvironmentName}/entityName`,
         backendToken: appToken,
         body: [],
       });
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(403);
     });
 
     test("when environment token (backend token) does not have permission for the environment", async () => {
@@ -102,7 +102,7 @@ describe("PUT /apps/:appName/:envName/:entityName", () => {
         backendToken: envToken,
         body: [],
       });
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(403);
     });
   });
 

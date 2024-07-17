@@ -19,7 +19,7 @@ describe("App endpoint DELETE", async () => {
     await helper.stopApplication();
   });
 
-  test("Should return 401 FORBIDDEN when no JWT token or backend token is provided", async () => {
+  test("Should return 401 UNAUTHORIZED when no JWT token or backend token is provided", async () => {
     const response = await helper.executeDeleteRequest({
       url: `/apps/random-app`,
     });
@@ -27,7 +27,7 @@ describe("App endpoint DELETE", async () => {
     expect(response.status).toBe(401);
   });
 
-  test("Should return 401 FORBIDDEN when application token (backend token) does not have permissions towards the app", async () => {
+  test("Should return 403 FORBIDDEN when application token (backend token) does not have permissions towards the app", async () => {
     const appForDeletion: Omit<AppType, "id" | "environments" | "tokens"> = {
       name: "test-app-name",
       image: "path/to/image-1.jpg",
@@ -48,10 +48,10 @@ describe("App endpoint DELETE", async () => {
       backendToken: token,
     });
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(403);
   });
 
-  test("Should return 401 FORBIDDEN when environment token token (backend token) does not have permissions towards the app", async () => {
+  test("Should return 403 FORBIDDEN when environment token token (backend token) does not have permissions towards the app", async () => {
     const appForDeletion: Omit<AppType, "id" | "environments" | "tokens"> = {
       name: "test-app-name-2",
       image: "path/to/image-1.jpg",
@@ -72,7 +72,7 @@ describe("App endpoint DELETE", async () => {
       backendToken: token,
     });
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(403);
   });
 
   test("should return 200 OK {found: false} when app is not found", async () => {

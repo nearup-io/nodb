@@ -21,15 +21,15 @@ describe("GET /apps/:appName/:envName", async () => {
     await helper.stopApplication();
   });
 
-  describe("should return 401", async () => {
-    test("when no backend token or JWT token is provided", async () => {
-      const getResponse = await helper.executeGetRequest({
-        url: `/apps/${appName}/environment`,
-      });
-
-      expect(getResponse.status).toBe(401);
+  test("should return 401 UNAUTHORIZED when no backend token or JWT token is provided", async () => {
+    const getResponse = await helper.executeGetRequest({
+      url: `/apps/${appName}/environment`,
     });
 
+    expect(getResponse.status).toBe(401);
+  });
+
+  describe("should return 403 FORBIDDEN", async () => {
     test("when app token (backend token) does not have permissions for the environment", async () => {
       const response = await helper.executePostRequest({
         url: `/apps/${appName}`,
@@ -48,7 +48,7 @@ describe("GET /apps/:appName/:envName", async () => {
         backendToken: appToken,
       });
 
-      expect(getResponse.status).toBe(401);
+      expect(getResponse.status).toBe(403);
 
       const deleteAppResponse = await helper.executeDeleteRequest({
         url: `/apps/${appName}`,
@@ -76,7 +76,7 @@ describe("GET /apps/:appName/:envName", async () => {
         backendToken: envToken,
       });
 
-      expect(getResponse.status).toBe(401);
+      expect(getResponse.status).toBe(403);
 
       const deleteAppResponse = await helper.executeDeleteRequest({
         url: `/apps/${appName}`,

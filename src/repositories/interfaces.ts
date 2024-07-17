@@ -7,7 +7,7 @@ import type {
   EntityQueryMeta,
 } from "../utils/types.ts";
 import type { EntityAggregateResult } from "../services/entity.service.ts";
-import type { Token } from "../models/token.model";
+import type { Token, TokenPermission } from "../models/token.model";
 
 export interface IApplicationRepository {
   getEnvironmentsByAppId(props: {
@@ -149,4 +149,10 @@ export interface ITokenRepository {
   getTokenPermissions(props: {
     token: string;
   }): Promise<BackendTokenPermissions | null>;
+  createTokenForAppOrEnvironment(props: {
+    permission: TokenPermission;
+    appId?: string;
+    envId?: string;
+  }): Promise<string>;
+  deleteToken(props: { token: string }): Promise<boolean>;
 }
