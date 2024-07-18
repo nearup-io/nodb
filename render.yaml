@@ -22,7 +22,7 @@ services:
       - key: POSTGRES_USER
         value: postgres
       - key: POSTGRES_PASSWORD
-        value: postgres
+        generateValue: true
     disk:
       name: postgres-data
       mountPath: /var/lib/postgresql/data
