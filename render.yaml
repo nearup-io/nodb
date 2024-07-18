@@ -1,7 +1,29 @@
 services:
   - type: web
-    name: bun
+    name: nodb-app
     env: docker
-    repo: https://github.com/nearup-io/nodb
-    plan: starter
-    autoDeploy: false
+    dockerfilePath: ./Dockerfile.prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromService:
+          type: pserv
+          name: pgvector-db
+          property: connectionString
+
+  - type: pserv
+    name: pgvector-db
+    env: docker
+    dockerfilePath: ./Dockerfile.pgvector
+    envVars:
+      - key: POSTGRES_DB
+        value: postgres
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        value: postgres
+    disk:
+      name: postgres-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 10
