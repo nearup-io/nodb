@@ -27,4 +27,4 @@ services:
     disk:
       name: postgres-data
       mountPath: /var/lib/postgresql/data
-      sizeGB: 10
+      sizeGB: 1
