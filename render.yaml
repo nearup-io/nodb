@@ -7,10 +7,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        fromService:
-          type: pserv
-          name: pgvector-db
-          property: connectionString
+        value: connString
 
   - type: pserv
     name: pgvector-db
@@ -22,7 +19,7 @@ services:
       - key: POSTGRES_USER
         value: postgres
       - key: POSTGRES_PASSWORD
-        generateValue: true
+        value: postgres
     disk:
       name: postgres-data
       mountPath: /var/lib/postgresql/data
