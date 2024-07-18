@@ -3,6 +3,8 @@ services:
     name: nodb-app
     env: docker
     dockerfilePath: ./Dockerfile.prod
+    plan: starter
+    autoDeploy: false
     envVars:
       - key: NODE_ENV
         value: production
@@ -13,6 +15,8 @@ services:
     name: pgvector-db
     env: docker
     dockerfilePath: ./Dockerfile.pgvector
+    plan: starter
+    autoDeploy: false
     envVars:
       - key: POSTGRES_DB
         value: postgres
