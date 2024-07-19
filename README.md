@@ -25,11 +25,9 @@ You can find detailed explanation on how to run Postgres (locally or in Docker) 
 
 ## Deploy
 
-### Render
+### Fly.io
 
-For quick deploy you can use Render:
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/nearup-io/nodb)
+For quick deploy you can use [fly.io](https://fly.io/), just follow our [wiki page](https://github.com/nearup-io/nodb/wiki/Deployment-on-fly.io)
 
 ## Tests
 
