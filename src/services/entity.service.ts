@@ -29,6 +29,7 @@ import {
   type IEntityRepository,
   type IEnvironmentRepository,
 } from "../repositories/interfaces.ts";
+import wsManager from "../utils/websocket-manager.ts";
 
 export type EntityAggregateResult = {
   totalCount: number;
@@ -292,12 +293,16 @@ const createEntities = async ({
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
   try {
-    return await entityRepository.createOrOverwriteEntities({
+    const ids = await entityRepository.createOrOverwriteEntities({
       entitiesIdsToBeReplaced: [],
       entityName,
       dbEnvironmentId: environment.id,
       insertEntities,
     });
+
+    wsManager.emit({ appName, envName, type: "write", data: insertEntities });
+
+    return ids;
   } catch (e) {
     console.error("Error adding entities", e);
     throw new ServiceError(httpError.ENTITIES_CANT_ADD, 400);
@@ -326,12 +331,21 @@ const deleteRootAndUpdateEnv = async ({
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
 
   try {
-    return entityRepository.deleteRootAndUpdateEnv({
+    const { done, ids } = await entityRepository.deleteRootAndUpdateEnv({
       appName,
       envName,
       entityName,
       dbEnvironmentId: environment.id,
     });
+
+    wsManager.emit({
+      appName,
+      envName,
+      type: "delete",
+      data: ids,
+    });
+
+    return { done };
   } catch (e) {
     console.error("Error deleting entities", e);
     throw new ServiceError(httpError.ENTITIES_CANT_DELETE, 400);
@@ -362,13 +376,25 @@ const deleteSingleEntityAndUpdateEnv = async ({
 
   const entityRepository = context.get<IEntityRepository>(ENTITY_REPOSITORY);
   try {
-    return entityRepository.deleteSingleEntityAndUpdateEnv({
-      appName,
-      envName,
-      entityName,
-      entityId,
-      dbEnvironmentId: environment.id,
-    });
+    const deletedEntity = await entityRepository.deleteSingleEntityAndUpdateEnv(
+      {
+        appName,
+        envName,
+        entityName,
+        entityId,
+        dbEnvironmentId: environment.id,
+      },
+    );
+    if (deletedEntity) {
+      wsManager.emit({
+        appName,
+        envName,
+        type: "delete",
+        data: deletedEntity.id,
+      });
+    }
+
+    return deletedEntity;
   } catch (e) {
     throw new ServiceError(httpError.ENTITIES_CANT_DELETE, 400);
   }
@@ -432,10 +458,19 @@ const replaceEntities = async ({
   }
 
   try {
-    return entityRepository.replaceEntities({
+    const ids = await entityRepository.replaceEntities({
       entitiesToBeInserted,
       ids: documentIds,
     });
+
+    wsManager.emit({
+      appName,
+      envName,
+      type: "update",
+      data: entitiesToBeInserted,
+    });
+
+    return ids;
   } catch (e) {
     throw new ServiceError(httpError.ENTITIES_CANT_UPDATE, 400);
   }
@@ -497,10 +532,19 @@ const updateEntities = async ({
   }
 
   try {
-    return entityRepository.replaceEntities({
+    const ids = await entityRepository.replaceEntities({
       entitiesToBeInserted,
       ids: documentIds,
     });
+
+    wsManager.emit({
+      appName,
+      envName,
+      type: "update",
+      data: entitiesToBeInserted,
+    });
+
+    return ids;
   } catch (e) {
     throw new ServiceError(httpError.ENTITIES_CANT_UPDATE, 400);
   }

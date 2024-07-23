@@ -123,7 +123,7 @@ export interface IEntityRepository {
     envName: string;
     entityName: string;
     dbEnvironmentId: string;
-  }): Promise<{ done: number }>;
+  }): Promise<{ done: number; ids: string[] }>;
   deleteSingleEntityAndUpdateEnv(props: {
     entityId: string;
     appName: string;

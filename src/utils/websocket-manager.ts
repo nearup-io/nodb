@@ -19,6 +19,8 @@ interface BunWebSocketData {
   protocol: string;
 }
 
+type OperationType = "write" | "update" | "delete";
+
 class WebSocketManager {
   public upgradeWebSocket: UpgradeWebSocket;
   public websocket: BunWebSocketHandler<BunWebSocketData>;
@@ -51,10 +53,16 @@ class WebSocketManager {
     }
   }
 
-  emit(props: { appName: string; envName: string; type: string; data: any }) {
+  emit(props: {
+    appName: string;
+    envName: string;
+    type: OperationType;
+    data: any;
+  }) {
     const { type, data, ...rest } = props;
     const message = JSON.stringify({ type, data });
     const key = this.constructMapKey(rest);
+
     // TODO if we want to filter the clients by message type and subscription type here is where we do it
     this.clients.get(key)?.forEach((client) => client.send(message));
   }
