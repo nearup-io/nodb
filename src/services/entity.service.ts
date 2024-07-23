@@ -300,7 +300,17 @@ const createEntities = async ({
       insertEntities,
     });
 
-    wsManager.emit({ appName, envName, type: "write", data: insertEntities });
+    wsManager.emit({
+      appName,
+      envName,
+      type: "write",
+      data: mapEntitiesForWebsocketMessage({
+        entities: insertEntities,
+        appName,
+        envName,
+        entityName,
+      }),
+    });
 
     return ids;
   } catch (e) {
@@ -467,7 +477,12 @@ const replaceEntities = async ({
       appName,
       envName,
       type: "update",
-      data: entitiesToBeInserted,
+      data: mapEntitiesForWebsocketMessage({
+        entities: entitiesToBeInserted,
+        appName,
+        envName,
+        entityName,
+      }),
     });
 
     return ids;
@@ -541,7 +556,12 @@ const updateEntities = async ({
       appName,
       envName,
       type: "update",
-      data: entitiesToBeInserted,
+      data: mapEntitiesForWebsocketMessage({
+        entities: entitiesToBeInserted,
+        appName,
+        envName,
+        entityName,
+      }),
     });
 
     return ids;
@@ -603,6 +623,28 @@ const generatePaginationMetadata = ({
         : `${baseUrl}?__page=${previousPage}&__per_page=${limit}${addQueries}`,
     current_page: `${baseUrl}?__page=${currentPage}&__per_page=${limit}${addQueries}`,
   };
+};
+
+const mapEntitiesForWebsocketMessage = ({
+  entities,
+  appName,
+  envName,
+  entityName,
+}: {
+  entities: Entity[];
+  appName: string;
+  envName: string;
+  entityName: string;
+}): ({ id: string; __meta: { self: string } } & Record<string, unknown>)[] => {
+  return entities.map((entity) => {
+    return {
+      ...R.omit(["embedding", "type", "model", "extras"], entity),
+      ...entity.model,
+      __meta: {
+        self: `/${appName}/${envName}/${entityName}/${entity.id}`,
+      },
+    };
+  });
 };
 
 export {

@@ -62,8 +62,6 @@ class WebSocketManager {
     const { type, data, ...rest } = props;
     const message = JSON.stringify({ type, data });
     const key = this.constructMapKey(rest);
-
-    // TODO if we want to filter the clients by message type and subscription type here is where we do it
     this.clients.get(key)?.forEach((client) => client.send(message));
   }
 
@@ -82,7 +80,6 @@ class WebSocketManager {
       .get(key)!
       .findIndex((socket) => socket === props.ws);
     this.clients.get(key)!.splice(index, 1);
-    console.log(this.clients);
   }
 }
 
