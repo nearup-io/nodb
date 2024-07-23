@@ -42,7 +42,7 @@ const verifyEnvironmentTokenPermissions = ({
   appName: string;
   envNames: string[];
 }): void => {
-  if (routeAppName && !routeEnvName && method !== "GET") {
+  if (routeAppName && !routeEnvName) {
     throw new ServiceError(httpError.NO_EDIT_ACCESS_ON_APP_LEVEL, 403);
   }
 
