@@ -63,7 +63,7 @@ class WebSocketManager {
     const message = JSON.stringify(props);
     const key = this.constructMapKey(rest);
     this.clients.get(key)?.forEach((client) => client.send(message));
-    // If someone subscribe to the whole app send them the messages also
+    // If someone subscribes to the whole app send them the messages also
     this.clients.get(props.appName)?.forEach((client) => client.send(message));
   }
 
