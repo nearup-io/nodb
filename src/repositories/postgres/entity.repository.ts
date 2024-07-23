@@ -288,14 +288,23 @@ class EntityRepository extends BaseRepository implements IEntityRepository {
     envName: string;
     entityName: string;
     dbEnvironmentId: string;
-  }): Promise<{ done: number }> {
+  }): Promise<{ done: number; ids: string[] }> {
+    const entities = await this.prisma.entity.findMany({
+      where: {
+        type: `${appName}/${envName}/${entityName}`,
+      },
+      select: {
+        id: true,
+      },
+    });
+
     const deleted = await this.prisma.entity.deleteMany({
       where: {
         type: `${appName}/${envName}/${entityName}`,
       },
     });
 
-    return { done: deleted.count };
+    return { done: deleted.count, ids: entities.map(({ id }) => id) };
   }
 
   public async deleteSingleEntityAndUpdateEnv({
