@@ -11,6 +11,7 @@ import tokenRoute from "./routes/tokens.ts";
 import errorHandler from "./middlewares/error-handler.middleware.ts";
 import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
+import wsRoutes from "./routes/websockets.ts";
 
 export const startApp = async (props?: {
   postgresDatabaseUrl?: string;
@@ -23,9 +24,11 @@ export const startApp = async (props?: {
     app.use(logger());
   }
   app.onError(errorHandler);
+
   const db = await initDbConnection(props);
   await db.$connect();
   console.log("connected to database");
+
   app.use(
     cors({
       origin: ["http://localhost:5173"],
@@ -40,6 +43,7 @@ export const startApp = async (props?: {
   app.route("/search", searchRoute);
   app.route("/knowledgebase", ragRoute);
   app.route("/tokens", tokenRoute);
+  app.route("/ws", wsRoutes);
 
   app.doc("/doc", {
     openapi: "3.0.0",
