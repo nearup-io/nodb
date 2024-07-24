@@ -37,7 +37,7 @@ export const startApp = async (props?: {
   );
   app.use("*", clerkMiddleware());
   app.use(contextMiddleware(db));
-  app.get("/ui", swaggerUI({ url: "/doc" }));
+  app.get("/swagger", swaggerUI({ url: "/doc" }));
   app.route("/users", usersRoute);
   app.route("/apps", appsRoute);
   app.route("/search", searchRoute);
