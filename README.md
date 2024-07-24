@@ -38,8 +38,6 @@ Note: You must have either an OpenAI or Anthropic account to use the API locally
 
 Swagger OpenAPI documentation is available at the `/swagger` route
 
-## Environment Variables
-
 ## PostgreSQL Setup
 
 You can find detailed instructions on how to run Postgres (locally or in Docker) [here](https://github.com/nearup-io/nodb/wiki/Postgres-database).
@@ -52,6 +50,48 @@ For quick deployment, you can use [fly.io](https://fly.io/). Follow our [wiki pa
 ## Tests
 
 Check out our [wiki page](https://github.com/nearup-io/nodb/wiki/E2E-tests-%E2%80%90-postgres) for e2e tests.
+
+## Curl examples
+
+1. Create a new application with environment:
+```bash
+curl -X POST http://localhost:3000/apps/myapp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "some application description",
+    "image": "applicationImage",
+    "environmentName": "environment name",
+    "environmentDescription": "environment description"
+  }'
+```
+2. Create entities for a specific application, environment, and entity:
+```bash
+curl -X POST http://localhost:3000/apps/myapp/dev/todos \
+  -H "Content-Type: application/json" \
+  -H "token: your-token-here" \
+  -d '[
+    {
+      "title": "Buy groceries",
+      "description": "Get milk, eggs, and bread",
+      "status": "pending"
+    },
+    {
+      "title": "Finish project report",
+      "description": "Complete the quarterly project report",
+      "status": "in progress"
+    }
+  ]'
+```
+3. Query your data
+
+```bash
+curl -X POST http://localhost:3000/knowledgebase/myapp/dev \
+  -H "Content-Type: application/json" \
+  -H "token: your-token-here" \
+  -d '{
+    "query": "Which tasks have I already started in my todo list?",
+  }'
+```
 
 ## Contact
 
