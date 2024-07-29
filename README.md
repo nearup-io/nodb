@@ -26,6 +26,7 @@ Open-source API gateway for your Postgres database with RAG support, semantic se
    ```bash
    docker compose -f .\docker-compose.dev.yml up -d
    ```
+The application will be available at `http://localhost:3000`.
 
 ## API Documentation:
 
