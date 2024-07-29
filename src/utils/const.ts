@@ -32,10 +32,7 @@ type AnthropicModel =
   | "claude-3-opus-20240229"
   | "claude-3-sonnet-20240229"
   | "claude-3-haiku-20240307";
-export const embeddingModel = Bun.env.EMBEDDING_MODEL as
-  | OpenAiEmbeddingModels
-  | VoyageEmbeddingModels
-  | undefined;
+export const defaultEmbeddingModel = "text-embedding-3-small";
 if (!Bun.env.LLM_NAME) {
   console.log(
     chalk.yellow("LLM_NAME env is missing, search features are disabled"),
@@ -50,7 +47,7 @@ export const embeddingProviders: { VOYAGEAI: "voyageai"; OPENAI: "openai" } = {
   OPENAI: "openai",
 };
 export const embeddingProvider: EmbeddingProvider =
-  Bun.env.EMBEDDING_PROVIDER === embeddingProviders.VOYAGEAI
+  Bun.env.VOYAGE_API_KEY === embeddingProviders.VOYAGEAI
     ? "voyageai"
     : embeddingProviders.OPENAI;
 

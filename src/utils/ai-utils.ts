@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Message } from "@anthropic-ai/sdk/src/resources/messages.js";
 import OpenAI from "openai";
-import { anthropicModel, openaiModel } from "./const";
+import { anthropicModel, defaultEmbeddingModel, openaiModel } from "./const";
 
 export const getOpenAiLlm = ({ apiKey }: { apiKey: string }) =>
   new OpenAI({
@@ -62,22 +62,24 @@ export const getAnthropicMessage = async ({
 
 export const getEmbedding = async (input: string): Promise<number[]> => {
   const { OPENAI_API_KEY, EMBEDDING_MODEL, VOYAGE_API_KEY } = Bun.env;
-  if (EMBEDDING_MODEL && VOYAGE_API_KEY) {
+  const embeddingModel = EMBEDDING_MODEL || defaultEmbeddingModel;
+
+  if (embeddingModel && VOYAGE_API_KEY) {
     // Voyage AI doesn't provide TS package
     const embeddingRequest = await fetch(
       voyageaiFetch.url,
       voyageaiFetch.getOptions({
         apiKey: VOYAGE_API_KEY,
         input,
-        model: EMBEDDING_MODEL,
+        model: embeddingModel,
       }),
     );
     const embeddingRequestJson = await embeddingRequest.json();
     return embeddingRequestJson.data[0].embedding;
-  } else if (EMBEDDING_MODEL && OPENAI_API_KEY) {
+  } else if (embeddingModel && OPENAI_API_KEY) {
     const llm = getOpenAiLlm({ apiKey: OPENAI_API_KEY });
     const embedding = await llm.embeddings.create({
-      model: EMBEDDING_MODEL,
+      model: embeddingModel,
       input,
     });
     return embedding.data[0].embedding;
