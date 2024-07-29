@@ -21,8 +21,11 @@ Open-source API gateway for your Postgres database with RAG support, semantic se
      - `CLERK_PUBLISHABLE_KEY`: Your Clerk publishable key (optional, can be useful if you want to build a dedicated frontend to this API)
 
    Note: You must have either an OpenAI or Anthropic account to use the API locally. Choose the appropriate LLM provider and set the corresponding API key.
+3. Update the embedding model length (if needed):
+   
+   The default embedding length is set to `1536`. If your chosen model requires a different length, you'll need to update the `prisma.schema` file by modifying the embedding line to: `embedding Unsupported("vector(YOUR_VECTOR_LENGTH_HERE)")?`. Additionally, update the      initial migration to reflect this change. (Alternatively, you can perform a global search and replace for the string "1536".)
 
-3. Build and run the Docker container:
+5. Build and run the Docker container:
    ```bash
    docker compose -f .\docker-compose.dev.yml up -d
    ```
