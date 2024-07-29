@@ -13,7 +13,7 @@ Open-source API gateway for your Postgres database with RAG support, semantic se
      - `PORT`: The port on which the server will run (optional, default: 3000)
      - `AI_PROVIDER`: Choose either 'openai' or 'anthropic' (default: openai)
      - `LLM_NAME`: The name of the LLM model you want to use (e.g., 'gpt-4o-mini', empty by default)
-     - `EMBEDDING_MODEL`: The name of the embedding model (default: text-embedding-ada-002)
+     - `EMBEDDING_MODEL`: The name of the embedding model (default: text-embedding-3-small)
      - `OPENAI_API_KEY`: Your OpenAI API key (required if using OpenAI as AI provider)
      - `ANTHROPIC_API_KEY`: Your Anthropic API key (required if using Anthropic as AI provider)
      - `VOYAGE_API_KEY`: Your Voyage API key (optional)
