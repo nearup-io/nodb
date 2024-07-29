@@ -16,7 +16,7 @@ Open-source API gateway for your Postgres database with RAG support, semantic se
      - `EMBEDDING_MODEL`: The name of the embedding model (default: text-embedding-3-small)
      - `OPENAI_API_KEY`: Your OpenAI API key (required if using OpenAI as AI provider)
      - `ANTHROPIC_API_KEY`: Your Anthropic API key (required if using Anthropic as AI provider)
-     - `VOYAGE_API_KEY`: Your Voyage API key (optional)
+     - `VOYAGE_API_KEY`: Your Voyage API key (required if using Anthropic as AI provider)
      - `CLERK_SECRET_KEY`: Your Clerk secret key (optional, can be useful if you want to build a dedicated frontend to this API)
      - `CLERK_PUBLISHABLE_KEY`: Your Clerk publishable key (optional, can be useful if you want to build a dedicated frontend to this API)
 
