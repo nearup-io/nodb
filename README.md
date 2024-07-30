@@ -86,7 +86,7 @@ curl -X POST http://localhost:3000/knowledgebase/myapp/env-name \
   -H "Content-Type: application/json" \
   -H "token: your-token-here" \
   -d '{
-    "query": "Which tasks have I already started in my todo list?",
+    "query": "Which tasks have I already started in my todo list?"
   }'
 ```
 
