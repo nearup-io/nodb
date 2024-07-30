@@ -235,8 +235,8 @@ describe("POST /apps/:appName", async () => {
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
-        environmentName: "fourth-app-environment",
-        environmentDescription: "Environment description",
+        envName: "fourth-app-environment",
+        envDescription: "Environment description",
       },
     });
 
@@ -259,8 +259,8 @@ describe("POST /apps/:appName", async () => {
       body: {
         image: "path/to/image.jpg",
         description: "Memes app",
-        environmentName: "fifth-app-environment",
-        environmentDescription: "Environment description",
+        envName: "fifth-app-environment",
+        envDescription: "Environment description",
       },
     });
 

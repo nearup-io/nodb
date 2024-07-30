@@ -57,8 +57,8 @@ curl -X POST http://localhost:3000/apps/myapp \
   -d '{
     "description": "some application description",
     "image": "applicationImage",
-    "environmentName": "env-name",
-    "environmentDescription": "environment description"
+    "envName": "env-name",
+    "envDescription": "environment description"
   }'
 ```
 2. Create entities for a specific application, environment, and entity:

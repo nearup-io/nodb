@@ -12,14 +12,14 @@ import { appNameParamSchema, tokenSchema } from "./common.ts";
 const applicationPostBodySchema = z.object({
   image: z.string().optional(),
   description: z.string().optional(),
-  environmentName: z
+  envName: z
     .string()
     .refine(
       (value) => APPNAME_ENV_NAME_REGEX.test(value ?? ""),
       "Env name must follow hyphenated-url-pattern",
     )
     .optional(),
-  environmentDescription: z.string().optional(),
+  envDescription: z.string().optional(),
 });
 
 const applicationPostResponseSchema = z.object({

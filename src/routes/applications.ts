@@ -40,8 +40,8 @@ application.openapi(applicationPostRoute, async (c) => {
     clerkId: user?.id,
     image: body.image || "",
     appDescription: body.description || "",
-    environmentName: body.environmentName,
-    environmentDescription: body.environmentDescription,
+    environmentName: body.envName,
+    environmentDescription: body.envDescription,
   });
 
   return c.json(application, {
