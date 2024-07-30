@@ -5,7 +5,7 @@ export const Permissions = Object.freeze({
 import chalk from "chalk";
 
 export const APPNAME_MIN_LENGTH = 3;
-export const APPNAME_REGEX = /^([a-z0-9]+-)*[a-z0-9]+$/;
+export const APPNAME_ENV_NAME_REGEX = /^([a-z0-9]+-)*[a-z0-9]+$/;
 export const llms = { anthropic: "anthropic", openai: "openai" };
 
 type OpenAiEmbeddingModels =

@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { createRoute } from "@hono/zod-openapi";
 import { flexibleAuthMiddleware } from "../../middlewares";
-import { APPNAME_MIN_LENGTH, APPNAME_REGEX } from "../../utils/const.ts";
+import {
+  APPNAME_ENV_NAME_REGEX,
+  APPNAME_MIN_LENGTH,
+} from "../../utils/const.ts";
 import { SecuritySchema } from "./security-schemas.ts";
 import { errorSchema } from "./error-schemas.ts";
 import { appNameParamSchema, tokenSchema } from "./common.ts";
@@ -9,7 +12,13 @@ import { appNameParamSchema, tokenSchema } from "./common.ts";
 const applicationPostBodySchema = z.object({
   image: z.string().optional(),
   description: z.string().optional(),
-  environmentName: z.string().optional(),
+  environmentName: z
+    .string()
+    .refine(
+      (value) => APPNAME_ENV_NAME_REGEX.test(value ?? ""),
+      "Env name must follow hyphenated-url-pattern",
+    )
+    .optional(),
   environmentDescription: z.string().optional(),
 });
 
@@ -60,7 +69,7 @@ const applicationPatchBodySchema = z.object({
       `App name must be at least ${APPNAME_MIN_LENGTH} characters long`,
     )
     .refine(
-      (value) => APPNAME_REGEX.test(value ?? ""),
+      (value) => APPNAME_ENV_NAME_REGEX.test(value ?? ""),
       "App name must follow hyphenated-url-pattern",
     )
     .optional(),
@@ -76,7 +85,7 @@ const appNameParamWithValidation = z.object({
       `App name must be at least ${APPNAME_MIN_LENGTH} characters long`,
     )
     .refine(
-      (value) => APPNAME_REGEX.test(value ?? ""),
+      (value) => APPNAME_ENV_NAME_REGEX.test(value ?? ""),
       "App name must follow hyphenated-url-pattern",
     )
     .openapi({

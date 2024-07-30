@@ -8,6 +8,7 @@ import {
   envNameParamSchema,
   tokenSchema,
 } from "./common.ts";
+import { APPNAME_ENV_NAME_REGEX } from "../../utils/const.ts";
 
 const environmentSchema = z.object({
   id: z.string(),
@@ -15,6 +16,23 @@ const environmentSchema = z.object({
   description: z.string().optional(),
   tokens: z.array(tokenSchema),
   entities: z.array(z.string()),
+});
+
+const envNameParamWithSchemaValidation = z.object({
+  envName: z
+    .string()
+    .refine(
+      (value) => APPNAME_ENV_NAME_REGEX.test(value ?? ""),
+      "Env name must follow hyphenated-url-pattern",
+    )
+    .openapi({
+      param: {
+        name: "envName",
+        in: "path",
+      },
+      type: "string",
+      example: "your-env-name",
+    }),
 });
 
 export const environmentGetByNameRoute = createRoute({
@@ -64,7 +82,7 @@ export const environmentPostRoute = createRoute({
   request: {
     params: z.object({
       ...appNameParamSchema.shape,
-      ...envNameParamSchema.shape,
+      ...envNameParamWithSchemaValidation.shape,
     }),
     headers: SecuritySchema,
     body: {
@@ -118,7 +136,13 @@ export const environmentPatchRoute = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            envName: z.string().optional(),
+            envName: z
+              .string()
+              .refine(
+                (value) => APPNAME_ENV_NAME_REGEX.test(value ?? ""),
+                "Env name must follow hyphenated-url-pattern",
+              )
+              .optional(),
             description: z.string().optional(),
           }),
           example: {
@@ -173,7 +197,7 @@ export const environmentDeleteRoute = createRoute({
   },
   responses: {
     200: {
-      description: "Created environment",
+      description: "Deleted environment",
       content: {
         "application/json": {
           schema: z.object({ found: z.boolean() }),
