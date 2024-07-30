@@ -27,7 +27,7 @@ Open-source API gateway for your Postgres database with RAG support, semantic se
 
 5. Build and run the Docker container:
    ```bash
-   docker compose -f .\docker-compose.dev.yml up -d
+   docker compose -f docker-compose.dev.yml up -d
    ```
 The application will be available at `http://localhost:3000`.
 
@@ -57,13 +57,13 @@ curl -X POST http://localhost:3000/apps/myapp \
   -d '{
     "description": "some application description",
     "image": "applicationImage",
-    "environmentName": "environment name",
+    "environmentName": "env-name",
     "environmentDescription": "environment description"
   }'
 ```
 2. Create entities for a specific application, environment, and entity:
 ```bash
-curl -X POST http://localhost:3000/apps/myapp/dev/todos \
+curl -X POST http://localhost:3000/apps/myapp/env-name/todos \
   -H "Content-Type: application/json" \
   -H "token: your-token-here" \
   -d '[
@@ -82,7 +82,7 @@ curl -X POST http://localhost:3000/apps/myapp/dev/todos \
 3. Query your data
 
 ```bash
-curl -X POST http://localhost:3000/knowledgebase/myapp/dev \
+curl -X POST http://localhost:3000/knowledgebase/myapp/env-name \
   -H "Content-Type: application/json" \
   -H "token: your-token-here" \
   -d '{
